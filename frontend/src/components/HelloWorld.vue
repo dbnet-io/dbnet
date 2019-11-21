@@ -34,7 +34,8 @@
         <p></p>
         <v-btn small color="primary" @click="ws_test">Test WS</v-btn>
         <p></p>
-        <p> {{ ws_msg }} </p>
+        <p> {{ $store.hello.msg }} </p>
+        <p> {{ $store.app.name }} </p>
 
         <v-layout justify-center>
           <a
@@ -99,7 +100,7 @@ export default {
       console.log(response)
       self.echo_msg = response.data
     })
-    self.$func.hello(self) // from mixin
+    self.$func.hello() // from mixin
   },
 
   methods: {
@@ -113,9 +114,18 @@ export default {
       this.$send('hello', data1, (data2) => {
         console.log('handler!!')
         console.log(data2)
-        self.ws_msg = data2.msg
-        console.log(self)
+        self.$store.hello.set_msg = data2.msg
       })
+
+      // this.$send('execSQL', {sql: "select * from bank.mint_transactions limit 10"}, (data2) => {
+      //   console.log('SQL!!')
+      //   console.log(data2)
+      //   if(!data2.error) console.log(JSON.parse(data2.records))
+      // })
+
+      // this.$func.get_tables('table')
+
+      this.$func.get_ddl('table_full_name', 'tab_id')
     }
   },
 

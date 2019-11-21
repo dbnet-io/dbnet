@@ -6,19 +6,20 @@ import vuetify from './plugins/vuetify';
 import axios from 'axios'
 import VueAxios from 'vue-axios'
 import VueStash from 'vue-stash';
-import methods from './logic/methods';
 import mixin from './logic/mixin';
 import sockets from './logic/sockets';
 import computed from './logic/computed';
 import store from './logic/store';
+import test_data from './logic/store.test';
 import VueNativeSock from 'vue-native-websocket'
  
+const deepmerge = require('deepmerge');
 
 Vue.config.productionTip = false
 Vue.use(VueStash)
 Vue.use(VueAxios, axios)
 
-Vue.use(methods)
+// Vue.use(methods)
 
 // https://www.npmjs.com/package/vue-native-websocket
 Vue.use(VueNativeSock, `ws://${document.domain}:${location.port}/ws`, {
@@ -36,12 +37,17 @@ window.vm = new Vue({
 
   mounted() {
     let self = this
+
+    // load state
+    Object.keys(test_data).forEach(function(key) {
+      this.$store[key] = deepmerge(this.$store[key], test_data[key]);
+    }, this);
+
+    // Sockets
     this.$options.sockets.onopen = (event) => sockets.onopen(self, event)
     this.$options.sockets.onclose = (event) => sockets.onclose(self, event)
     this.$options.sockets.onerror = (event) => sockets.onerror(self, event)
     this.$options.sockets.onmessage = (event) => sockets.onmessage(self, event)
-    // this.$options.sockets.reconnect = (event) => sockets.reconnect(self, event)
-    // this.$options.sockets.reconnect_error = (event) => sockets.reconnect_error(self, event)
   },
   router,
   data: {

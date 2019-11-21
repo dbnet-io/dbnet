@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	x "github.com/flarco/gxutil"
 	socketio "github.com/googollee/go-socket.io"
 )
 
@@ -47,4 +48,31 @@ func sioServer() *socketio.Server {
 	})
 
 	return server
+}
+
+func runFunc(request Request) Response {
+	response := Response{
+		ReqID: request.ReqID,
+		Data:  map[string]interface{}{},
+	}
+	x.PrintV(request)
+
+	switch request.Name {
+	case "execSQL":
+		{
+			dataJSON, err := execSQL(request.Data["sql"].(string))
+			if err != nil {
+				response.Error = err.Error()
+			} else {
+				response.Data["records"] = dataJSON
+			}
+		}
+	case "hello":
+		{
+			response.Data["msg"] = request.Data["msg"]
+		}
+	}
+
+	x.PrintV(response)
+	return response
 }

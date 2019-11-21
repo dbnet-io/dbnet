@@ -1,36 +1,53 @@
 <template>
-  <v-app>
-    <v-app-bar app>
-      <v-toolbar-title class="headline text-uppercase">
-        <span>Vuetify</span>
-        <span class="font-weight-light">MATERIAL DESIGN</span>
-      </v-toolbar-title>
-      <v-spacer></v-spacer>
-      <v-btn
-        text
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-      >
-        <span class="mr-2">Latest Release</span>
-      </v-btn>
-    </v-app-bar>
-
-    <v-content>
-      <HelloWorld/>
-    </v-content>
-  </v-app>
+  <Container/>
 </template>
 
 <script>
 import HelloWorld from './components/HelloWorld';
+// import SessionPane from './components/SessionPane';
+import Container from './components/Container';
 
 export default {
   name: 'App',
+  mounted() {
+    const self = this
+    
+    window.addEventListener("keyup", function(e) {
+      if( (e.keyCode == 113) ||(e.keyCode == 80 && (e.metaKey || e.ctrlKey))) {
+        document.getElementById('omnibox').focus(); 
+        // preventDefault();
+      }
+    });
+    window.addEventListener("keydown", function(e) {
+      if(e.keyCode == 190 && e.altKey) {
+        let session_id = self.$store.active.session
+        self.$store.sessions[session_id].active_tab = self.$store.sessions[session_id].active_tab + 1
+        self.$store.sessions[session_id].jetable.setData(self.$store.test.jetable.data)
+      }
+    });
+    window.addEventListener("keydown", function(e) {
+      if(e.keyCode == 188 && e.altKey) {
+        let session_id = self.$store.active.session
+        self.$store.sessions[session_id].active_tab = self.$store.sessions[session_id].active_tab - 1
+        self.$store.sessions[session_id].jetable.setData(self.$store.test.jetable.data)
+      }
+    });
+  },
   components: {
+    Container,
     HelloWorld,
+    // SessionPane,
   },
   data: () => ({
     //
   }),
 };
 </script>
+
+
+<style>
+
+.padding-zero {
+  padding: 0px
+}
+</style>

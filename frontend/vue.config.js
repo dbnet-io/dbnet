@@ -1,7 +1,13 @@
 module.exports = {
   "devServer": {
+    disableHostCheck: true,
     proxy: {
       '^/ws': {
+        target: 'http://localhost:9999',
+        ws: true,
+        changeOrigin: true
+      },
+      '^/sockjs-node': {
         target: 'http://localhost:9999',
         ws: true,
         changeOrigin: false

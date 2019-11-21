@@ -15,7 +15,7 @@ var sockets = {
 
   onerror: function(self, event) {
     console.log(`onerror`)
-    console.error(`onerror: ${event}`)
+    console.error(event)
   },
 
   onmessage: function(self, event) {

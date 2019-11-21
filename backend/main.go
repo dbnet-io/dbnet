@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
+	"os"
 
+	x "github.com/flarco/gxutil"
 	"github.com/gobuffalo/packr"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -35,8 +39,19 @@ func main() {
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		println(string(msg))
-		m.Broadcast(msg)
+		var request Request
+		if err := json.Unmarshal(msg, &request); err != nil {
+			x.Check(err, "Could not Unmarshal -> "+string(msg))
+		}
+		response := runFunc(request)
+		responseJSON, _ := json.Marshal(response)
+
+		// m.Broadcast(responseJSON)
+
+		// Return to sender
+		m.BroadcastFilter(responseJSON, func(q *melody.Session) bool {
+			return q.Request.URL.Path == s.Request.URL.Path
+		})
 	})
 
 	staticBox := packr.NewBox("static")
@@ -48,4 +63,31 @@ func main() {
 		return c.String(http.StatusOK, "+ Echo Server!")
 	})
 	e.Logger.Fatal(e.Start(":9999"))
+}
+
+
+func execSQL(sql string) (string, error) {
+	conn := x.Connection{
+		URL: os.Getenv("POSTGRES_URL"),
+	}
+	err := conn.Connect()
+	if err != nil {
+		return "", err
+	}
+
+	data, err := conn.Query(sql)
+	if err != nil {
+		return "", err
+	}
+
+	// x.PrintV(data.Records)
+
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+	err = enc.Encode(data.Records)
+	x.PrintV(buf.String())
+	println()
+
+	return buf.String(), err
+
 }

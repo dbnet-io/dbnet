@@ -25,6 +25,7 @@ var methods = {
 export default {
   // https://vuejs.org/v2/guide/plugins.html
   install: function (Vue, options) {
-    Vue.prototype.$func = methods
+    Vue.prototype.$func2 = methods
+    Vue.prototype.$VV = Vue
   }
 }
