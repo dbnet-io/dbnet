@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"log"
+	"bytes"
+	"encoding/json"
 
-	x "github.com/flarco/gxutil"
+	g "github.com/flarco/gxutil"
 	socketio "github.com/googollee/go-socket.io"
 )
 
@@ -55,7 +58,7 @@ func runFunc(request Request) Response {
 		ReqID: request.ReqID,
 		Data:  map[string]interface{}{},
 	}
-	x.PrintV(request)
+	g.PrintV(request)
 
 	switch request.Name {
 	case "execSQL":
@@ -73,6 +76,31 @@ func runFunc(request Request) Response {
 		}
 	}
 
-	x.PrintV(response)
+	g.PrintV(response)
 	return response
+}
+
+
+func execSQL(sql string) (string, error) {
+	conn := g.GetConn(os.Getenv("POSTGRES_URL"))
+	err := conn.Connect()
+	if err != nil {
+		return "", err
+	}
+
+	data, err := conn.Query(sql)
+	if err != nil {
+		return "", err
+	}
+
+	// g.PrintV(data.Records)
+
+	buf := new(bytes.Buffer)
+	enc := json.NewEncoder(buf)
+	err = enc.Encode(data.Records)
+	g.PrintV(buf.String())
+	println()
+
+	return buf.String(), err
+
 }

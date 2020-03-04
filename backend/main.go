@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
-	"os"
 
-	x "github.com/flarco/gxutil"
+	g "github.com/flarco/gxutil"
 	"github.com/gobuffalo/packr"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -41,7 +39,7 @@ func main() {
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		var request Request
 		if err := json.Unmarshal(msg, &request); err != nil {
-			x.Check(err, "Could not Unmarshal -> "+string(msg))
+			g.Check(err, "Could not Unmarshal -> "+string(msg))
 		}
 		response := runFunc(request)
 		responseJSON, _ := json.Marshal(response)
@@ -66,28 +64,3 @@ func main() {
 }
 
 
-func execSQL(sql string) (string, error) {
-	conn := x.Connection{
-		URL: os.Getenv("POSTGRES_URL"),
-	}
-	err := conn.Connect()
-	if err != nil {
-		return "", err
-	}
-
-	data, err := conn.Query(sql)
-	if err != nil {
-		return "", err
-	}
-
-	// x.PrintV(data.Records)
-
-	buf := new(bytes.Buffer)
-	enc := json.NewEncoder(buf)
-	err = enc.Encode(data.Records)
-	x.PrintV(buf.String())
-	println()
-
-	return buf.String(), err
-
-}
