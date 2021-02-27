@@ -1,6 +1,6 @@
 module main
 
-go 1.13
+go 1.15
 
 require (
 	github.com/aws/aws-sdk-go v1.28.6 // indirect
