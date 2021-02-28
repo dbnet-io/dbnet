@@ -8,12 +8,14 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import 'primereact/resources/primereact.min.css';
 // import 'primereact/resources/themes/saga-blue/theme.css';
+import 'primereact/resources/themes/saga-green/theme.css';
 // import 'primereact/resources/themes/bootstrap4-dark-purple/theme.css';
-import 'primereact/resources/themes/bootstrap4-light-purple/theme.css';
+// import 'primereact/resources/themes/bootstrap4-light-purple/theme.css';
 import 'primeicons/primeicons.css';
-import { ControlPane } from './panes/ControlPane';
-import { WorkPane } from './panes/WorkPane';
+import { LeftPane } from './panes/LeftPane';
+import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
+import { Sessions } from './components/Sessions';
 
 interface Props {}
 interface State {
@@ -170,12 +172,13 @@ export const App = () => {
           <Menubar style={{fontSize: '0.8rem', padding: '0'}} model={items} end={end} />
           
           <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}>
-              <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-                  <ControlPane/>
-              </SplitterPanel>
-              <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-                  <WorkPane/>
-              </SplitterPanel>
+            <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
+              <LeftPane/>
+            </SplitterPanel>
+            <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
+              <RightPane/>
+              {/* <Sessions/> */}
+            </SplitterPanel>
           </Splitter>
       </div>
   );

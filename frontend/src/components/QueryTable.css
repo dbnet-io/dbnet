@@ -1,0 +1,13 @@
+
+.p-datatable-scrollable-header > div > table > thead > tr > th {
+  padding: 5px !important;
+}
+
+.p-datatable-scrollable-body-table > tbody > tr > td {
+  padding: 5px !important;
+}
+
+.p-datatable-scrollable-body-table > tbody > tr {
+  height: 26px !important;
+  max-height: 26px !important;
+}

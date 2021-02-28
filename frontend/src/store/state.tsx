@@ -4,15 +4,187 @@ import { createRef } from "react";
 import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
 import * as React from "react";
+import { new_ts_id } from "../utilities/methods";
 
 
 export const masterToast = createRef<Toast>()
 
 export const history = createBrowserHistory()
 
+export class Tab {
+  id: string
+  name: string
+  query: Query
+  loading: boolean
+  filter: string
+  
+  showSql: boolean
+  pinned: boolean
+  refreshInterval: number
+
+  constructor(data: ObjectAny = {}) {
+    this.id = data.id || new_ts_id('tab')
+    this.name = data.name || ''
+    this.query = new Query(data.query) || new Query()
+    this.filter = data.filter || ''
+    this.loading = data.loading || false
+    
+    this.showSql = data.showSql || true
+    this.pinned = data.pinned || false
+    this.refreshInterval = data.refreshInterval || 0
+  }
+}
+
+export interface Column {
+  id: number
+  name: string
+  type: string
+  length: number | undefined
+  scale: number | undefined
+}
+
+export interface Key {
+  schema: string
+  name: string
+  columns: string[]
+}
+
+export interface Table {
+  schema: string
+  name: string
+  columns?: { [key: string]: Column; }
+  primaryKey?: Key
+  indexes?: Key[]
+}
+
+export interface Schema {
+  name: string
+  tables?: { [key: string]: Table; }
+}
+
+
+export enum ConnType {
+  FileLocal = "local",
+  FileHDFS = "hdfs",
+  FileS3 = "s3",
+  FileAzure = "azure",
+  FileGoogle = "gs",
+  FileSftp = "sftp",
+  FileHTTP = "http",
+
+  DbPostgres = "postgres",
+  DbRedshift = "redshift",
+  DbMySQL = "mysql",
+  DbOracle = "oracle",
+  DbBigQuery = "bigquery",
+  DbSnowflake = "snowflake",
+  DbSQLite = "sqlite",
+  DbSQLServer = "sqlserver",
+  DbAzure = "azuresql",
+  DbAzureDWH = "azuredwh",
+}
+
+
+export enum QueryType {
+  SQL = 'sql',
+  Meta = 'meta'
+}
+
+export class Query {
+  id: string
+  tab: string
+  time: number // epoch milli
+  duration: number // in seconds
+  type: QueryType
+  text: string
+  headers: string[]
+  rows: any[]
+
+  constructor(data: ObjectAny = {}) {
+    this.tab = data.tab
+    this.id = data.id || new_ts_id('query')
+    this.time = data.tme || new Date().getTime()
+    this.duration = data.duration || 0
+    this.type = data.type || QueryType.SQL
+    this.text = data.text || ''
+    this.headers = data.headers || ["name", "name"]
+    this.rows = data.rows || []
+  }
+}
+
+export class Session {
+  conn: Connection
+  tabs: Tab[]
+  selectedTab: string
+  selectedSchemas?: Schema[]
+  selectedSchemaTables?: Table[]
+  selectedMetaTable?: string
+  selectedHistoryId?: Query
+  editor: {
+    height: string
+    text: string
+  }
+
+  constructor(data: ObjectAny = {}) {
+    this.conn = data.conn
+    this.tabs = data.tabs || []
+    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
+    else {this.tabs = this.tabs.map(t => new Tab(t))}
+    this.selectedSchemas = data.selectedSchemas || []
+    this.selectedSchemaTables = data.selectedSchemaTables || []
+    this.selectedTab = data.selectedTab || this.tabs[0].name
+    this.selectedMetaTable = data.selectedMetaTable
+    this.selectedHistoryId = data.selectedHistoryId
+    this.editor = data.editor || {text: ''}
+
+  }
+
+  getTabIndex = (name: string) => {
+    return this.tabs.map(t => t.name).indexOf(name)
+  }
+  getTab = (name: string) => {
+    let index = this.getTabIndex(name)
+    if(index > -1) {
+      return this.tabs[index]
+    }
+    return this.tabs[0]
+  }
+}
+
+export class Connection {
+  name: string
+  type: ConnType
+  data: ObjectString;
+  schemas: { [key: string]: Schema; }
+  history: Query[]
+  lastSession?: Session
+
+  constructor(data: ObjectAny = {}) {
+    this.name = data.name
+    this.type = data.type
+    this.data = data.data
+    this.schemas = data.schemas || {}
+    this.history = data.history || []
+    this.lastSession = data.lastSession
+  }
+}
+
 
 class Store {
-  constructor() {}
+  app: {
+    version: number
+    tableScrollHeight: string
+  }
+  session : Session
+  connections: { [key: string]: Connection; }
+  constructor() {
+    this.app = {
+      version: 0.1,
+      tableScrollHeight: "400px"
+    }
+    this.session = new Session()
+    this.connections = {}
+  }
 }
 
 export const useHookState = useState;

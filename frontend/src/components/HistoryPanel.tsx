@@ -2,7 +2,7 @@ import * as React from "react";
 
 interface Props {}
 
-export const HistoryView: React.FC<Props> = (props) => {
+export const HistoryPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////

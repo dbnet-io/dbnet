@@ -3,7 +3,6 @@ import { Tree } from 'primereact/tree';
 import { toastInfo } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
-import './SchemaTree.css'
 
 interface Props {}
 
@@ -11,7 +10,7 @@ interface Ref {
   current: any
 }
 
-export const SchemaTree: React.FC<Props> = (props) => {
+export const SchemaPanel: React.FC<Props> = (props) => {
   const [nodes, setNodes] = React.useState<any[]>([]);
   const [expandedKeys, setExpandedKeys] = React.useState({});
   const [selectedNodeKey, setSelectedNodeKey] = React.useState<string>('');
@@ -55,7 +54,7 @@ export const SchemaTree: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
   return (
-    <div>
+    <div id='history-panel'>
       <ContextMenu model={menu} ref={cm} onHide={() => setSelectedNodeKey('')}/>
       <Tree
         value={nodes}

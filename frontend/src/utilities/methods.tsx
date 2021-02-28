@@ -46,8 +46,8 @@ export const post_form = function(path : string, params: ObjectString, method='p
   form.submit();
 }
 
-export const new_ts_id = function() {
-  return `${Date.now()}.${rand_str(alpha, 3)}`
+export const new_ts_id = function(prefix='') {
+  return `${prefix}${Date.now()}.${rand_str(alpha, 3)}`
 }
 
 export const rand_str = function(characters : string, length : number) {
