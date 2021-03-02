@@ -1,31 +1,10 @@
-import React, { RefObject, useRef } from 'react';
-import logo from './primereact-logo.png';
-import './App.css';
-import { Menubar } from 'primereact/menubar';
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
-import { Splitter, SplitterPanel } from 'primereact/splitter';
+import * as React from "react";
+import AceEditor from "react-ace";
+import { Tab, useHookState } from "../store/state";
+import { State } from "@hookstate/core";
+import { ContextMenu } from 'primereact/contextmenu';
 
-import 'primereact/resources/primereact.min.css';
-// import 'primereact/resources/themes/saga-blue/theme.css';
-import 'primereact/resources/themes/saga-green/theme.css';
-// import 'primereact/resources/themes/bootstrap4-dark-purple/theme.css';
-// import 'primereact/resources/themes/bootstrap4-light-purple/theme.css';
-import 'primeicons/primeicons.css';
-import { LeftPane } from './panes/LeftPane';
-import { RightPane } from './panes/RightPane';
-import { Toast } from 'primereact/toast';
-import { Sessions } from './components/Sessions';
-import { Websocket } from './store/websocket';
-import { store } from './store/state';
-import { useHookstate } from '@hookstate/core';
-
-interface Props {}
-interface State {
-    count: number;
-}
-
-const items = [
+const contextItems = [
   {
      label:'File',
      icon:'pi pi-fw pi-file',
@@ -149,44 +128,45 @@ const items = [
      ]
   },
   {
+     separator:true
+  },
+  {
      label:'Quit',
      icon:'pi pi-fw pi-power-off'
   }
 ];
 
+export function TabEditor(props: { tab: State<Tab>; }) {
+  const tab = props.tab;
+  const cm = React.useRef(null);
+  const sql = useHookState(tab.query.text);
+  return <div
+    style={{ paddingTop: '6px', display: tab.showSql.get() ? '' : 'none' }}
+    onContextMenu={(e: any) => (cm as any).current.show(e)}
+  >
 
-// this is to extends the window global functions
-declare global {
-  interface Window {
-    toast: RefObject<Toast>
-  }
+    <ContextMenu model={contextItems} ref={cm}></ContextMenu>
+    <AceEditor
+      width="100%"
+      height="300px"
+      mode="pgsql"
+      name="sql-editor"
+      onChange={(v) => sql.set(v)}
+      // fontSize={14}
+      showPrintMargin={true}
+      showGutter={true}
+      // highlightActiveLine={true}
+      value={sql.get()}
+      setOptions={{
+        enableBasicAutocompletion: false,
+        enableLiveAutocompletion: false,
+        enableSnippets: false,
+        showLineNumbers: true,
+        autoScrollEditorIntoView: true,
+        wrap: false,
+        wrapBehavioursEnabled: true,
+        showPrintMargin: false,
+        tabSize: 2,
+      }} />
+  </div>;
 }
-
-export const App = () => {
-  const toast = useRef<Toast>(null);
-  window.toast = toast
-
-  const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
-
-  const end = () => <InputText className="p-inputtext-sm p-md-2" placeholder="Search" type="text" />
-
-  return (
-    <div className="App">
-      <Websocket
-        onMessageType={[[], () => {}]}
-        doRequest={useHookstate(store().ws.doRequest)}
-      />
-      <Menubar style={{fontSize: '0.8rem', padding: '0'}} model={items} end={end} />
-      <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <LeftPane/>
-        </SplitterPanel>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <RightPane/>
-          {/* <Sessions/> */}
-        </SplitterPanel>
-      </Splitter>
-    </div>
-  );
-}
-

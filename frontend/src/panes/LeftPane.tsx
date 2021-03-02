@@ -10,7 +10,7 @@ interface Props {}
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const tabOptions = useHookState<string[]>(['Editor', 'Schema', 'History'])
+  const tabOptions = useHookState<string[]>(['Schema', 'Object', 'History'])
   const tabValue = useHookState(tabOptions.get()[0])
 
   ///////////////////////////  EFFECTS  ///////////////////////////

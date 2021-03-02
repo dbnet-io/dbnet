@@ -5,6 +5,7 @@ import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
 import * as React from "react";
 import { new_ts_id } from "../utilities/methods";
+import { Message } from "./websocket";
 
 
 export const masterToast = createRef<Toast>()
@@ -90,23 +91,33 @@ export enum QueryType {
   Meta = 'meta'
 }
 
+export enum QueryStatus {
+  Completed = 'completed',
+  Running = 'running',
+  Cancelled = 'cancelled'
+}
+
 export class Query {
   id: string
+  conn: string
   tab: string
   time: number // epoch milli
   duration: number // in seconds
+  status: QueryStatus
   type: QueryType
   text: string
   headers: string[]
   rows: any[]
 
   constructor(data: ObjectAny = {}) {
+    this.conn = data.conn
     this.tab = data.tab
     this.id = data.id || new_ts_id('query')
     this.time = data.tme || new Date().getTime()
     this.duration = data.duration || 0
     this.type = data.type || QueryType.SQL
     this.text = data.text || ''
+    this.status = data.status
     this.headers = data.headers || ["name", "name"]
     this.rows = data.rows || []
   }
@@ -128,7 +139,7 @@ export class Session {
   constructor(data: ObjectAny = {}) {
     this.conn = data.conn
     this.tabs = data.tabs || []
-    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
+    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Query 1'})] }
     else {this.tabs = this.tabs.map(t => new Tab(t))}
     this.selectedSchemas = data.selectedSchemas || []
     this.selectedSchemaTables = data.selectedSchemaTables || []
@@ -149,6 +160,8 @@ export class Session {
     }
     return this.tabs[0]
   }
+  currTab = () => this.getTab(this.selectedTab)
+  currTabIndex = () => this.getTabIndex(this.selectedTab)
 }
 
 export class Connection {
@@ -175,12 +188,18 @@ class Store {
     version: number
     tableScrollHeight: string
   }
+  ws: {
+    doRequest: Message
+  }
   session : Session
   connections: { [key: string]: Connection; }
   constructor() {
     this.app = {
       version: 0.1,
       tableScrollHeight: "400px"
+    }
+    this.ws = {
+      doRequest: {} as Message
     }
     this.session = new Session()
     this.connections = {}
@@ -196,6 +215,10 @@ const wrapState = (s: State<Store>) => (s)
 export const accessGlobalState = () => wrapState(globalState)
 export const useGlobalState = () => wrapState(useState(globalState))
 export const store = () => accessGlobalState()
+export const sessionCurrTab = () => {
+  let index = store().session.get().currTabIndex()
+  return store().session.tabs[index]
+}
 
 
 export interface Variable<S> {

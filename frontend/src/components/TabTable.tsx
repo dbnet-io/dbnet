@@ -1,8 +1,7 @@
 import * as React from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { TabMenu } from 'primereact/tabmenu';
-import './QueryTable.css'
+import './TabTable.css'
 import { store, useGlobalState } from "../store/state";
 
 import { State } from "@hookstate/core";
@@ -13,7 +12,7 @@ interface Props {
 }
 
 
-export const QueryTable: React.FC<Props> = React.memo((props) => {
+export const TabTable: React.FC<Props> = React.memo((props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const [customers, setCustomers] = React.useState<any[]>([]);

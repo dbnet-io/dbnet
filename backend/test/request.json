@@ -1,9 +1,0 @@
-{
-  "req_id": 12333241213,
-  "ts_start": 123424142142,
-  "database_url": "",
-  "sql": "select * from housing.my_data",
-  "limit": 5000,
-  "tab_id": "T1",
-  "options": {}
-}
