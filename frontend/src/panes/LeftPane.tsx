@@ -1,17 +1,18 @@
 import * as React from "react";
 import { SelectButton } from "primereact/selectbutton";
-import { useHookState } from "../store/state";
+import { globalState, store, useHookState } from "../store/state";
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
-import { EditorPanel } from "../components/EditorPanel";
+import { MetaTablePanel } from "../components/MetaTablePanel";
 
 interface Props {}
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const tabOptions = useHookState<string[]>(['Schema', 'Object', 'History'])
-  const tabValue = useHookState(tabOptions.get()[0])
+  const tabValue = useHookState(store().session.selectedMetaTab)
+  const objectView = useHookState(globalState.session.objectView)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -35,8 +36,8 @@ export const LeftPane: React.FC<Props> = (props) => {
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
 
           { 
-            tabValue.get() === "Editor" ?
-            <EditorPanel/> : null
+            tabValue.get() === "Object" ?
+            <MetaTablePanel objectView={objectView}/> : null
           }
 
           { 
@@ -50,7 +51,7 @@ export const LeftPane: React.FC<Props> = (props) => {
           }
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <div> Panel 2</div>
+          {/* <div> Panel 2</div> */}
         </SplitterPanel>
       </Splitter>
 

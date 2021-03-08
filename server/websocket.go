@@ -27,6 +27,8 @@ const (
 	MsgTypeGetAnalysisSQL MessageType = "get-analysis-sql"
 	MsgTypeGetHistory     MessageType = "get-history"
 	MsgTypeGetSQLRows     MessageType = "get-sql-rows"
+	MsgTypeLoadSession    MessageType = "load-session"
+	MsgTypeSaveSession    MessageType = "save-session"
 )
 
 // Message is a message
@@ -49,24 +51,28 @@ type WsClient struct {
 	Server      *WsServer
 }
 
+// Handlers are the ws handlers
+var Handlers = map[MessageType]func(msg Message) (respMsg Message){
+	MsgTypeSubmitSQL:      handleSubmitSQL,
+	MsgTypeGetSQLRows:     handleGetSQLRows,
+	MsgTypeCancelSQL:      handleCancelSQL,
+	MsgTypeGetConnections: handleGetConnections,
+	MsgTypeGetSchemas:     handleGetSchemas,
+	MsgTypeGetTables:      handleGetTables,
+	MsgTypeGetColumns:     handleGetColumns,
+	MsgTypeGetAnalysisSQL: handleGetAnalysisSQL,
+	MsgTypeGetHistory:     handleGetHistory,
+	MsgTypeLoadSession:    handleLoadSession,
+	MsgTypeSaveSession:    handleSaveSession,
+}
+
 // NewWsServer creates a websocket server
 func NewWsServer() *WsServer {
-	// handlers
-	handlers := map[MessageType]func(msg Message) (respMsg Message){
-		MsgTypeSubmitSQL:      handleSubmitSQL,
-		MsgTypeGetSQLRows:     handleGetSQLRows,
-		MsgTypeCancelSQL:      handleCancelSQL,
-		MsgTypeGetConnections: handleGetConnections,
-		MsgTypeGetSchemas:     handleGetSchemas,
-		MsgTypeGetTables:      handleGetTables,
-		MsgTypeGetColumns:     handleGetColumns,
-		MsgTypeGetAnalysisSQL: handleGetAnalysisSQL,
-		MsgTypeGetHistory:     handleGetHistory,
-	}
 
 	return &WsServer{
-		Handlers: handlers,
+		Handlers: Handlers,
 		Context:  g.NewContext(context.Background(), 100),
+		Clients:  map[string]*WsClient{},
 	}
 }
 
@@ -75,6 +81,9 @@ func (ws *WsServer) NewClient(c echo.Context) (err error) {
 	ws.Context.Lock()
 	defer ws.Context.Unlock()
 	upgrader := websocket.Upgrader{}
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
 
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {

@@ -1,9 +1,6 @@
 import React, { RefObject, useRef } from 'react';
 import logo from './primereact-logo.png';
 import './App.css';
-import { Menubar } from 'primereact/menubar';
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import 'primereact/resources/primereact.min.css';
@@ -15,169 +12,74 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import { Sessions } from './components/Sessions';
-import { Websocket } from './store/websocket';
-import { store } from './store/state';
-import { useHookstate } from '@hookstate/core';
+import { Message, MsgType, sendWsMsg, Websocket, WsQueue } from './store/websocket';
+import { Query, store, useHookState } from './store/state';
+import { jsonClone, toastError } from './utilities/methods';
+import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
+import _ from "lodash";
+import { TopMenuBar } from './components/TopMenuBar';
 
 interface Props {}
 interface State {
     count: number;
 }
 
-const items = [
-  {
-     label:'File',
-     icon:'pi pi-fw pi-file',
-     items:[
-        {
-           label:'New',
-           icon:'pi pi-fw pi-plus',
-           items:[
-              {
-                 label:'Bookmark',
-                 icon:'pi pi-fw pi-bookmark'
-              },
-              {
-                 label:'Video',
-                 icon:'pi pi-fw pi-video'
-              },
-
-           ]
-        },
-        {
-           label:'Delete',
-           icon:'pi pi-fw pi-trash'
-        },
-        {
-           separator:true
-        },
-        {
-           label:'Export',
-           icon:'pi pi-fw pi-external-link'
-        }
-     ]
-  },
-  {
-     label:'Edit',
-     icon:'pi pi-fw pi-pencil',
-     items:[
-        {
-           label:'Left',
-           icon:'pi pi-fw pi-align-left'
-        },
-        {
-           label:'Right',
-           icon:'pi pi-fw pi-align-right'
-        },
-        {
-           label:'Center',
-           icon:'pi pi-fw pi-align-center'
-        },
-        {
-           label:'Justify',
-           icon:'pi pi-fw pi-align-justify'
-        },
-
-     ]
-  },
-  {
-     label:'Users',
-     icon:'pi pi-fw pi-user',
-     items:[
-        {
-           label:'New',
-           icon:'pi pi-fw pi-user-plus',
-
-        },
-        {
-           label:'Delete',
-           icon:'pi pi-fw pi-user-minus',
-
-        },
-        {
-           label:'Search',
-           icon:'pi pi-fw pi-users',
-           items:[
-              {
-                 label:'Filter',
-                 icon:'pi pi-fw pi-filter',
-                 items:[
-                    {
-                       label:'Print',
-                       icon:'pi pi-fw pi-print'
-                    }
-                 ]
-              },
-              {
-                 icon:'pi pi-fw pi-bars',
-                 label:'List'
-              }
-           ]
-        }
-     ]
-  },
-  {
-     label:'Events',
-     icon:'pi pi-fw pi-calendar',
-     items:[
-        {
-           label:'Edit',
-           icon:'pi pi-fw pi-pencil',
-           items:[
-              {
-                 label:'Save',
-                 icon:'pi pi-fw pi-calendar-plus'
-              },
-              {
-                 label:'Delete',
-                 icon:'pi pi-fw pi-calendar-minus'
-              },
-
-           ]
-        },
-        {
-           label:'Archieve',
-           icon:'pi pi-fw pi-calendar-times',
-           items:[
-              {
-                 label:'Remove',
-                 icon:'pi pi-fw pi-calendar-minus'
-              }
-           ]
-        }
-     ]
-  },
-  {
-     label:'Quit',
-     icon:'pi pi-fw pi-power-off'
-  }
-];
-
 
 // this is to extends the window global functions
 declare global {
   interface Window {
     toast: RefObject<Toast>
+    table: JSpreadsheet
+    callbacks: ObjectAny
+    queue: WsQueue
   }
 }
 
 export const App = () => {
   const toast = useRef<Toast>(null);
   window.toast = toast
-
+  window.queue = { receive: [], send: [] }
+  window.table = useRef<JSpreadsheet>(null).current as JSpreadsheet;
+  window.callbacks = {}
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
+  ///////////////////////////  HOOKS  ///////////////////////////
+  ///////////////////////////  EFFECTS  ///////////////////////////
 
-  const end = () => <InputText className="p-inputtext-sm p-md-2" placeholder="Search" type="text" />
+  React.useEffect(()=> {
+    // init load session
+
+    // get all schema objects
+    let data = {
+      conn: store().session.conn.name.get(),
+      callback: loadSchemata,
+    }
+    sendWsMsg(new Message(MsgType.GetSchemata, data))
+  }, [])
+  ///////////////////////////  FUNCTIONS  ///////////////////////////
+  const refresh = () => store().session.selectedTabId.set(jsonClone(store().session.selectedTabId.get()))
+  const debounceRefresh = _.debounce(() => refresh(), 400)
+
+  const onMsgTypes = [MsgType.SubmitSQL, MsgType.GetSQLRows]
+  const handleMsg = (msg: Message) => {}
+  const loadSchemata = (msg: Message) => {
+    if(msg.error) { return toastError(msg.error) }
+
+  }
+
+  ///////////////////////////  JSX  ///////////////////////////
+
+
+
+
 
   return (
     <div className="App">
+      <Toast ref={toast}/>
       <Websocket
-        onMessageType={[[], () => {}]}
-        doRequest={useHookstate(store().ws.doRequest)}
+        onMessageType={[onMsgTypes, handleMsg]}
       />
-      <Menubar style={{fontSize: '0.8rem', padding: '0'}} model={items} end={end} />
-      <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}>
+      <TopMenuBar/>
+      <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh() }>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
           <LeftPane/>
         </SplitterPanel>

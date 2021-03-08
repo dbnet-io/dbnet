@@ -5,36 +5,40 @@ import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
 import { TabTable } from "../components/TabTable";
 import { useHookstate } from "@hookstate/core";
-import {  useGlobalState } from "../store/state";
+import {  globalState, store } from "../store/state";
+import { jsonClone } from "../utilities/methods";
 
 interface Props {}
 
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
 
+  const tabId = useHookstate(globalState.session.selectedTabId)
   ///////////////////////////  EFFECTS  ///////////////////////////
+
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
 
   const TabPanel = () => {
-    const state = useGlobalState()
-    const tabName = state.session.selectedTab.get()
-    const tabIndex = state.session.get().getTabIndex(tabName)
-    const tab = state.session.tabs[tabIndex]
+    const tabIndex = store().session.tabs.get().map(t => t.id).indexOf(tabId.get()) || 0
+    const tabs = useHookstate(globalState.session.tabs)
+    const tab = tabs[tabIndex]
 
     return (
-      <Splitter id="work-pane" layout="vertical">
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "hidden", height: "200px", minHeight:"110px"}}>
+      <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
+        <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "scroll", height: "200px", minHeight:"110px"}}>
           <div id="work-input">
             <TabNames/>
             <TabEditor tab={tab}/>
           </div>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "scroll", height: "200px", minHeight:"100px"}}>
-          <div>
+          <div id='result-panel'>
             
-          <TabToolbar tab={tab}/>
-          <TabTable loading={tab.loading} headers={tab.query.headers} rows={tab.query.rows}/>
+            <TabToolbar tab={tab}/>
+            <TabTable 
+              tab={tab}
+            />
           </div>
         </SplitterPanel>
       </Splitter>

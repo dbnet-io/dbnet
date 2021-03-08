@@ -76,3 +76,30 @@
     padding-top: 0px;
     padding-bottom: 0px;
  }
+
+ #tab-table > div.jexcel_content > table > tbody > tr {
+    white-space: nowrap;
+ }
+
+ #tab-table > div.jexcel_content > table > tbody > tr > td {
+    height:23px;
+    max-height:23px;
+    /* line-height: 0; */
+    overflow:hidden;
+    word-wrap:break-word;
+    white-space: nowrap;
+ }
+
+ #limit-input {
+  max-width: 90px;
+ }
+
+ #limit-input > span {
+  font-size: 12px !important;
+  font-family: monospace !important;
+ }
+
+ #limit-input li {
+  font-size: 12px !important;
+  font-family: monospace !important;
+ }

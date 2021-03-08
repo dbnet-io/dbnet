@@ -6,18 +6,104 @@ import { createBrowserHistory } from "history";
 import * as React from "react";
 import { new_ts_id } from "../utilities/methods";
 import { Message } from "./websocket";
+import { Range } from "ace-builds";
 
 
 export const masterToast = createRef<Toast>()
 
 export const history = createBrowserHistory()
 
+export class Editor {
+  text: string
+  selection: number[] // startRow, startCol, endRow, endCol
+  constructor(data: ObjectAny = {}) {
+    this.text = data.text || 'select * from housing.landwatch2'
+    this.selection = data.selection || [0,0,0,0]
+  }
+
+  lines = () => {
+    return this.text.split('\n')
+  }
+
+  getBlock = () => {
+    let block = ''
+    let lines = this.lines()
+    let lineI = this.selection[0]
+    let line = lines[lineI]
+    let pos = this.selection[1]
+
+    let i = pos
+    let l = lineI
+    while (true) {
+      if(i >= line.length) {
+        if(l >= lines.length-1) {
+          break
+        }
+        l++
+        i = 0
+        block += '\n'
+      }
+
+      line = lines[l]
+      const char = line[i]
+      if(char === ';') { break }
+      if(char) { block += char }
+      i++
+    }
+
+    i = pos-1
+    l = lineI
+    line = lines[l]
+    while (true) {
+      if(i < 0) {
+        if(l <= 0) {
+          break
+        }
+        l--
+        line = lines[l]
+        i = line.length-1
+        block = '\n' + block
+      }
+
+      const char = line[i]
+      if(char === ';') { break }
+      if(char)  { block = char + block }
+      i--
+    }
+
+    return block
+  }
+
+  getWord = () => {
+    let word = ''
+    let lines = this.lines()
+    let line = lines[this.selection[0]]
+    let pos = this.selection[1]
+
+    for (let i = pos; i < line.length; i++) {
+      const char = line[i];
+      if(char === ' ' || char === '\t') { break }
+      else {  word += char }
+    }
+
+    for (let i = pos-1; i >= 0; i--) {
+      const char = line[i];
+      if(char === ' ' || char === '\t') { break }
+      else {  word = char + word }
+    }
+
+    return word
+  }
+}
+
 export class Tab {
   id: string
   name: string
+  editor: Editor
   query: Query
   loading: boolean
   filter: string
+  limit: number
   
   showSql: boolean
   pinned: boolean
@@ -26,8 +112,10 @@ export class Tab {
   constructor(data: ObjectAny = {}) {
     this.id = data.id || new_ts_id('tab')
     this.name = data.name || ''
+    this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
+    this.limit = data.filter || 100
     this.loading = data.loading || false
     
     this.showSql = data.showSql || true
@@ -92,6 +180,7 @@ export enum QueryType {
 }
 
 export enum QueryStatus {
+  Fetched = 'fetched',
   Completed = 'completed',
   Running = 'running',
   Cancelled = 'cancelled'
@@ -118,50 +207,83 @@ export class Query {
     this.type = data.type || QueryType.SQL
     this.text = data.text || ''
     this.status = data.status
-    this.headers = data.headers || ["name", "name"]
+    this.headers = data.headers || []
     this.rows = data.rows || []
   }
 }
 
+export interface MetaTableRow {
+  column_name: string
+  column_type: string
+  length?: number
+  precision?: number
+  scale?: number
+}
+
+export class MetaTable {
+  name: string
+  rows: MetaTableRow[]
+  selected: any
+  search: string
+  loading: boolean
+  constructor(data: ObjectAny = {}) {
+    this.name = data.name
+    this.search = data.search || ''
+    this.rows = data.rows || []
+    this.selected = data.selected || null
+    this.loading = data.loading || false
+  }
+}
+
+export class SchemaView {}
+export class HistoryView {}
+
 export class Session {
   conn: Connection
   tabs: Tab[]
-  selectedTab: string
-  selectedSchemas?: Schema[]
+  selectedMetaTab: string
+  selectedTabId: string
+  selectedSchema?: Schema
   selectedSchemaTables?: Table[]
   selectedMetaTable?: string
   selectedHistoryId?: Query
-  editor: {
-    height: string
-    text: string
-  }
+  objectView: MetaTable
+  schemaView: SchemaView
+  historyView: HistoryView
 
   constructor(data: ObjectAny = {}) {
-    this.conn = data.conn
+    this.conn = new Connection(data.conn)
     this.tabs = data.tabs || []
     if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Query 1'})] }
     else {this.tabs = this.tabs.map(t => new Tab(t))}
-    this.selectedSchemas = data.selectedSchemas || []
+    this.selectedSchema = data.selectedSchema
     this.selectedSchemaTables = data.selectedSchemaTables || []
-    this.selectedTab = data.selectedTab || this.tabs[0].name
+    this.selectedTabId = data.selectedTab || this.tabs[0].id
+    this.selectedMetaTab = data.selectedMetaTab || 'Schema'
     this.selectedMetaTable = data.selectedMetaTable
     this.selectedHistoryId = data.selectedHistoryId
-    this.editor = data.editor || {text: ''}
+    this.objectView = new MetaTable()
+    this.schemaView = new SchemaView()
+    this.historyView = new HistoryView()
 
   }
 
-  getTabIndex = (name: string) => {
+  getTabIndexByID = (id: string) => {
+    return this.tabs.map(t => t.id).indexOf(id)
+  }
+  getTabIndexByName = (name: string) => {
     return this.tabs.map(t => t.name).indexOf(name)
   }
-  getTab = (name: string) => {
-    let index = this.getTabIndex(name)
+
+  getTab = (id: string) => {
+    let index = this.getTabIndexByID(id)
     if(index > -1) {
       return this.tabs[index]
     }
     return this.tabs[0]
   }
-  currTab = () => this.getTab(this.selectedTab)
-  currTabIndex = () => this.getTabIndex(this.selectedTab)
+  currTab = () => this.getTab(this.selectedTabId)
+  currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
 }
 
 export class Connection {
@@ -173,7 +295,7 @@ export class Connection {
   lastSession?: Session
 
   constructor(data: ObjectAny = {}) {
-    this.name = data.name
+    this.name = data.name || 'PG_BIONIC_URL'
     this.type = data.type
     this.data = data.data
     this.schemas = data.schemas || {}
@@ -186,20 +308,28 @@ export class Connection {
 class Store {
   app: {
     version: number
-    tableScrollHeight: string
+    tableHeight: number
+    tableWidth: number
   }
   ws: {
     doRequest: Message
+    queue: {
+      received: any[],
+    }
   }
   session : Session
   connections: { [key: string]: Connection; }
   constructor() {
     this.app = {
       version: 0.1,
-      tableScrollHeight: "400px"
+      tableHeight: 1100,
+      tableWidth: 1100,
     }
     this.ws = {
-      doRequest: {} as Message
+      doRequest: {} as Message,
+      queue: {
+        received: [],
+      }
     }
     this.session = new Session()
     this.connections = {}

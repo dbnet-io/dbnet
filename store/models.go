@@ -24,10 +24,10 @@ type TableColumn struct {
 	SchemaName  string    `json:"schema_name" gorm:"primaryKey"`
 	TableName   string    `json:"table_name" gorm:"primaryKey"`
 	Name        string    `json:"name" gorm:"primaryKey"`
-	ID          string    `json:"id"`
+	ID          int       `json:"id"`
 	Type        string    `json:"type"`
-	Scale       int       `json:"scale"`
 	Precision   int       `json:"precision"`
+	Scale       int       `json:"scale"`
 	NumRows     int64     `json:"num_rows"`
 	NumDistinct int64     `json:"num_distinct"`
 	NumNulls    int64     `json:"num_nulls"`
@@ -48,14 +48,14 @@ type Query struct {
 	Context   g.Context       `json:"-" gorm:"-"`
 	Result    *sqlx.Rows      `json:"-" gorm:"-"`
 	Columns   []iop.Column    `json:"-" gorm:"-"`
-	UpdatedDt time.Time       `json:"updated_dt" gorm:"autoUpdateTime"`
+	UpdatedDt time.Time       `json:"-" gorm:"autoUpdateTime"`
 }
 
 // Session represents a connection session
 type Session struct {
 	Conn      string    `gorm:"primaryKey"`
 	Name      string    `gorm:"primaryKey"`
-	Data      g.Map     `json:"data" gorm:"type:jsonb not null default '{}'::jsonb"`
+	Data      g.Map     `json:"data" gorm:"type:json not null default '{}'"`
 	CreatedDt time.Time `json:"created_dt" gorm:"autoCreateTime"`
 	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }

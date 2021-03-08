@@ -10,6 +10,7 @@ import (
 
 // Server is the main server
 type Server struct {
+	Port       string
 	EchoServer *echo.Echo
 	WsServer   *WsServer
 	StartTime  time.Time
@@ -44,6 +45,7 @@ func NewServer() *Server {
 
 	e.GET(RouteWs.String(), wsServer.NewClient)
 	return &Server{
+		Port:       "5987",
 		EchoServer: e,
 		WsServer:   wsServer,
 		StartTime:  time.Now(),

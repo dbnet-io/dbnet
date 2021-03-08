@@ -76,7 +76,7 @@ export const title_case = function(str : string) {
   return str.replace(/(^|\s)\S/g, function(t) { return t.toUpperCase() });
 }
 
-export const data_req_to_records = function(data: RecordsData){
+export const data_req_to_records = function(data: any){
   let records : any[] = []
   if(data == null || Object.keys(data).length === 0 || data.rows.length === 0 || data.headers.length === 0) return records
 
@@ -284,4 +284,14 @@ export function IsValid(obj: any) {
 
 export function IsValidDate(obj: any) {
   return Object.keys(obj).length !== 0 && obj.toLocaleString() !== 'Invalid Date'
+}
+
+export function copyToClipboard(text: string) {
+  var textField = document.createElement('textarea')
+  textField.value = text
+  document.body.appendChild(textField)
+  textField.select()
+  document.execCommand('copy')
+  textField.remove()
+  toastInfo('Copied to clipboard')
 }
