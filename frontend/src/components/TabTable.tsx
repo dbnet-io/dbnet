@@ -2,16 +2,18 @@ import * as React from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import './TabTable.css'
-import { globalState, Query, QueryStatus, store, Tab } from "../store/state";
-import { State, useHookstate } from "@hookstate/core";
+import { Session, Query, QueryStatus, store, Tab } from "../store/state";
+import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
 import { jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { jsOptions, JSpreadsheet, ObjectAny } from "../utilities/interfaces";
 import { Message, MsgType } from "../store/websocket";
+import { useState } from "@hookstate/core";
 import _ from "lodash";
 const jspreadsheet = require("jspreadsheet-ce");
 
 interface Props {
+  session: State<Session>
   tab: State<Tab>
 }
 
@@ -76,8 +78,8 @@ export const TabTable: React.FC<Props> = React.memo((props) => {
     tableWidth: props.tab.query.rows.length == 0 || !resultWidth || resultWidth < 400 ? `400px` : `${resultWidth-6}px`,
     // tableWidth: '100%',
   })
-  const tabs = useHookstate(globalState.session.tabs)
-  const selectedTab = useHookstate(globalState.session.selectedTabId)
+  const tabs = useState(props.session.tabs)
+  const selectedTab = useState(props.session.selectedTabId)
  
   ///////////////////////////  EFFECTS  ///////////////////////////
   // React.useEffect(() => {
@@ -100,6 +102,10 @@ export const TabTable: React.FC<Props> = React.memo((props) => {
   //   return () => element?.removeEventListener('scroll', scrollFunc)
 
   // }, [])
+
+  React.useEffect(() => {
+    console.log('TabTable')
+  }, [])
 
   React.useEffect(() => {
     

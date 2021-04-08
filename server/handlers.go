@@ -300,7 +300,7 @@ func handleSubmitSQL(msg Message) (respMsg Message) {
 	}
 
 	query.Duration = time.Since(start).Seconds()
-	query.Headers = iop.Columns(data.Columns).Fields()
+	query.Headers = data.Columns.Names()
 	query.Rows = data.Rows
 
 	respMsg = net.NewMessage(msg.Type, g.ToMap(query), msg.ReqID)

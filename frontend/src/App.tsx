@@ -1,5 +1,4 @@
 import React, { RefObject, useRef } from 'react';
-import logo from './primereact-logo.png';
 import './App.css';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
@@ -13,11 +12,12 @@ import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { Message, MsgType, sendWsMsg, Websocket, WsQueue } from './store/websocket';
-import { Query, store, useHookState } from './store/state';
+import { globalState, Query, store, useHookState } from './store/state';
 import { jsonClone, toastError } from './utilities/methods';
 import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
+import { useState } from "@hookstate/core";
 
 interface Props {}
 interface State {
@@ -42,6 +42,8 @@ export const App = () => {
   window.table = useRef<JSpreadsheet>(null).current as JSpreadsheet;
   window.callbacks = {}
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
+  const session = useState(globalState.session)
+  const ws = useState(globalState.ws)
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
 
@@ -50,17 +52,14 @@ export const App = () => {
 
     // get all schema objects
     let data = {
-      conn: store().session.conn.name.get(),
+      conn: session.conn.name.get(),
       callback: loadSchemata,
     }
     sendWsMsg(new Message(MsgType.GetSchemata, data))
   }, [])
   ///////////////////////////  FUNCTIONS  ///////////////////////////
-  const refresh = () => store().session.selectedTabId.set(jsonClone(store().session.selectedTabId.get()))
+  const refresh = () => session.selectedTabId.set(jsonClone(session.selectedTabId.get()))
   const debounceRefresh = _.debounce(() => refresh(), 400)
-
-  const onMsgTypes = [MsgType.SubmitSQL, MsgType.GetSQLRows]
-  const handleMsg = (msg: Message) => {}
   const loadSchemata = (msg: Message) => {
     if(msg.error) { return toastError(msg.error) }
 
@@ -68,23 +67,17 @@ export const App = () => {
 
   ///////////////////////////  JSX  ///////////////////////////
 
-
-
-
-
   return (
     <div className="App">
       <Toast ref={toast}/>
-      <Websocket
-        onMessageType={[onMsgTypes, handleMsg]}
-      />
+      <Websocket ws={ws}/>
       <TopMenuBar/>
       <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh() }>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <LeftPane/>
+          <LeftPane session={session}/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <RightPane/>
+          <RightPane session={session}/>
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>

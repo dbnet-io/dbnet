@@ -4,9 +4,9 @@ import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import * as React from "react";
-import { MetaTable, store, useHookState, useVariable } from "../store/state";
+import { MetaTable, Session, store, useHookState, useVariable } from "../store/state";
 import _ from "lodash";
-import { State } from "@hookstate/core";
+import { State, useState } from "@hookstate/core";
 import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, split_schema_table, toastError, toastInfo } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
@@ -14,7 +14,7 @@ import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 
 interface Props {
-  objectView: State<MetaTable>
+  session: State<Session>
 }
 
 export const loadMetaTable = (tableName: string) => {
@@ -93,8 +93,9 @@ const Search = (props : { search : State<string>}) => {
 
 export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const objectView = props.objectView
+  const objectView = useState(props.session.objectView)
   const selected = useVariable<any[]>([])
+  const filter = useVariable('');
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -115,20 +116,25 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   return (
     <>
-      <Search search={props.objectView.search}/>
+      {/* <Search search={props.objectView.search}/> */}
       {/* <h3>{ objectView.name.get() }</h3>  */}
-      <div className="p-inputgroup">
+      <p>
         <span
-          className="p-inputgroup-addon"
           style={{fontFamily: 'monospace', fontSize: '16px', backgroundColor: 'white', color:'blue'}}
           onDoubleClick={() => { copyToClipboard(objectView.name.get()) }}
         >
           <strong>{objectView.name.get()}</strong>
+          <a onClick={(e) => {copyToClipboard(objectView.name.get())}}>
+            <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
+          </a>
         </span>
+        </p>
+
+      <div className="p-inputgroup">
         <Button
           icon="pi pi-copy"
           tooltip="Copy fields names"
-          tooltipOptions={{ position: 'top' }}
+          tooltipOptions={{ position: 'right' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
             let cols = getSelectedColsOrAll()
@@ -143,7 +149,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           onClick={(e) => {
             let cols = getSelectedColsOrAll()
             let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectView.name.get()}\n;`
-            let tab = createTab(store().session, objectView.name.get(), sql)
+            let tab = createTab(props.session, objectView.name.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -157,7 +163,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
                 .map(c => `count(${c}) cnt_${c}`)
             let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
             let sql = `select\n  count(*) cnt${colsCntStr}\nfrom ${objectView.name.get()}\n;`
-            let tab = createTab(store().session, objectView.name.get(), sql)
+            let tab = createTab(props.session, objectView.name.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -168,10 +174,20 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-danger"
           onClick={(e) => {
             let sql = `drop table ${objectView.name.get()}\n;`
-            let tab = createTab(store().session, objectView.name.get(), sql)
+            let tab = createTab(props.session, objectView.name.get(), sql)
           }}
         />
       </div>
+
+      <div>
+        <InputText
+          value={filter.get()}
+          onChange={(e) => filter.set((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => { if(e.key === 'Escape') { filter.set('') } }}
+          placeholder="Search..."
+        />
+      </div>
+
       <DataTable
         value={objectView.get().rows}
         loading={objectView.loading.get()}
@@ -184,6 +200,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         selection={selected.get()}
         onSelectionChange={e => selected.set(e.value)} 
         dataKey="column_name"
+        globalFilter={filter.get()}
       >
         <Column selectionMode="multiple" headerStyle={{width: '3em'}}></Column>
         <Column field="id" header="#" headerStyle={{width: '3em', textAlign: 'center'}} bodyStyle={{textAlign:"center"}}/>

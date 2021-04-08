@@ -4,11 +4,14 @@ import { data_req_to_records, jsonClone, toastError, toastInfo } from "../utilit
 import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
 import { ListBox } from 'primereact/listbox';
-import { Schema, store, Table, useHookState, useVariable } from "../store/state";
+import { Schema, Session, store, Table, useHookState, useVariable } from "../store/state";
 import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
+import { State, useState } from "@hookstate/core";
 
-interface Props {}
+interface Props {
+  session: State<Session>
+}
 
 interface Ref {
   current: any
@@ -20,8 +23,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const [expandedKeys, setExpandedKeys] = React.useState({});
   const [selectedNodeKey, setSelectedNodeKey] = React.useState<string>('');
   const cm = React.useRef<ContextMenu>(null);
-  const session = store().session
-  const schemas = useHookState(session.conn.schemas)
+
+  const session = useHookState(props.session)
+  const schemas = useHookState(props.session.conn.schemas)
   const selectedSchema = useVariable<Schema>({} as Schema)
   const schemaOptions = useHookState<Schema[]>([])
   const selectedTables = useVariable<Table[]>([])
@@ -62,33 +66,46 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(()=>{
-    let schemasMap = session.conn.schemas.get()
     let schemaName = selectedSchema.get().name
-    if(schemaName in schemasMap) {
-      let schema =  schemasMap[schemaName]
-      if(schema.tables) {
+    if(schemaName in schemas.get()) {
+      let schema =  schemas.get()[schemaName]
+      if(schema.tables && Object.keys(schema.tables).length > 0) {
         tableOptions.set(Object.values(schema.tables))
       } 
       GetTables(session.conn.name.get(), selectedSchema.get().name) // refresh anyways
     }
-    session.selectedSchema.set(jsonClone<Schema>(selectedSchema.get()))
   },[selectedSchema.get()])
-  
+
   React.useEffect(()=>{
     // init load
-    if(session.selectedSchema.get()) {
-      selectedSchema.set(jsonClone<Schema>(session.selectedSchema.get()))
-    }
-    // if(session.selectedSchemaTables) {
-    //   selectedTables.set(jsonClone<Table[]>(session.selectedSchemaTables.get()))
-    // }
 
     // load schemaOptions
     if(Object.keys(schemas.get()).length > 0) {
       schemaOptions.set(Object.values(schemas.get()))
     }
+
+    if(session.selectedSchema.get() && Object.keys(schemas.get()).length > 0) {
+      console.log(jsonClone<Schema>(session.selectedSchema.get()))
+      selectedSchema.set(jsonClone<Schema>(session.selectedSchema.get()))
+    }
+
+    // if(session.selectedSchemaTables) {
+    //   selectedTables.set(jsonClone<Table[]>(session.selectedSchemaTables.get()))
+    // }
     GetSchemas(session.conn.name.get())
   },[])
+  
+  React.useEffect(()=>{
+    schemaOptions.set(Object.values(schemas.get()))
+    
+    // let schemaName = selectedSchema.get().name
+    // let schema = schemas.get()[schemaName]
+    // if(schema) {
+    //   let tables = schema.tables
+    //   if(tables) { tableOptions.set(Object.values(tables)) }
+    // }
+  },[schemas.get()])
+  
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
@@ -98,10 +115,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       callback: (msg: Message) => {
         if(msg.error) { return toastError(msg.error) }
         let rows = data_req_to_records(msg.data)
-        let schemas : { [key: string]: Schema; } = {}
-        rows.map(r => schemas[r.schema_name] = {name: r.schema_name})
-        session.conn.schemas.set(schemas)
-        schemaOptions.set(Object.values(schemas))
+        let schemas_ : { [key: string]: Schema; } = {}
+        rows.map(r => schemas_[r.schema_name] = {name: r.schema_name})
+        schemas.set(schemas_)
       }
     }
     sendWsMsg(new Message(MsgType.GetSchemas, data))
@@ -113,15 +129,11 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       conn: connName,
       schema: schemaName,
       callback: (msg: Message) => {
-        if(msg.error) { 
-          toastError(msg.error)
-          return 
-        }
+        if(msg.error) { return toastError(msg.error) }
         let rows = data_req_to_records(msg.data)
         let tables : { [key: string]: Table; } = {}
         rows.map(r => tables[r.name] = {schema: schemaName, name: r.name})
-        session.conn.schemas[schemaName].tables.set(tables)
-        tableOptions.set(Object.values(tables))
+        schemas[schemaName].tables.set(tables)
       }
     }
     sendWsMsg(new Message(MsgType.GetTables, data))
@@ -142,6 +154,48 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     )
   }
 
+  const SchemaList = (props : { options: State<Schema[]> }) => {
+    const options = useHookState(props.options)
+    return (
+      <ListBox
+        filter
+        value={selectedSchema.get()}
+        options={ options.get() }
+        onChange={(e) => {
+          if(!e.value) { return }
+          selectedSchema.set(e.value)
+          session.selectedSchema.set(jsonClone<Schema>(e.value))
+        }}
+        optionLabel="name"
+        // itemTemplate={countryTemplate}
+        style={{width: '100%', maxHeight: '200px'}}
+        listStyle={{minHeight:'150px', maxHeight: '150px'}}
+      />
+    )
+  }
+
+  const TableList = (props : { options: State<Table[]> }) => {
+    const options = useHookState(props.options)
+    return (
+      <ListBox
+        multiple
+        filter
+        value={selectedTables.get()}
+        options={ options.get() }
+        onChange={(e) => {
+          if(!e.value) { return }
+          selectedTables.set(e.value)
+          session.selectedSchemaTables.set(jsonClone<Table[]>(e.value))
+        }}
+        metaKeySelection={true}
+        optionLabel="name"
+        itemTemplate={tableItemTemplate}
+        style={{width: '100%', maxHeight: '200px'}}
+        listStyle={{minHeight:'150px', maxHeight: '150px'}}
+      />
+    )
+  }
+
   return (
     <div id='history-panel'>
       <ContextMenu model={menu} ref={cm} onHide={() => setSelectedNodeKey('')}/>
@@ -159,29 +213,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         }}
       /> */}
       <h4 style={{textAlign:'center'}}>Schemas</h4>
-      <ListBox
-        filter
-        value={selectedSchema.get()}
-        options={ schemaOptions.get() }
-        onChange={(e) => selectedSchema.set(e.value)}
-        optionLabel="name"
-        // itemTemplate={countryTemplate}
-        style={{width: '100%', maxHeight: '200px'}}
-        listStyle={{minHeight:'150px', maxHeight: '150px'}}
-      />
+      <SchemaList options={schemaOptions}/>
       <h4 style={{textAlign:'center'}}>Tables</h4>
-      <ListBox
-        multiple
-        filter
-        value={selectedTables.get()}
-        options={ tableOptions.get() }
-        onChange={(e) => selectedTables.set(e.value)}
-        metaKeySelection={true}
-        optionLabel="name"
-        itemTemplate={tableItemTemplate}
-        style={{width: '100%', maxHeight: '200px'}}
-        listStyle={{minHeight:'150px', maxHeight: '150px'}}
-      />
+      <TableList options={tableOptions}/>
     </div>
   );
 };

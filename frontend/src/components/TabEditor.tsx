@@ -143,7 +143,7 @@ const contextItems = [
 ];
 
 export function TabEditor(props: { tab: State<Tab>; }) {
-  const tab = props.tab;
+  const tab = useHookState(props.tab)
   const cm = React.useRef(null);
   const sql = useHookState(tab.editor.text);
   // const editorHeight = sql.get().split('\n').length*15

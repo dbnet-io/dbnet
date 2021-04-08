@@ -1,9 +1,9 @@
-import { State, useHookstate } from '@hookstate/core';
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { State, useHookstate, useState } from '@hookstate/core';
+import React, { useCallback, useMemo, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
 import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/methods';
-import { globalState, store } from './state';
+import { store, Ws } from './state';
 
 export const sendWsMsg = (msg : Message) => {
   store().ws.doRequest.set(msg)
@@ -50,7 +50,7 @@ export class Message {
 }
 
 interface Props {
-  onMessageType: [MsgType[], (msg: Message) => void]
+  ws: State<Ws>
 }
 
 const socketOptions = {
@@ -66,8 +66,7 @@ const socketOptions = {
 const socketUrl = 'ws://localhost:5987/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
-  const doRequest = useHookstate(globalState.ws.doRequest)
-  const messageHistory = useRef([]);
+  const doRequest = useState(props.ws.doRequest)
 
   const {
     sendMessage,
@@ -75,9 +74,6 @@ export const Websocket: React.FC<Props> = (props) => {
     readyState,
   } = useWebSocket(socketUrl, socketOptions);
 
-  messageHistory.current = useMemo(
-    () => messageHistory.current.concat(lastJsonMessage)
-  ,[lastJsonMessage]);
 
   const handleMsg = () => {
     let msg = lastJsonMessage as Message
@@ -85,11 +81,7 @@ export const Websocket: React.FC<Props> = (props) => {
       window.callbacks[msg.orig_req_id](msg)
       delete window.callbacks[msg.orig_req_id]
     }
-    if(msg && msg.type && props.onMessageType[0].includes(msg.type)) {
-      props.onMessageType[1](msg)
-    }
-    store().ws.queue.received.set(r => r.concat([msg]))
-    // console.log(store().ws.queue.received.length)
+    // window.queue.receive.push(msg)
   };
 
   const connectionStatus = {

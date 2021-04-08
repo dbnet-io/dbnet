@@ -1,5 +1,5 @@
 import * as React from "react";
-import { globalState, Session, sessionCurrTab, store, Tab, useGlobalState, useHookState } from "../store/state";
+import { Session, store, Tab, useHookState } from "../store/state";
 import { SelectButton } from "primereact/selectbutton";
 import { State } from "@hookstate/core";
 
@@ -26,12 +26,15 @@ export const createTab = (session: State<Session>, name: string = '', sql = '') 
   session.selectedTabId.set(newTab.id);
   return session.tabs[session.tabs.length-1]
 }
+interface Props {
+  session: State<Session>
+}
 
-export function TabNames() {
+export const TabNames: React.FC<Props> = (props) => {
 
-  const tabs = useHookState(globalState.session.tabs)
+  const tabs = useHookState(props.session.tabs)
   const tabOptions = tabs.get().map(t => t.name);
-  const selectedTabId = useHookState(globalState.session.selectedTabId)
+  const selectedTabId = useHookState(props.session.selectedTabId)
   const optionTemplate = (option: string) => {
     let icon = '';
     if (option === 'del') { icon = 'pi pi-times'; }

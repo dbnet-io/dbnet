@@ -295,12 +295,19 @@ export class Connection {
   lastSession?: Session
 
   constructor(data: ObjectAny = {}) {
-    this.name = data.name || 'PG_BIONIC_URL'
+    this.name = data.name || 'PRIMARY_DATABASE_URL'
     this.type = data.type
     this.data = data.data
     this.schemas = data.schemas || {}
     this.history = data.history || []
     this.lastSession = data.lastSession
+  }
+}
+
+export interface Ws {
+  doRequest: Message
+  queue: {
+    received: any[],
   }
 }
 
@@ -311,12 +318,7 @@ class Store {
     tableHeight: number
     tableWidth: number
   }
-  ws: {
-    doRequest: Message
-    queue: {
-      received: any[],
-    }
-  }
+  ws: Ws
   session : Session
   connections: { [key: string]: Connection; }
   constructor() {
