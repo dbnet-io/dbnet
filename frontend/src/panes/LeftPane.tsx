@@ -7,9 +7,11 @@ import { SchemaPanel } from "../components/SchemaPanel";
 import { MetaTablePanel } from "../components/MetaTablePanel";
 import { State, useState } from "@hookstate/core";
 
+
 interface Props {
   session: State<Session>
 }
+
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -24,7 +26,7 @@ export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   return (
-    <div className="p-grid p-fluid">
+    <div className="p-grid p-fluid" style={{padding:'10px', border:'3px'}}>
       <div className="p-col-12 p-md-4">
         <SelectButton
           value={tabValue.get()}

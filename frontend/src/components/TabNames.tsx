@@ -2,6 +2,8 @@ import * as React from "react";
 import { Session, store, Tab, useHookState } from "../store/state";
 import { SelectButton } from "primereact/selectbutton";
 import { State } from "@hookstate/core";
+import { Inplace, InplaceDisplay, InplaceContent } from 'primereact/inplace';
+import { InputText } from "primereact/inputtext";
 
 export const createTab = (session: State<Session>, name: string = '', sql = '') => {
   let index = session.get().getTabIndexByName(name)
@@ -40,7 +42,19 @@ export const TabNames: React.FC<Props> = (props) => {
     if (option === 'del') { icon = 'pi pi-times'; }
     if (option === 'add') { icon = 'pi pi-plus'; }
     if (icon) { return <i className={icon}></i>; }
-    else { return option; }
+    return option
+    return (
+      <>
+        <Inplace closable>
+          <InplaceDisplay>
+              {option}
+          </InplaceDisplay>
+          <InplaceContent>
+              <InputText value={option} onChange={(e:any) => console.log(e.target.value)} autoFocus width={10} />
+          </InplaceContent>
+        </Inplace>
+      </>
+    )
   };
 
 

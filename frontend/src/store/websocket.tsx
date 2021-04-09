@@ -3,7 +3,7 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
 import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/methods';
-import { store, Ws } from './state';
+import { globalState, store, Ws } from './state';
 
 export const sendWsMsg = (msg : Message) => {
   store().ws.doRequest.set(msg)
@@ -49,9 +49,7 @@ export class Message {
   }
 }
 
-interface Props {
-  ws: State<Ws>
-}
+interface Props {}
 
 const socketOptions = {
   share: true,
@@ -66,7 +64,8 @@ const socketOptions = {
 const socketUrl = 'ws://localhost:5987/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
-  const doRequest = useState(props.ws.doRequest)
+  const ws = useState(globalState.ws)
+  const doRequest = useState(ws.doRequest)
 
   const {
     sendMessage,

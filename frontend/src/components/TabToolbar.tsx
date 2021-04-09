@@ -5,7 +5,7 @@ import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
 import { Message, MsgType } from "../store/websocket";
 import _ from "lodash";
-import { jsonClone, toastError } from "../utilities/methods";
+import { jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 
@@ -34,6 +34,7 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
         toastError(msg.error)
         return tab_.loading.set(false)
       }
+      toastInfo('received!')
       
       let query = msg.data as Query
       let index = session.get().getTabIndexByID(query.tab)

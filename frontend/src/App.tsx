@@ -68,11 +68,13 @@ export const App = () => {
   ///////////////////////////  JSX  ///////////////////////////
 
   return (
-    <div className="App">
+    <div className="App" style={{backgroundColor: '#d3d3d3'}}>
       <Toast ref={toast}/>
-      <Websocket ws={ws}/>
-      <TopMenuBar/>
-      <Splitter style={{height: splitterHeight}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh() }>
+      <Websocket/>
+      <div style={{paddingBottom: '10px'}}>
+        <TopMenuBar/>
+      </div>
+      <Splitter style={{height: splitterHeight, marginLeft: '5px'}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
           <LeftPane session={session}/>
         </SplitterPanel>

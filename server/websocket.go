@@ -21,6 +21,7 @@ const (
 	MsgTypeSubmitSQL      MessageType = "submit-sql"
 	MsgTypeCancelSQL      MessageType = "cancel-sql"
 	MsgTypeGetConnections MessageType = "get-connections"
+	MsgTypeGetSchemata    MessageType = "get-schemata"
 	MsgTypeGetSchemas     MessageType = "get-schemas"
 	MsgTypeGetTables      MessageType = "get-tables"
 	MsgTypeGetColumns     MessageType = "get-columns"

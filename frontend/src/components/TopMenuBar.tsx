@@ -2,10 +2,11 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
+import { MenuItem } from "primereact/components/menuitem/MenuItem";
 
 interface Props {}
 
-const items = [
+const items : MenuItem[] = [
   {
      label:'File',
      icon:'pi pi-fw pi-file',
@@ -130,7 +131,8 @@ const items = [
   },
   {
      label:'Quit',
-     icon:'pi pi-fw pi-power-off'
+     icon:'pi pi-fw pi-power-off',
+     command: () => { console.log('hello')},
   }
 ];
 
@@ -141,9 +143,16 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
 
+  const start = () => <img 
+    alt="logo"
+    src={'assets/logo-brand.png'}
+    height="30"
+    className="p-mr-2"
+    style={{paddingLeft:"20px"}}
+  ></img>
   const end = () => <InputText className="p-inputtext-sm p-md-2" placeholder="Search" type="text" />
 
   return (
-    <Menubar style={{fontSize: '0.8rem', padding: '0'}} model={items} end={end} />
+    <Menubar style={{fontSize: '0.8rem', padding: '0'}} model={items} start={start} end={end} />
   );
 };
