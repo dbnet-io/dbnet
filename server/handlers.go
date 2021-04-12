@@ -71,7 +71,7 @@ func FetchRows(q *store.Query, limit int) (data iop.Dataset, err error) {
 
 	nextFunc := func(it *iop.Iterator) bool {
 		if limit > 0 && it.Counter >= cast.ToUint64(limit) {
-			q.Status = "fetched"
+			q.Status = store.QueryStatusFetched
 			return false
 		}
 
@@ -92,7 +92,7 @@ func FetchRows(q *store.Query, limit int) (data iop.Dataset, err error) {
 			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration"))
 		}
 
-		q.Status = "completed"
+		q.Status = store.QueryStatusCompleted
 		return false
 	}
 
@@ -164,10 +164,10 @@ func GetConn(name string) (c *Connection, err error) {
 	return
 }
 
-// InitConn should:
+// LoadSchemata should:
 // 1. load all schemas
 // 2. load all objects in each schema
-func InitConn(connName string) (err error) {
+func LoadSchemata(connName string) (err error) {
 
 	c, err := GetConn(connName)
 	if err != nil {
@@ -183,6 +183,7 @@ func InitConn(connName string) (err error) {
 
 	for _, r := range s.Rows {
 		schemaName := cast.ToString(r[0])
+		g.Info("loading schema " + schemaName)
 		schema, err := c.DbConn.GetSchemaObjects(schemaName)
 		if err != nil {
 			err = g.Error("could not get schema %s", schemaName)
@@ -264,8 +265,13 @@ func handleSubmitSQL(msg Message) (respMsg Message) {
 	Sync("queries", query)
 	query.Result, err = c.DbConn.Db().QueryxContext(query.Context.Ctx, query.Text)
 	if err != nil {
+		query.Status = store.QueryStatusErrorred
+		query.Err = g.ErrMsg(err)
+		query.Duration = time.Since(start).Seconds()
+		Sync("queries", query)
+		respMsg = net.NewMessage(msg.Type, g.ToMap(query), msg.ReqID)
 		err = g.Error(err, "could not execute query")
-		return net.NewMessageErr(err, msg.ReqID)
+		return respMsg
 	}
 
 	colTypes, err := query.Result.ColumnTypes()
@@ -375,7 +381,7 @@ func handleCancelSQL(msg Message) (respMsg Message) {
 	q.Context.Cancel()
 	q.Result.Close()
 
-	query.Status = "cancelled"
+	query.Status = store.QueryStatusCancelled
 	query.Rows = nil
 	Sync("queries", query, "status")
 
@@ -404,6 +410,43 @@ func handleGetSchemas(msg Message) (respMsg Message) {
 
 	rf := func(c *Connection, req Request) (iop.Dataset, error) {
 		return c.DbConn.GetSchemas()
+	}
+
+	data, err := ProcessRequest(msg, rf)
+	if err != nil {
+		err = g.Error(err, "could not get schemas")
+		return net.NewMessageErr(err, msg.ReqID)
+	}
+
+	return net.NewMessage(msg.Type, data.ToJSONMap(), msg.ReqID)
+}
+
+// handleGetAllSchemaTables returns a list of schemas, tables for a connection
+func handleGetAllSchemaTables(msg Message) (respMsg Message) {
+
+	rf := func(c *Connection, req Request) (iop.Dataset, error) {
+		err := LoadSchemata(req.Conn)
+		if err != nil {
+			return iop.Dataset{}, g.Error(err, "could not get schemata")
+		}
+
+		schemaTables := []store.SchemaTable{}
+		err = store.Db.Where("conn = ?", req.Conn).
+			Order("schema_name, table_name").
+			Find(&schemaTables).Error
+		if err != nil {
+			return iop.Dataset{}, g.Error(err, "could not query schemata")
+		}
+
+		columns := []string{"schema_name", "table_name", "is_view"}
+		data := iop.NewDataset(iop.NewColumnsFromFields(columns...))
+
+		for _, schemaTable := range schemaTables {
+			row := []interface{}{schemaTable.SchemaName, schemaTable.TableName, schemaTable.IsView}
+			data.Rows = append(data.Rows, row)
+		}
+
+		return data, nil
 	}
 
 	data, err := ProcessRequest(msg, rf)

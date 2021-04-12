@@ -1,4 +1,4 @@
-import { State, useHookstate, useState } from '@hookstate/core';
+import { State, useHookstate, useState, none } from '@hookstate/core';
 import React, { useCallback, useMemo, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
@@ -6,7 +6,8 @@ import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/method
 import { globalState, store, Ws } from './state';
 
 export const sendWsMsg = (msg : Message) => {
-  store().ws.doRequest.set(msg)
+  window.queue.send.push(msg)
+  store().ws.doRequest.set(v => v+1)
 }
 
 export interface WsQueue {
@@ -80,7 +81,6 @@ export const Websocket: React.FC<Props> = (props) => {
       window.callbacks[msg.orig_req_id](msg)
       delete window.callbacks[msg.orig_req_id]
     }
-    // window.queue.receive.push(msg)
   };
 
   const connectionStatus = {
@@ -97,31 +97,40 @@ export const Websocket: React.FC<Props> = (props) => {
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useMemo(handleMsg, [lastJsonMessage]);
   React.useEffect(() => {
+    ws.connected.set(connected)
     if(connected) {
-      while(window.queue.send.length > 0) {
-        let msg = window.queue.send.shift()
-        if(msg) { sendWsMsg(msg) }
-      }
+      store().ws.doRequest.set(v => v+1)
     }
   }, [connected])
 
   React.useMemo(() => {
-    if(!doRequest || Object.keys(doRequest).length === 0) { return }
-    let req = doRequest.get()
+    let queue : Message[] = []
 
-    if(!connected) { 
-      console.log('queuing '+req.req_id)
-      window.queue.send.push(jsonClone<Message>(req))
-      return
-    }
-
-    if(req && req.type) { 
-      if(req.callback) { 
-        window.callbacks[req.req_id] = req.callback
+    const send = (req: Message) => { 
+      if(!connected) { 
+        console.log('queuing '+req.req_id)
+        queue.push(req)
+        return
       }
-      sendMessage(JSON.stringify(req))
-      doRequest.set({} as Message)
+
+      if(req && req.type) { 
+        if(req.callback) { 
+          window.callbacks[req.req_id] = req.callback
+          console.log(window.callbacks)
+        }
+        sendMessage(JSON.stringify(req))
+      }
     }
+
+    while (window.queue.send.length > 0) {
+      let msg = window.queue.send.shift()
+      if(msg) send(msg)
+    }
+
+    for(let msg of queue) {
+      window.queue.send.push(msg)
+    }
+
   }, [doRequest.get()])
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////

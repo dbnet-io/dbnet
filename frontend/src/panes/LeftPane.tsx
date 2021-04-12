@@ -26,7 +26,7 @@ export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   return (
-    <div className="p-grid p-fluid" style={{padding:'10px', border:'3px'}}>
+    <div className="p-grid p-fluid" style={{padding:'8px', border:'3px'}}>
       <div className="p-col-12 p-md-4">
         <SelectButton
           value={tabValue.get()}

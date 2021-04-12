@@ -58,6 +58,7 @@ var Handlers = map[MessageType]func(msg Message) (respMsg Message){
 	MsgTypeGetSQLRows:     handleGetSQLRows,
 	MsgTypeCancelSQL:      handleCancelSQL,
 	MsgTypeGetConnections: handleGetConnections,
+	MsgTypeGetSchemata:    handleGetAllSchemaTables,
 	MsgTypeGetSchemas:     handleGetSchemas,
 	MsgTypeGetTables:      handleGetTables,
 	MsgTypeGetColumns:     handleGetColumns,

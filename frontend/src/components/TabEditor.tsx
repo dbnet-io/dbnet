@@ -1,6 +1,6 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
-import { Ace, Range } from "ace-builds";
+import { Ace, Range, UndoManager } from "ace-builds";
 import { Tab, useHookState } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
@@ -9,6 +9,7 @@ import "ace-builds/src-noconflict/theme-textmate";
 import { toastInfo } from "../utilities/methods";
 import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
+import ace from "react-ace";
 
 const contextItems = [
   {
@@ -148,6 +149,14 @@ export function TabEditor(props: { tab: State<Tab>; }) {
   const sql = useHookState(tab.editor.text);
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
+
+  React.useEffect(()=>{
+    return () => {
+      // save session & history
+      // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
+    }
+  },[])
+
   
   const commands : ICommand[] = [
     {
@@ -185,7 +194,7 @@ export function TabEditor(props: { tab: State<Tab>; }) {
     <AceEditor
       width="100%"
       // height={ !editorHeight || editorHeight < 400 ? '400px' : `${editorHeight}px` }
-      height={ editorHeight ? `${editorHeight-40}px` : '200px' }
+      height={ editorHeight ? `${editorHeight-56}px` : '1000px' }
       // height={ '200px' }
       mode="pgsql"
       name="sql-editor"
@@ -198,7 +207,12 @@ export function TabEditor(props: { tab: State<Tab>; }) {
       value={sql.get()}
       commands={commands}
       onLoad={(editor: Ace.Editor) => {
+        toastInfo('editor onLoad')
         let selection = tab.editor.selection.get()
+        // let undoManager = editor.session.getUndoManager() as any
+        // undoManager.$undoStack = tab.editor.undoManager.get()
+        // editor.session.setUndoManager(undoManager)
+
         editor.selection.setRange(new Range(
           selection[0], selection[1],
           selection[2], selection[3],

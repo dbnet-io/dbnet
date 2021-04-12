@@ -16,9 +16,12 @@ export const history = createBrowserHistory()
 export class Editor {
   text: string
   selection: number[] // startRow, startCol, endRow, endCol
+  undoManager: any
+
   constructor(data: ObjectAny = {}) {
     this.text = data.text || 'select * from housing.landwatch2'
     this.selection = data.selection || [0,0,0,0]
+    this.undoManager = data.undoManager || {}
   }
 
   lines = () => {
@@ -96,6 +99,12 @@ export class Editor {
   }
 }
 
+export interface RowView {
+  show: boolean
+  filter: string
+  rows: {n:number, name: string, value: any}[]
+}
+
 export class Tab {
   id: string
   name: string
@@ -105,9 +114,12 @@ export class Tab {
   filter: string
   limit: number
   
+  rowView: RowView
   showSql: boolean
+  showText: boolean
   pinned: boolean
   refreshInterval: number
+  lastTableSelection: number[] // r1,c1,r2,c22
 
   constructor(data: ObjectAny = {}) {
     this.id = data.id || new_ts_id('tab')
@@ -118,9 +130,12 @@ export class Tab {
     this.limit = data.filter || 100
     this.loading = data.loading || false
     
+    this.rowView = data.rowView || {show: false, rows:[], filter: ''}
     this.showSql = data.showSql || true
+    this.showText = data.showText || false
     this.pinned = data.pinned || false
     this.refreshInterval = data.refreshInterval || 0
+    this.lastTableSelection = data.lastTableSelection || [0,0,0,0]
   }
 }
 
@@ -148,7 +163,7 @@ export interface Table {
 
 export interface Schema {
   name: string
-  tables?: { [key: string]: Table; }
+  tables: { [key: string]: Table; }
 }
 
 
@@ -195,6 +210,7 @@ export class Query {
   status: QueryStatus
   type: QueryType
   text: string
+  err: string
   headers: string[]
   rows: any[]
 
@@ -206,10 +222,22 @@ export class Query {
     this.duration = data.duration || 0
     this.type = data.type || QueryType.SQL
     this.text = data.text || ''
+    this.err = data.err || ''
     this.status = data.status
     this.headers = data.headers || []
     this.rows = data.rows || []
   }
+
+  getRowData = (n: number) => {
+    if (this.rows.length === 0) { return []}
+    let row = this.rows[n]
+    let data : {n: number, name: string, value: any}[] = []
+    for (let i = 0; i < this.headers.length; i++) {
+      data.push({n: i+1, name: this.headers[i], value: row[i]})
+    }
+    return data
+  }
+
 }
 
 export interface MetaTableRow {
@@ -226,12 +254,15 @@ export class MetaTable {
   selected: any
   search: string
   loading: boolean
+  show: boolean
+  
   constructor(data: ObjectAny = {}) {
     this.name = data.name
     this.search = data.search || ''
     this.rows = data.rows || []
     this.selected = data.selected || null
     this.loading = data.loading || false
+    this.show = data.show || false
   }
 }
 
@@ -254,7 +285,7 @@ export class Session {
   constructor(data: ObjectAny = {}) {
     this.conn = new Connection(data.conn)
     this.tabs = data.tabs || []
-    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Query 1'})] }
+    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
     else {this.tabs = this.tabs.map(t => new Tab(t))}
     this.selectedSchema = data.selectedSchema
     this.selectedSchemaTables = data.selectedSchemaTables || []
@@ -305,7 +336,8 @@ export class Connection {
 }
 
 export interface Ws {
-  doRequest: Message
+  doRequest: number
+  connected: boolean
   queue: {
     received: any[],
   }
@@ -317,6 +349,7 @@ class Store {
     version: number
     tableHeight: number
     tableWidth: number
+    omniSearch: string
   }
   ws: Ws
   session : Session
@@ -326,9 +359,11 @@ class Store {
       version: 0.1,
       tableHeight: 1100,
       tableWidth: 1100,
+      omniSearch: '',
     }
     this.ws = {
-      doRequest: {} as Message,
+      doRequest: 0,
+      connected: false,
       queue: {
         received: [],
       }

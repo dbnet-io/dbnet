@@ -15,11 +15,6 @@ interface Props {
   session: State<Session>
 }
 
-interface Ref {
-  current: any
-}
-
-
 export const SchemaPanel: React.FC<Props> = (props) => {
   const [nodes, setNodes] = React.useState<any[]>([]);
   const [expandedKeys, setExpandedKeys] = React.useState({});
@@ -27,13 +22,15 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const cm = React.useRef<ContextMenu>(null);
 
   const session = useHookState(props.session)
-  const selectedMetaTab = useHookState(session.selectedMetaTab)
+  const selectedMetaTab = session.selectedMetaTab
   const schemas = useHookState(props.session.conn.schemas)
   const selectedSchema = useVariable<Schema>({} as Schema)
   const schemaOptions = useHookState<Schema[]>([])
   const selectedTables = useVariable<Table[]>([])
   const tableOptions = useHookState<Table[]>([])
   const loading = useHookState(false)
+  const preview = useHookState(session.objectView)
+  const schemaFilter = useHookState('')
 
   const menu = [
       {
@@ -96,10 +93,10 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       // FocusNode(document.getElementById("schema-list")?.children[0]?.children[0]?.children, `${session.selectedSchema.get()?.name}`)
     }
 
-    if(session.selectedSchemaTables.get()) {
+    let st = session.selectedSchemaTables.get()
+    if(st && st.length > 0) {
       selectedTables.set(jsonClone<Table[]>(session.selectedSchemaTables.get()))
     }
-    GetSchemas(session.conn.name.get())
   },[])
   
   React.useEffect(()=>{
@@ -125,13 +122,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         if(msg.error) { return toastError(msg.error) }
         let rows = data_req_to_records(msg.data)
         let schemas_ : { [key: string]: Schema; } = {}
-        rows.map(r => schemas_[r.schema_name] = {name: r.schema_name})
+        rows.map(r => schemas_[r.schema_name] = {name: r.schema_name, tables: {}})
         for(let key of Object.keys(schemas_)) {
           if (key in schemas.get()) {
             schemas_[key].tables = jsonClone(schemas.get()[key].tables || {})
           }
         }
         schemas.set(schemas_)
+        store().session.conn.schemas.set(schemas_)
       }
     }
     sendWsMsg(new Message(MsgType.GetSchemas, data))
@@ -175,7 +173,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const tableItemTemplate = (table: Table) => {
     return (
       <div
+        onClick={(e) => { 
+          loadMetaTable(`${table.schema}.${table.name}`) 
+          selectedMetaTab.set('Object')
+          // preview.name.set(`${table.schema}.${table.name}`)
+          // preview.show.set(true)
+        }}
         onDoubleClick={(e) => { 
+          console.log(`${table.schema}.${table.name}`)
           loadMetaTable(`${table.schema}.${table.name}`) 
           selectedMetaTab.set('Object')
         }}
@@ -228,6 +233,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     )
   }
 
+  const omniKeyPress = (e: any) =>{
+    // omni search
+    if(e.key === 'Escape') { 
+      schemaFilter.set('')
+    }
+  }
+
   return (
     <div id='history-panel'>
       <ContextMenu model={menu} ref={cm} onHide={() => setSelectedNodeKey('')}/>
@@ -248,8 +260,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       <h4 style={{textAlign:'center', margin: '9px'}}>Schemas</h4>
       <div className="p-col-12" style={{paddingBottom:'10px'}}>
         <div className="p-inputgroup">
-          <InputText placeholder="Filters...">
-          </InputText>
+          <InputText
+            id="schema-filter"
+            placeholder="Filters..."
+            value={schemaFilter.get()}
+            onChange={(e:any) => { schemaFilter.set(e.target.value) }}
+            onKeyDown={omniKeyPress}
+          />
           <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => GetSchemas(session.conn.name.get())}/>
         </div>
       </div>
@@ -257,6 +274,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
       <h4 style={{textAlign:'center', margin: '9px'}}>Tables</h4>
       <TableList options={tableOptions}/>
+
     </div>
   );
 };

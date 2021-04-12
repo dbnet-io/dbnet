@@ -10,11 +10,11 @@ import (
 
 // SchemaTable represent a schema table/view
 type SchemaTable struct {
-	Conn       string `gorm:"primaryKey"`
-	SchemaName string `gorm:"primaryKey"`
-	TableName  string `gorm:"primaryKey"`
-	IsView     bool
-	NumRows    int64
+	Conn       string    `json:"conn" gorm:"primaryKey"`
+	SchemaName string    `json:"schema_name" gorm:"primaryKey"`
+	TableName  string    `json:"table_name" gorm:"primaryKey"`
+	IsView     bool      `json:"is_view"`
+	NumRows    int64     `json:"num_rows"`
 	UpdatedDt  time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
 
@@ -34,6 +34,13 @@ type TableColumn struct {
 	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
 
+type QueryStatus string
+
+const QueryStatusCompleted QueryStatus = "completed"
+const QueryStatusFetched QueryStatus = "fetched"
+const QueryStatusCancelled QueryStatus = "cancelled"
+const QueryStatusErrorred QueryStatus = "errorred"
+
 // Query represents a query
 type Query struct {
 	ID        string          `json:"id" gorm:"primaryKey"`
@@ -42,7 +49,8 @@ type Query struct {
 	Text      string          `json:"text"`
 	Time      int64           `json:"time"`
 	Duration  float64         `json:"duration"`
-	Status    string          `json:"status"`
+	Status    QueryStatus     `json:"status"`
+	Err       string          `json:"err"`
 	Headers   []string        `json:"headers" gorm:"-"`
 	Rows      [][]interface{} `json:"rows" gorm:"-"`
 	Context   g.Context       `json:"-" gorm:"-"`

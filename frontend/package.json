@@ -1,5 +1,5 @@
 {
-  "name": "primereact-typescript-quickstart",
+  "name": "scruto",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -28,9 +28,10 @@
     "jspreadsheet-ce": "^4.6.3",
     "lodash": "^4.17.15",
     "node-sass": "4.14.1",
+    "prettytable": "^0.3.1",
     "primeflex": "2.0.0",
     "primeicons": "4.0.0",
-    "primereact": "6.0.2",
+    "primereact": "6.2.1",
     "prismjs": "^1.15.0",
     "react": "^17.0.1",
     "react-ace": "^9.2.1",

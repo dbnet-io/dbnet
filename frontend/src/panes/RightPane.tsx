@@ -29,13 +29,13 @@ export const RightPane: React.FC<Props> = (props) => {
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "scroll", height: "200px", minHeight:"110px"}}>
-          <div id="work-input">
+          <div id="work-input" style={{padding: '8px'}}>
             <TabNames session={props.session}/>
             <TabEditor tab={tab}/>
           </div>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "scroll", height: "200px", minHeight:"100px"}}>
-          <div id='result-panel'>
+          <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px'}}>
             
             <TabToolbar tab={tab}/>
             <TabTable session={props.session} tab={tab}/>

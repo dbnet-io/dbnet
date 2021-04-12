@@ -14,7 +14,7 @@ var (
 	dbx *sqlx.DB
 
 	// DropAll signifies to drop all tables and recreate them
-	DropAll = true
+	DropAll = false
 )
 
 // InitDB initializes the database

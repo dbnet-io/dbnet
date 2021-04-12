@@ -3,9 +3,9 @@ import { Query, store, Tab, useHookState } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
-import { Message, MsgType } from "../store/websocket";
+import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import _ from "lodash";
-import { jsonClone, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 
@@ -32,17 +32,18 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
     callback: (msg: Message) => {
       if(msg.error) { 
         toastError(msg.error)
+        tab_.query.err.set(msg.error)
         return tab_.loading.set(false)
       }
-      toastInfo('received!')
       
-      let query = msg.data as Query
+      let query = new Query(msg.data)
       let index = session.get().getTabIndexByID(query.tab)
       let tab = session.tabs[index]
       tab.set(
         t => {
           t.query = query
           t.query.duration = Math.round(query.duration*100)/100
+          t.rowView.rows = query.getRowData(0)
           t.loading = false
           return t
         }
@@ -50,7 +51,12 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
       store().session.selectedTabId.set(jsonClone(store().session.selectedTabId.get())) // to refresh
     }
   }
-  store().ws.doRequest.set(new Message(MsgType.SubmitSQL, data))
+  sendWsMsg(new Message(MsgType.SubmitSQL, data))
+  tab.query.time.set(new Date().getTime())
+  tab.lastTableSelection.set([0, 0, 0, 0])
+  tab.query.rows.set([])
+  tab.query.headers.set([])
+  tab.query.err.set('')
   tab.loading.set(true);
 }
 
@@ -61,7 +67,7 @@ export function TabToolbar(props: { tab: State<Tab>; }) {
   const localFilter = useHookState(tab.filter.get() ? jsonClone<string>(tab.filter.get()):'')
 
   return (
-    <div id='query-toolbar' className="p-grid" style={{ paddingTop: '3px', paddingLeft: '4px', paddingRight: '4px' }}>
+    <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
       <div className="p-col-12">
         <div className="work-buttons p-inputgroup" style={{ fontFamily: 'monospace' }}>
           <Button
@@ -92,10 +98,39 @@ export function TabToolbar(props: { tab: State<Tab>; }) {
               maxLength={50}
             />
 
-          <Button icon="pi pi-clock" className="p-button-sm p-button-outlined p-button-secondary" tooltip="Refresh results @ interval" tooltipOptions={{ position: 'top' }} />
+          <Button
+            icon="pi pi-clock"
+            className="p-button-sm p-button-outlined p-button-secondary"
+            tooltip="Refresh results @ interval"
+            tooltipOptions={{ position: 'top' }}
+          />
 
-          <Button icon="pi pi-search-plus" tooltip="Row Viewer" className="p-button-sm p-button-outlined p-button-secondary" tooltipOptions={{ position: 'top' }} />
-          <Button label="Text" className="p-button-sm p-button-outlined p-button-secondary" tooltip="Show as text" tooltipOptions={{ position: 'top' }} />
+          <Button
+            icon="pi pi-search-plus"
+            tooltip="Row Viewer"
+            className={
+              tab.rowView.show.get() ?
+              "p-button-sm p-button-secondary"
+              :
+              "p-button-sm p-button-outlined p-button-secondary"
+            }
+            tooltipOptions={{ position: 'top' }}
+            onClick={() => { tab.rowView.show.set(true) }}
+          />
+
+          <Button
+            label="Text"
+            className={
+              tab.showText.get() ?
+              "p-button-sm p-button-secondary"
+              :
+              "p-button-sm p-button-outlined p-button-secondary"
+            }
+            tooltip="Show as text"
+            tooltipOptions={{ position: 'top' }}
+            onClick={() => {tab.showText.set(v => !v)}}
+          />
+
           <InputText
             id="table-filter"
             className="p-inputtext-sm"
@@ -109,9 +144,46 @@ export function TabToolbar(props: { tab: State<Tab>; }) {
               setFilter(filter, newVal)
             }} />
 
-          <Button label="Headers" className="p-button-sm p-button-outlined p-button-secondary" tooltip="Copy Headers" tooltipOptions={{ position: 'top' }} />
-          <Button icon="pi pi-copy" className="p-button-sm p-button-outlined p-button-secondary" tooltip="Copy to clipboard" tooltipOptions={{ position: 'top' }} />
-          <Button icon="pi pi-file-excel" className="p-button-sm p-button-outlined p-button-secondary" tooltip="Export to CSV or Excel" tooltipOptions={{ position: 'top' }} />
+          <Button
+            label="Headers"
+            className="p-button-sm p-button-outlined p-button-secondary"
+            tooltip="Copy headers"
+            tooltipOptions={{ position: 'top' }}
+            onClick={()=>{copyToClipboard(tab.query.headers.get().join('\n'))}}
+          />
+
+          <Button
+            icon="pi pi-copy"
+            className="p-button-sm p-button-outlined p-button-secondary"
+            tooltip="Copy data"
+            tooltipOptions={{ position: 'top' }}
+            onClick={()=>{
+              let data = []
+              const sep = '\t'
+
+              data.push(tab.query.headers.get().join(sep))
+              for (let row of tab.query.rows.get()) {
+                let newRow = []
+                for (let val of row){
+                  let newVal = val+''
+                  if(newVal.includes(sep) || newVal.includes('\n') || newVal.includes('"')) {
+                    val = `"${newVal.replaceAll('"','""')}"`
+                  }
+                  newRow.push(val)
+                }
+                data.push(newRow.join(sep))
+              }
+              copyToClipboard(data.join('\n'))}
+            }
+          />
+
+          <Button
+            icon="pi pi-file-excel"
+            className="p-button-sm p-button-outlined p-button-secondary"
+            tooltip="Export to CSV or Excel"
+            tooltipOptions={{ position: 'top' }}
+          />
+
           <span className="p-inputgroup-addon">{tab.query.rows.length} rows</span>
           <span className="p-inputgroup-addon">{tab.query.duration.get()} sec</span>
 

@@ -7,7 +7,7 @@ import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
 import { jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { jsOptions, JSpreadsheet, ObjectAny } from "../utilities/interfaces";
-import { Message, MsgType } from "../store/websocket";
+import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import { useState } from "@hookstate/core";
 import _ from "lodash";
 const jspreadsheet = require("jspreadsheet-ce");
@@ -48,7 +48,7 @@ export const fetchRows = (tab: State<Tab>) => {
     }
   }
 
-  store().ws.doRequest.set(new Message(MsgType.GetSQLRows, data))
+  sendWsMsg(new Message(MsgType.GetSQLRows, data))
   tab.loading.set(true);
 }
 

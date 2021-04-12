@@ -42,7 +42,13 @@ export const TabNames: React.FC<Props> = (props) => {
     if (option === 'del') { icon = 'pi pi-times'; }
     if (option === 'add') { icon = 'pi pi-plus'; }
     if (icon) { return <i className={icon}></i>; }
-    return option
+
+    let index = store().session.get().tabs.map(t => t.name).indexOf(option);
+    const loading = store().session.tabs[index].loading.get()
+    return <>
+      { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px'}}><i className="pi pi-spin pi-spinner"></i></span> : null}
+      {option}
+    </> 
     return (
       <>
         <Inplace closable>
@@ -64,7 +70,7 @@ export const TabNames: React.FC<Props> = (props) => {
   }
 
   const actionTab = (name: string) => {
-    let prefix = 'Query '
+    let prefix = 'Q'
     if (!name) {
       return;
     } else if (name === 'del') {
@@ -99,7 +105,7 @@ export const TabNames: React.FC<Props> = (props) => {
       value={getSelectedTabName()}
       options={['del', 'add'].concat(tabOptions)}
       onChange={(e: any) => actionTab(e.value)}
-      style={{ width: '100%', position: 'fixed', zIndex: 999}}
+      style={{ width: '100%', position: 'fixed', zIndex: 999, overflowX: "scroll"}}
       // options={justifyOptions}
       itemTemplate={optionTemplate} />
   );

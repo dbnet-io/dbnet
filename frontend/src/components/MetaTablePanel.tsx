@@ -128,9 +128,9 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
           </a>
         </span>
-        </p>
+      </p>
 
-      <div className="p-inputgroup">
+      <div className="p-inputgroup work-buttons" >
         <Button
           icon="pi pi-copy"
           tooltip="Copy fields names"
@@ -177,15 +177,16 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let tab = createTab(props.session, objectView.name.get(), sql)
           }}
         />
-      </div>
-
-      <div>
         <InputText
+          id="object-column-filter"
           value={filter.get()}
           onChange={(e) => filter.set((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => { if(e.key === 'Escape') { filter.set('') } }}
-          placeholder="Search..."
+          placeholder="Filter columns..."
         />
+      </div>
+
+      <div>
       </div>
 
       <DataTable
