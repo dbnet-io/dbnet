@@ -266,56 +266,53 @@ export class MetaTable {
   }
 }
 
-export class SchemaView {}
-export class HistoryView {}
+// export class Session {
+//   conn: Connection
+//   tabs: Tab[]
+//   selectedMetaTab: string
+//   selectedTabId: string
+//   selectedSchema: Schema
+//   selectedSchemaTables?: Table[]
+//   selectedMetaTable?: string
+//   selectedHistoryId?: Query
+//   objectView: MetaTable
+//   schemaView: SchemaView
+//   historyView: HistoryView
 
-export class Session {
-  conn: Connection
-  tabs: Tab[]
-  selectedMetaTab: string
-  selectedTabId: string
-  selectedSchema?: Schema
-  selectedSchemaTables?: Table[]
-  selectedMetaTable?: string
-  selectedHistoryId?: Query
-  objectView: MetaTable
-  schemaView: SchemaView
-  historyView: HistoryView
+//   constructor(data: ObjectAny = {}) {
+//     this.conn = new Connection(data.conn)
+//     this.tabs = data.tabs || []
+//     if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
+//     else {this.tabs = this.tabs.map(t => new Tab(t))}
+//     this.selectedSchema = data.selectedSchema
+//     this.selectedSchemaTables = data.selectedSchemaTables || []
+//     this.selectedTabId = data.selectedTab || this.tabs[0].id
+//     this.selectedMetaTab = data.selectedMetaTab || 'Schema'
+//     this.selectedMetaTable = data.selectedMetaTable
+//     this.selectedHistoryId = data.selectedHistoryId
+//     this.objectView = new MetaTable()
+//     this.schemaView = new SchemaView()
+//     this.historyView = new HistoryView()
 
-  constructor(data: ObjectAny = {}) {
-    this.conn = new Connection(data.conn)
-    this.tabs = data.tabs || []
-    if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
-    else {this.tabs = this.tabs.map(t => new Tab(t))}
-    this.selectedSchema = data.selectedSchema
-    this.selectedSchemaTables = data.selectedSchemaTables || []
-    this.selectedTabId = data.selectedTab || this.tabs[0].id
-    this.selectedMetaTab = data.selectedMetaTab || 'Schema'
-    this.selectedMetaTable = data.selectedMetaTable
-    this.selectedHistoryId = data.selectedHistoryId
-    this.objectView = new MetaTable()
-    this.schemaView = new SchemaView()
-    this.historyView = new HistoryView()
+//   }
 
-  }
+//   getTabIndexByID = (id: string) => {
+//     return this.tabs.map(t => t.id).indexOf(id)
+//   }
+//   getTabIndexByName = (name: string) => {
+//     return this.tabs.map(t => t.name).indexOf(name)
+//   }
 
-  getTabIndexByID = (id: string) => {
-    return this.tabs.map(t => t.id).indexOf(id)
-  }
-  getTabIndexByName = (name: string) => {
-    return this.tabs.map(t => t.name).indexOf(name)
-  }
-
-  getTab = (id: string) => {
-    let index = this.getTabIndexByID(id)
-    if(index > -1) {
-      return this.tabs[index]
-    }
-    return this.tabs[0]
-  }
-  currTab = () => this.getTab(this.selectedTabId)
-  currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
-}
+//   getTab = (id: string) => {
+//     let index = this.getTabIndexByID(id)
+//     if(index > -1) {
+//       return this.tabs[index]
+//     }
+//     return this.tabs[0]
+//   }
+//   currTab = () => this.getTab(this.selectedTabId)
+//   currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
+// }
 
 export class Connection {
   name: string
@@ -323,7 +320,6 @@ export class Connection {
   data: ObjectString;
   schemas: { [key: string]: Schema; }
   history: Query[]
-  lastSession?: Session
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || 'PG_BIONIC_URL' || 'PRIMARY_DATABASE_URL'
@@ -331,62 +327,76 @@ export class Connection {
     this.data = data.data
     this.schemas = data.schemas || {}
     this.history = data.history || []
-    this.lastSession = data.lastSession
   }
 }
 
-export interface Ws {
+export class Ws {
   doRequest: number
   connected: boolean
   queue: {
     received: any[],
   }
-}
-
-
-class Store {
-  app: {
-    version: number
-    tableHeight: number
-    tableWidth: number
-    omniSearch: string
-  }
-  ws: Ws
-  session : Session
-  connections: { [key: string]: Connection; }
   constructor() {
-    this.app = {
-      version: 0.1,
-      tableHeight: 1100,
-      tableWidth: 1100,
-      omniSearch: '',
+    this.doRequest = 0
+    this.connected = false
+    this.queue = {
+      received: [],
     }
-    this.ws = {
-      doRequest: 0,
-      connected: false,
-      queue: {
-        received: [],
-      }
-    }
-    this.session = new Session()
-    this.connections = {}
   }
 }
 
-export const useHookState = useState;
-
-export const globalState = createState<Store>(new Store());
-
-const wrapState = (s: State<Store>) => (s)
-
-export const accessGlobalState = () => wrapState(globalState)
-export const useGlobalState = () => wrapState(useState(globalState))
-export const store = () => accessGlobalState()
-export const sessionCurrTab = () => {
-  let index = store().session.get().currTabIndex()
-  return store().session.tabs[index]
+export class AppState {
+  version: number
+  tableHeight: number
+  tableWidth: number
+  connections: string[]
+  selectedMetaTab: string
+  constructor(data: ObjectAny = {}) {
+    this.version = 0.1
+    this.tableHeight = 1100
+    this.tableWidth = 1100
+    this.connections = data.connections || []
+    this.selectedMetaTab = data.selectedMetaTab || 'Schema'
+  }
 }
 
+// class Store {
+//   app: AppState
+//   ws: Ws
+//   session : Session
+//   connections: { [key: string]: Connection; }
+//   constructor() {
+//     this.app = {
+//       version: 0.1,
+//       tableHeight: 1100,
+//       tableWidth: 1100,
+//       connections: [],
+//       selectedMetaTab: 'Schema',
+//     }
+//     this.ws = {
+//       doRequest: 0,
+//       connected: false,
+//       queue: {
+//         received: [],
+//       }
+//     }
+//     this.session = new Session()
+//     this.connections = {}
+//   }
+// }
+
+
+// export const globalState = createState<Store>(new Store());
+
+// const wrapState = (s: State<Store>) => (s)
+
+// export const accessGlobalState = () => wrapState(globalState)
+// export const useGlobalState = () => wrapState(useState(globalState))
+// export const store = () => accessGlobalState()
+// export const useSession = () => useState(globalState.session)
+
+
+export const useHS = useState;
 
 export interface Variable<S> {
   get: () => S;
@@ -410,4 +420,132 @@ export function useVariable<S>(initialState: S | (() => S)): Variable<S> {
     set: setValue,
     put: putValue,
   }
+}
+
+class SchemaPanelState {
+  selectedSchema: Schema
+  selectedSchemaTables: Table[]
+
+  constructor(data: ObjectAny = {}) {
+    this.selectedSchema = data.selectedSchema || {}
+    this.selectedSchemaTables = data.selectedSchemaTables || []
+  }
+}
+
+class ObjectPanelState {
+  table: MetaTable
+  history: string[]
+  constructor(data: ObjectAny = {}) {
+    this.table = new MetaTable(data.table)
+    this.history = data.history || []
+  }
+}
+
+class HistoryPanelState {
+  selectedQuery: Query
+  constructor(data: ObjectAny = {}) {
+    this.selectedQuery = new Query(data.selectedQuery)
+  }
+}
+
+class QueryPanelState {
+  tabs: Tab[]
+  selectedTabId: string
+  constructor(data: ObjectAny = {}) {
+    this.tabs = data.tabs || []
+    if(this.tabs.length === 0 ) this.tabs = [new Tab({name: 'Q1'})]
+    else this.tabs = this.tabs.map(t => new Tab(t))
+
+    this.selectedTabId = data.selectedTabId || this.tabs[0].id
+  }
+
+  getTabIndexByID = (id: string) => {
+    return this.tabs.map(t => t.id).indexOf(id)
+  }
+  getTabIndexByName = (name: string) => {
+    return this.tabs.map(t => t.name).indexOf(name)
+  }
+
+  getTab = (id: string) => {
+    let index = this.getTabIndexByID(id)
+    if(index > -1) {
+      return this.tabs[index]
+    }
+    return this.tabs[0]
+  }
+  currTab = () => this.getTab(this.selectedTabId)
+  currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
+
+}
+
+class GlobalStore {
+  app: State<AppState>
+  connection: State<Connection>
+  queryPanel: State<QueryPanelState>
+  schemaPanel: State<SchemaPanelState>
+  objectPanel: State<ObjectPanelState>
+  historyPanel: State<HistoryPanelState>
+  ws: State<Ws>
+
+  constructor(data: ObjectAny = {}) {
+    this.app = createState(new AppState(data.app))
+    this.connection = createState(new Connection(data.connection))
+    this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
+    this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
+    this.queryPanel = createState(new QueryPanelState(data.queryPanel))
+    this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
+    this.ws = createState(new Ws())
+  }
+}
+
+export const globalStore = new GlobalStore()
+
+export const useStore = () => {
+  const app = useState(globalStore.app)
+  const connection = useState(globalStore.connection)
+  const schemaPanel = useState(globalStore.schemaPanel)
+  const objectPanel = useState(globalStore.objectPanel)
+  const queryPanel = useState(globalStore.queryPanel)
+  const historyPanel = useState(globalStore.historyPanel)
+  const ws = useState(globalStore.ws)
+
+  return ({
+    get app() { return app },
+    get connection() { return connection },
+    get schemaPanel() { return schemaPanel },
+    get objectPanel() { return objectPanel },
+    get queryPanel() { return queryPanel },
+    get historyPanel() { return historyPanel },
+    get ws() { return ws },
+  }) 
+}
+
+export const useStoreApp = () => useState(globalStore.app)
+export const useStoreConnection = () => useState(globalStore.connection)
+export const useStoreSchemaPanel = () => useState(globalStore.schemaPanel)
+export const useStoreObjectPanel = () => useState(globalStore.objectPanel)
+export const useStoreQueryPanel = () => useState(globalStore.queryPanel)
+export const useStoreHistoryPanel = () => useState(globalStore.historyPanel)
+export const useStoreWs = () => useState(globalStore.ws)
+
+export const accessStore = () => {
+  const wrap = function <T>(s: State<T>) { return s }
+  
+  const app = wrap<AppState>(globalStore.app)
+  const connection = wrap<Connection>(globalStore.connection)
+  const schemaPanel = wrap<SchemaPanelState>(globalStore.schemaPanel)
+  const objectPanel = wrap<ObjectPanelState>(globalStore.objectPanel)
+  const queryPanel = wrap<QueryPanelState>(globalStore.queryPanel)
+  const historyPanel = wrap<HistoryPanelState>(globalStore.historyPanel)
+  const ws = wrap<Ws>(globalStore.ws)
+
+  return ({
+    get app() { return app },
+    get connection() { return connection },
+    get schemaPanel() { return schemaPanel },
+    get objectPanel() { return objectPanel },
+    get queryPanel() { return queryPanel },
+    get historyPanel() { return historyPanel },
+    get ws() { return ws },
+  }) 
 }

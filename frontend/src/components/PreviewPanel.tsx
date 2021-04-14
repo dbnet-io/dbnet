@@ -1,13 +1,13 @@
 import { Dialog } from "primereact/dialog";
 import * as React from "react";
-import { store, useHookState } from "../store/state";
+import { useStoreObjectPanel } from "../store/state";
 import { copyToClipboard } from "../utilities/methods";
 import { MetaTablePanel } from "./MetaTablePanel";
 
 interface Props {}
 
 export const PreviewPanel: React.FC<Props> = (props) => {
-  const objectView = useHookState(store().session.objectView)
+  const objectView = useStoreObjectPanel().table
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -35,7 +35,7 @@ export const PreviewPanel: React.FC<Props> = (props) => {
       style={{width: '400px'}}
       closeOnEscape={false}
     >
-      <MetaTablePanel session={store().session}></MetaTablePanel>
+      <MetaTablePanel/>
     </Dialog>
   );
 };

@@ -12,7 +12,7 @@ import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { Message, MsgType, sendWsMsg, Websocket, WsQueue } from './store/websocket';
-import { globalState, Query, Schema, store, useHookState } from './store/state';
+import { accessStore, Schema } from './store/state';
 import { data_req_to_records, jsonClone, toastError } from './utilities/methods';
 import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
 import _ from "lodash";
@@ -44,7 +44,7 @@ export const App = () => {
   window.table = useRef<JSpreadsheet>(null).current as JSpreadsheet;
   window.callbacks = {}
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
-  const session = useState(globalState.session)
+  const store = accessStore()
   // const ws = useState(globalState.ws)
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -54,7 +54,7 @@ export const App = () => {
 
     // get all schema objects
     let data = {
-      conn: session.conn.name.get(),
+      conn: store.connection.name.get(),
       callback: (msg: Message) => {
         if(msg.error) { return toastError(msg.error) }
         let rows = data_req_to_records(msg.data)
@@ -67,16 +67,16 @@ export const App = () => {
             schema: row.schema_name,
             name: row.table_name,
           }
-          session.conn.schemas.set(schemas)
+          store.connection.schemas.set(schemas)
         }
       },
     }
-    if(Object.keys(session.conn.schemas.get()).length === 0) {
+    if(Object.keys(store.connection.schemas.get()).length === 0) {
       sendWsMsg(new Message(MsgType.GetSchemata, data))
     }
   }, [])
   ///////////////////////////  FUNCTIONS  ///////////////////////////
-  const refresh = () => session.selectedTabId.set(jsonClone(session.selectedTabId.get()))
+  const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
   const debounceRefresh = _.debounce(() => refresh(), 400)
 
   const onKeyPress = (e: React.KeyboardEvent) =>{
@@ -107,10 +107,10 @@ export const App = () => {
       </div>
       <Splitter style={{height: splitterHeight, marginLeft: '5px'}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <LeftPane session={session}/>
+          <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <RightPane session={session}/>
+          <RightPane/>
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>

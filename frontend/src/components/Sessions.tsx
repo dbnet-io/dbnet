@@ -7,15 +7,15 @@ import { Column } from 'primereact/column';
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-pgsql";
 
-import { useHookState } from '../store/state';
+import { useHS } from '../store/state';
 import { ObjectString } from '../utilities/interfaces';
 
 interface Props {}
 
 export const Sessions: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const sqls = useHookState<ObjectString>({})
-  const loading = useHookState(false)
+  const sqls = useHS<ObjectString>({})
+  const loading = useHS(false)
   const [customers, setCustomers] = React.useState<any[]>([]);
   
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -79,7 +79,7 @@ export const Sessions: React.FC<Props> = (props) => {
 
   const Editor = (props: {name: string}) => {
 
-    const sql = useHookState('')
+    const sql = useHS('')
     return (
       // <textarea 
       //   value={sql.get()}

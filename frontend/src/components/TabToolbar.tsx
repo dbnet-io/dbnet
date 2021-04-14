@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Query, store, Tab, useHookState } from "../store/state";
+import { accessStore, Query, Tab, useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
@@ -22,9 +22,10 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
 
   let tab_ = tab
 
-  const session = store().session
+  const connection = accessStore().connection
+  const queryPanel = accessStore().queryPanel
   let data = {
-    conn: store().session.conn.name.get(),
+    conn: connection.name.get(),
     text: sql,
     time: (new Date()).getTime(),
     tab: tab.id.get(),
@@ -37,8 +38,8 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
       }
       
       let query = new Query(msg.data)
-      let index = session.get().getTabIndexByID(query.tab)
-      let tab = session.tabs[index]
+      let index = queryPanel.get().getTabIndexByID(query.tab)
+      let tab = queryPanel.tabs[index]
       tab.set(
         t => {
           t.query = query
@@ -48,7 +49,7 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
           return t
         }
       )
-      store().session.selectedTabId.set(jsonClone(store().session.selectedTabId.get())) // to refresh
+      queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
     }
   }
   sendWsMsg(new Message(MsgType.SubmitSQL, data))
@@ -62,9 +63,9 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
 
 export function TabToolbar(props: { tab: State<Tab>; }) {
   const tab = props.tab;
-  const filter = useHookState(tab.filter);
-  const limit = useHookState(tab.limit);
-  const localFilter = useHookState(tab.filter.get() ? jsonClone<string>(tab.filter.get()):'')
+  const filter = useHS(tab.filter);
+  const limit = useHS(tab.limit);
+  const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()):'')
 
   return (
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>

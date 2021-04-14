@@ -2,7 +2,7 @@ import * as React from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import './TabTable.css'
-import { Session, Query, QueryStatus, store, Tab } from "../store/state";
+import { Query, QueryStatus, Tab, accessStore, useStoreQueryPanel } from "../store/state";
 import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
 import { jsonClone, toastError, toastInfo } from "../utilities/methods";
@@ -13,7 +13,6 @@ import _ from "lodash";
 const jspreadsheet = require("jspreadsheet-ce");
 
 interface Props {
-  session: State<Session>
   tab: State<Tab>
 }
 
@@ -21,7 +20,7 @@ export const fetchRows = (tab: State<Tab>) => {
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
   let tab_ = tab
-  const session = store().session
+  const queryPanel = accessStore().queryPanel
   let data = {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),
@@ -35,8 +34,8 @@ export const fetchRows = (tab: State<Tab>) => {
         return tab_.loading.set(false)
       }
       let query = msg.data as Query
-      let index = session.get().getTabIndexByID(query.tab)
-      let tab = session.tabs[index]
+      let index = queryPanel.get().getTabIndexByID(query.tab)
+      let tab = queryPanel.tabs[index]
       tab.set(
         t => {
           t.query.status = query.status
@@ -78,8 +77,10 @@ export const TabTableOld: React.FC<Props> = React.memo((props) => {
     tableWidth: props.tab.query.rows.length == 0 || !resultWidth || resultWidth < 400 ? `400px` : `${resultWidth-6}px`,
     // tableWidth: '100%',
   })
-  const tabs = useState(props.session.tabs)
-  const selectedTab = useState(props.session.selectedTabId)
+
+  const queryPanel = useStoreQueryPanel()
+  const tabs = queryPanel.tabs
+  const selectedTab = useState(queryPanel.selectedTabId)
  
   ///////////////////////////  EFFECTS  ///////////////////////////
   // React.useEffect(() => {

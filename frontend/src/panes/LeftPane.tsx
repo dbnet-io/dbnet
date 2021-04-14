@@ -1,6 +1,6 @@
 import * as React from "react";
 import { SelectButton } from "primereact/selectbutton";
-import { Session, useHookState } from "../store/state";
+import { useStoreApp } from "../store/state";
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
@@ -8,16 +8,14 @@ import { MetaTablePanel } from "../components/MetaTablePanel";
 import { State, useState } from "@hookstate/core";
 
 
-interface Props {
-  session: State<Session>
-}
+interface Props {}
 
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const tabOptions = useState<string[]>(['Schema', 'Object', 'History'])
-  const tabValue = useState(props.session.selectedMetaTab)
-  const objectView = useState(props.session.objectView)
+  const tabValue = useStoreApp().selectedMetaTab
+  // const tabValue = useStore().selectedMetaTab
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -43,12 +41,12 @@ export const LeftPane: React.FC<Props> = (props) => {
 
           { 
             tabValue.get() === "Schema" ?
-            <SchemaPanel session={props.session}/> : null
+            <SchemaPanel/> : null
           }
 
           { 
             tabValue.get() === "Object" ?
-            <MetaTablePanel session={props.session}/> : null
+            <MetaTablePanel/> : null
           }
 
           { 

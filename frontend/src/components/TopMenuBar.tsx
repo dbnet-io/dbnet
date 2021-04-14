@@ -3,11 +3,11 @@ import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { store, useVariable } from "../store/state";
-import { useHookstate } from "@hookstate/core";
+import { accessStore, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
+import { useState } from "@hookstate/core";
 
 interface Props {}
 
@@ -157,15 +157,16 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     style={{paddingLeft:"20px"}}
   ></img>
 
-  // const connected = useHookstate(store().ws.connected)
-  const connected = useHookstate(true)
+  // const connected = useHookState(store().ws.connected)
+  const connected = useHS(true)
 
   const OmniBox = () => {
-    const schemas = useHookstate(store().session.conn.schemas)
     const allTables = useVariable<string[]>([])
     const searchResults = useVariable<string[]>([])
-    const omniSearch = useHookstate(store().app.omniSearch)
-    const selectedMetaTab = store().session.selectedMetaTab
+    const omniSearch = useVariable('')
+
+    const schemas = accessStore().connection.schemas
+    const selectedMetaTab = accessStore().app.selectedMetaTab
 
     const omniKeyPress = (e: any) =>{
       // omni search

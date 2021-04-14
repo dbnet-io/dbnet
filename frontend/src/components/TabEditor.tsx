@@ -1,7 +1,7 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
 import { Ace, Range, UndoManager } from "ace-builds";
-import { Tab, useHookState } from "../store/state";
+import { Tab, useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";
@@ -144,9 +144,9 @@ const contextItems = [
 ];
 
 export function TabEditor(props: { tab: State<Tab>; }) {
-  const tab = useHookState(props.tab)
+  const tab = useHS(props.tab)
   const cm = React.useRef(null);
-  const sql = useHookState(tab.editor.text);
+  const sql = useHS(tab.editor.text);
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
 

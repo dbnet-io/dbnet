@@ -1,13 +1,15 @@
-import { State, useHookstate, useState, none } from '@hookstate/core';
+import { useState } from '@hookstate/core';
 import React, { useCallback, useMemo, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
 import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/methods';
-import { globalState, store, Ws } from './state';
+import { accessStore, useStoreWs } from './state';
+
+const store = accessStore()
 
 export const sendWsMsg = (msg : Message) => {
   window.queue.send.push(msg)
-  store().ws.doRequest.set(v => v+1)
+  store.ws.doRequest.set(v => v+1)
 }
 
 export interface WsQueue {
@@ -65,7 +67,7 @@ const socketOptions = {
 const socketUrl = 'ws://localhost:5987/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
-  const ws = useState(globalState.ws)
+  const ws = useStoreWs()
   const doRequest = useState(ws.doRequest)
 
   const {
@@ -99,7 +101,7 @@ export const Websocket: React.FC<Props> = (props) => {
   React.useEffect(() => {
     ws.connected.set(connected)
     if(connected) {
-      store().ws.doRequest.set(v => v+1)
+      store.ws.doRequest.set(v => v+1)
     }
   }, [connected])
 

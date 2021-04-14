@@ -1,6 +1,6 @@
 import * as React from "react";
 import './TabTable.css'
-import { Session, Query, QueryStatus, store, Tab, useVariable } from "../store/state";
+import {  Query, QueryStatus, Tab, useVariable, accessStore } from "../store/state";
 import { State } from "@hookstate/core";
 import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { Message, MsgType, sendWsMsg } from "../store/websocket";
@@ -16,7 +16,6 @@ const PrettyTable = require('prettytable');
 var durationInterval : NodeJS.Timeout 
 
 interface Props {
-  session: State<Session>
   tab: State<Tab>
 }
 
@@ -24,7 +23,7 @@ export const fetchRows = (tab: State<Tab>) => {
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
   let tab_ = tab
-  const session = store().session
+  const queryPanel = accessStore().queryPanel
   let data = {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),
@@ -38,8 +37,8 @@ export const fetchRows = (tab: State<Tab>) => {
         return tab_.loading.set(false)
       }
       let query = msg.data as Query
-      let index = session.get().getTabIndexByID(query.tab)
-      let tab = session.tabs[index]
+      let index = queryPanel.get().getTabIndexByID(query.tab)
+      let tab = queryPanel.tabs[index]
       tab.set(
         t => {
           t.query.status = query.status
@@ -99,11 +98,44 @@ export const TabTable: React.FC<Props> = (props) => {
     // let p = jsonClone<number[]>(tab.lastTableSelection.get())
     // hot.current.hotInstance.selectCell(p[0], p[1], p[2], p[3])
   },[])
+
+  React.useEffect(()=>{
+    // let p = jsonClone<number[]>(tab.lastTableSelection.get())
+    // hot.current.hotInstance.selectCell(p[0], p[1], p[2], p[3])
+    let filter = tab.filter.get().trim()
+    if(filter === '') return
+    let filters = filter.split(',')
+    for(let filter of filters) {
+
+    }
+  },[tab.filter.get()])
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {
     tab.rowView.rows.set(jsonClone(tab.query.get().getRowData(r1)))
     tab.lastTableSelection.set([r1, c1, r2, c2])
+  }
+  
+  const filterRows = () => {
+    if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { return [] }
+    let data = jsonClone<any[]>(props.tab.query.rows.get())
+    let filters = props.tab.filter.get().toLowerCase().split(' ')
+    let data2 : any[] = []
+    for(let row of data) {
+      let include = filters.map(v => false)
+      for(let val of row) {
+        for (let i = 0; i < filters.length; i++) {
+          const filter = filters[i].toLowerCase().trim()
+          if(`${val}`.toLowerCase().includes(filter)) {
+            include[i] = true
+            break
+          }
+        }
+        if(include.every(v => v === true)) { break }
+      }
+      if(include.every(v => v === true)) { data2.push(row) }
+    }
+    return data2
   }
 
   ///////////////////////////  JSX  ///////////////////////////
@@ -134,9 +166,10 @@ export const TabTable: React.FC<Props> = (props) => {
     </div>
   }
 
+  const rows = filterRows()
   let output = <HotTable
     ref={hot}
-    data={props.tab.query.rows.get()}
+    data={rows}
     colHeaders={props.tab.query.headers.get()}
     rowHeaders={true}
     // width={600}
@@ -153,7 +186,7 @@ export const TabTable: React.FC<Props> = (props) => {
     // show rows as text
     let pt = new PrettyTable()
     pt.fieldNames(props.tab.query.headers.get())
-    for(let row of props.tab.query.rows.get()) {
+    for(let row of rows) {
       pt.addRow(row.join('$|$').split('$|$'))
     }
     output = <InputTextarea

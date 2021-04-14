@@ -1,15 +1,16 @@
 import * as React from "react";
-import { Session, store, Tab, useHookState } from "../store/state";
+import { accessStore, Tab, useHS } from "../store/state";
 import { SelectButton } from "primereact/selectbutton";
-import { State } from "@hookstate/core";
 import { Inplace, InplaceDisplay, InplaceContent } from 'primereact/inplace';
 import { InputText } from "primereact/inputtext";
 
-export const createTab = (session: State<Session>, name: string = '', sql = '') => {
-  let index = session.get().getTabIndexByName(name)
+const queryPanel = accessStore().queryPanel
+
+export const createTab = (name: string = '', sql = '') => {
+  let index = queryPanel.get().getTabIndexByName(name)
   if (index > -1) {
     // tab already exists, append sql to bottom, or focus on existing
-    let tab = session.tabs[index]
+    let tab = queryPanel.tabs[index]
     if(sql) {
       tab.editor.text.set(t => t + '\n\n' + sql)
 
@@ -17,34 +18,32 @@ export const createTab = (session: State<Session>, name: string = '', sql = '') 
       let lines = tab.editor.text.get().split('\n')
       tab.editor.selection.set([lines.length-1, 0,lines.length-1,0])
     }
-    session.selectedTabId.set(tab.id.get());
+    queryPanel.selectedTabId.set(tab.id.get());
     return tab
   }
 
   let newTab = new Tab({ name, editor: {text: sql} });
-  session.tabs.set(
+  queryPanel.tabs.set(
     t => t.concat([newTab])
   );
-  session.selectedTabId.set(newTab.id);
-  return session.tabs[session.tabs.length-1]
+  queryPanel.selectedTabId.set(newTab.id);
+  return queryPanel.tabs[queryPanel.tabs.length-1]
 }
-interface Props {
-  session: State<Session>
-}
+interface Props {}
 
 export const TabNames: React.FC<Props> = (props) => {
 
-  const tabs = useHookState(props.session.tabs)
+  const tabs = useHS(queryPanel.tabs)
   const tabOptions = tabs.get().map(t => t.name);
-  const selectedTabId = useHookState(props.session.selectedTabId)
+  const selectedTabId = useHS(queryPanel.selectedTabId)
   const optionTemplate = (option: string) => {
     let icon = '';
     if (option === 'del') { icon = 'pi pi-times'; }
     if (option === 'add') { icon = 'pi pi-plus'; }
     if (icon) { return <i className={icon}></i>; }
 
-    let index = store().session.get().tabs.map(t => t.name).indexOf(option);
-    const loading = store().session.tabs[index].loading.get()
+    let index = queryPanel.get().tabs.map(t => t.name).indexOf(option);
+    const loading = queryPanel.tabs[index].loading.get()
     return <>
       { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px'}}><i className="pi pi-spin pi-spinner"></i></span> : null}
       {option}
@@ -65,7 +64,7 @@ export const TabNames: React.FC<Props> = (props) => {
 
 
   const getSelectedTabName = () => {
-    let index = store().session.get().tabs.map(t => t.id).indexOf(selectedTabId.get());
+    let index = queryPanel.get().tabs.map(t => t.id).indexOf(selectedTabId.get());
     return tabs[index].get().name
   }
 
@@ -92,9 +91,9 @@ export const TabNames: React.FC<Props> = (props) => {
         i++;
         newName = `${prefix}${i}`;
       }
-      createTab(store().session, newName)
+      createTab(newName)
     } else {
-      let index = store().session.get().tabs.map(t => t.name).indexOf(name);
+      let index = queryPanel.get().tabs.map(t => t.name).indexOf(name);
       selectedTabId.set(tabs[index].get().id);
     }
     document.getElementById("table-filter")?.focus();

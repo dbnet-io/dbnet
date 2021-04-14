@@ -4,33 +4,34 @@ import { data_req_to_records, jsonClone, toastError, toastInfo } from "../utilit
 import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
 import { ListBox } from 'primereact/listbox';
-import { Schema, Session, store, Table, useHookState, useVariable } from "../store/state";
+import { Schema, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
 import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
 import { State, useState } from "@hookstate/core";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 
-interface Props {
-  session: State<Session>
-}
+interface Props {}
 
 export const SchemaPanel: React.FC<Props> = (props) => {
   const [nodes, setNodes] = React.useState<any[]>([]);
   const [expandedKeys, setExpandedKeys] = React.useState({});
   const [selectedNodeKey, setSelectedNodeKey] = React.useState<string>('');
   const cm = React.useRef<ContextMenu>(null);
-
-  const session = useHookState(props.session)
-  const selectedMetaTab = session.selectedMetaTab
-  const schemas = useHookState(props.session.conn.schemas)
-  const selectedSchema = useVariable<Schema>({} as Schema)
-  const schemaOptions = useHookState<Schema[]>([])
+  const schemaPanel = useStoreSchemaPanel()
+  const connection = useStoreConnection()
+  const selectedMetaTab = useStoreApp().selectedMetaTab
+  const schemas = useHS(connection.schemas)
+  // const selectedSchema = useStore().selectedSchema
+  const selectedSchema = useHS(schemaPanel.selectedSchema)
+  // const selectedSchema = useSelectedSchema()
+  const selectedSchemaTables = useHS(schemaPanel.selectedSchemaTables)
+  const localSelectedSchema = useVariable<Schema>({} as Schema)
+  const schemaOptions = useHS<Schema[]>([])
   const selectedTables = useVariable<Table[]>([])
-  const tableOptions = useHookState<Table[]>([])
-  const loading = useHookState(false)
-  const preview = useHookState(session.objectView)
-  const schemaFilter = useHookState('')
+  const tableOptions = useHS<Table[]>([])
+  const loading = useHS(false)
+  const schemaFilter = useHS('')
 
   const menu = [
       {
@@ -68,15 +69,15 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(()=>{
-    let schemaName = selectedSchema.get().name
+    let schemaName = localSelectedSchema.get().name
     if(schemaName in schemas.get()) {
       let schema =  schemas.get()[schemaName]
       if(schema.tables && Object.keys(schema.tables).length > 0) {
         tableOptions.set(Object.values(schema.tables))
       } 
-      GetTables(session.conn.name.get(), selectedSchema.get().name) // refresh anyways
+      GetTables(connection.name.get(), localSelectedSchema.get().name) // refresh anyways
     }
-  },[selectedSchema.get()])
+  },[localSelectedSchema.get()])
 
   React.useEffect(()=>{
     // init load
@@ -87,15 +88,15 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       console.log(document.getElementById("schema-list"))
     }
 
-    if(session.selectedSchema.get() && Object.keys(schemas.get()).length > 0) {
-      console.log(jsonClone<Schema>(session.selectedSchema.get()))
-      selectedSchema.set(jsonClone<Schema>(session.selectedSchema.get()))
-      // FocusNode(document.getElementById("schema-list")?.children[0]?.children[0]?.children, `${session.selectedSchema.get()?.name}`)
+    if(selectedSchema.get() && Object.keys(schemas.get()).length > 0) {
+      console.log(jsonClone<Schema>(selectedSchema.get()))
+      localSelectedSchema.set(jsonClone<Schema>(selectedSchema.get()))
+      // FocusNode(document.getElementById("schema-list")?.children[0]?.children[0]?.children, `${selectedSchema.get()?.name}`)
     }
 
-    let st = session.selectedSchemaTables.get()
+    let st = selectedSchemaTables.get()
     if(st && st.length > 0) {
-      selectedTables.set(jsonClone<Table[]>(session.selectedSchemaTables.get()))
+      selectedTables.set(jsonClone<Table[]>(selectedSchemaTables.get()))
     }
   },[])
   
@@ -129,7 +130,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           }
         }
         schemas.set(schemas_)
-        store().session.conn.schemas.set(schemas_)
+        connection.schemas.set(schemas_)
       }
     }
     sendWsMsg(new Message(MsgType.GetSchemas, data))
@@ -191,16 +192,16 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   const SchemaList = (props : { options: State<Schema[]> }) => {
-    const options = useHookState(props.options)
+    const options = useHS(props.options)
     return (
       <ListBox
         id="schema-list"
-        value={selectedSchema.get()}
+        value={localSelectedSchema.get()}
         options={ options.get() }
         onChange={(e) => {
           if(!e.value) { return }
-          selectedSchema.set(e.value)
-          session.selectedSchema.set(jsonClone<Schema>(e.value))
+          localSelectedSchema.set(e.value)
+          selectedSchema.set(jsonClone<Schema>(e.value))
         }}
         optionLabel="name"
         // itemTemplate={countryTemplate}
@@ -211,7 +212,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   const TableList = (props : { options: State<Table[]> }) => {
-    const options = useHookState(props.options)
+    const options = useHS(props.options)
     return (
       <ListBox
         multiple
@@ -222,7 +223,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onChange={(e) => {
           if(!e.value) { return }
           selectedTables.set(e.value)
-          session.selectedSchemaTables.set(jsonClone<Table[]>(e.value))
+          selectedSchemaTables.set(jsonClone<Table[]>(e.value))
         }}
         metaKeySelection={true}
         optionLabel="name"
@@ -267,7 +268,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             onChange={(e:any) => { schemaFilter.set(e.target.value) }}
             onKeyDown={omniKeyPress}
           />
-          <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => GetSchemas(session.conn.name.get())}/>
+          <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => GetSchemas(connection.name.get())}/>
         </div>
       </div>
       <SchemaList options={schemaOptions}/>

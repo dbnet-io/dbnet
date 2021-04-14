@@ -1,19 +1,17 @@
-import { useHookstate } from "@hookstate/core";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import * as React from "react";
-import { store, useHookState, useVariable } from "../store/state";
+import { accessStore, useHS, useStoreQueryPanel } from "../store/state";
 
 interface Props {}
 
 export const RowViewPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const tabIndex = store().session.get().currTabIndex() || 0
-  const tabs = useHookstate(store().session.tabs)
-  const tab = tabs[tabIndex]
-  const query = tab.query
+  const queryPanel = useStoreQueryPanel()
+  const tabIndex = queryPanel.get().currTabIndex() || 0
+  const tab = useHS(queryPanel.tabs[tabIndex])
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////

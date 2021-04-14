@@ -4,7 +4,7 @@ import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import * as React from "react";
-import { MetaTable, Session, store, useHookState, useVariable } from "../store/state";
+import { accessStore, useHS, useVariable } from "../store/state";
 import _ from "lodash";
 import { State, useState } from "@hookstate/core";
 import { Message, MsgType, sendWsMsg } from "../store/websocket";
@@ -13,15 +13,14 @@ import { ObjectAny } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 
-interface Props {
-  session: State<Session>
-}
+interface Props {}
 
 export const loadMetaTable = (tableName: string) => {
-  let objectView = store().session.objectView
+  let store = accessStore()
+  let objectView = store.objectPanel.table
   let {schema, table} = split_schema_table(tableName)
   let data = {
-    conn: store().session.conn.name.get(),
+    conn: store.connection.name.get(),
     schema,
     table,
     callback: (msg: Message) => {
@@ -45,9 +44,9 @@ export const loadMetaTable = (tableName: string) => {
 
 
 const Search = (props : { search : State<string>}) => {
-  const search = useHookState(props.search)
-  const searchResults = useHookState<string[]>([])
-  const tables = useHookState(['schema1.table2', 'schema2.table2', 'schema3.table2', 'housing.landwatch2'])
+  const search = useHS(props.search)
+  const searchResults = useHS<string[]>([])
+  const tables = useHS(['schema1.table2', 'schema2.table2', 'schema3.table2', 'housing.landwatch2'])
 
   const doSearch = (e: any) => {
     let query = e.query.trim() as string
@@ -93,7 +92,7 @@ const Search = (props : { search : State<string>}) => {
 
 export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const objectView = useState(props.session.objectView)
+  const objectView = useState(accessStore().objectPanel.table)
   const selected = useVariable<any[]>([])
   const filter = useVariable('');
 
@@ -149,7 +148,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           onClick={(e) => {
             let cols = getSelectedColsOrAll()
             let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectView.name.get()}\n;`
-            let tab = createTab(props.session, objectView.name.get(), sql)
+            let tab = createTab(objectView.name.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -163,7 +162,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
                 .map(c => `count(${c}) cnt_${c}`)
             let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
             let sql = `select\n  count(*) cnt${colsCntStr}\nfrom ${objectView.name.get()}\n;`
-            let tab = createTab(props.session, objectView.name.get(), sql)
+            let tab = createTab(objectView.name.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -174,7 +173,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-danger"
           onClick={(e) => {
             let sql = `drop table ${objectView.name.get()}\n;`
-            let tab = createTab(props.session, objectView.name.get(), sql)
+            let tab = createTab(objectView.name.get(), sql)
           }}
         />
         <InputText
