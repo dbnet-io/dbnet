@@ -7,6 +7,7 @@ import (
 
 func main() {
 	store.InitDB("file:./test.db")
+	go store.Loop()
 	srv := server.NewServer()
 	srv.EchoServer.Logger.Fatal(srv.EchoServer.Start(":" + srv.Port))
 }

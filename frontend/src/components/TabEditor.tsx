@@ -207,7 +207,7 @@ export function TabEditor(props: { tab: State<Tab>; }) {
       value={sql.get()}
       commands={commands}
       onLoad={(editor: Ace.Editor) => {
-        toastInfo('editor onLoad')
+        // toastInfo('editor onLoad')
         let selection = tab.editor.selection.get()
         // let undoManager = editor.session.getUndoManager() as any
         // undoManager.$undoStack = tab.editor.undoManager.get()

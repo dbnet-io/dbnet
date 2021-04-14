@@ -4,9 +4,8 @@ import { createRef } from "react";
 import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
 import * as React from "react";
-import { new_ts_id } from "../utilities/methods";
-import { Message } from "./websocket";
-import { Range } from "ace-builds";
+import { jsonClone, new_ts_id, toastError, toastSuccess } from "../utilities/methods";
+import { Message, MsgType, sendWsMsgWait } from "./websocket";
 
 
 export const masterToast = createRef<Toast>()
@@ -213,6 +212,7 @@ export class Query {
   err: string
   headers: string[]
   rows: any[]
+  pulled: boolean // whether the rows are pulled (when reloading a session)
 
   constructor(data: ObjectAny = {}) {
     this.conn = data.conn
@@ -223,9 +223,10 @@ export class Query {
     this.type = data.type || QueryType.SQL
     this.text = data.text || ''
     this.err = data.err || ''
-    this.status = data.status
+    this.status = data.status || ''
     this.headers = data.headers || []
     this.rows = data.rows || []
+    this.pulled = false
   }
 
   getRowData = (n: number) => {
@@ -327,6 +328,13 @@ export class Connection {
     this.data = data.data
     this.schemas = data.schemas || {}
     this.history = data.history || []
+  }
+
+  payload = () => {
+    return {
+      name: this.name,
+      type: this.type,
+    }
   }
 }
 
@@ -476,6 +484,18 @@ class QueryPanelState {
   currTab = () => this.getTab(this.selectedTabId)
   currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
 
+  payload = () => {
+    let tabs : Tab[] = []
+    for(let tab of this.tabs) {
+      let tab_ = jsonClone<Tab>(tab)
+      tab_.query.rows = []
+      tabs.push(tab_)
+    }
+    return {
+      tabs: tabs,
+      selectedTabId: this.selectedTabId,
+    }
+  }
 }
 
 class GlobalStore {
@@ -496,8 +516,44 @@ class GlobalStore {
     this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
     this.ws = createState(new Ws())
   }
-}
 
+  saveSession = async () => {
+    let payload = {
+      name: 'default',
+      conn: this.connection.get().name,
+      data: {
+        connection: jsonClone(this.connection.get().payload()),
+        queryPanel: jsonClone(this.queryPanel.get().payload()),
+        schemaPanel: jsonClone(this.schemaPanel.get()),
+        objectPanel: jsonClone(this.objectPanel.get()),
+        historyPanel: jsonClone(this.historyPanel.get()),
+      },
+    }
+    let resp = await sendWsMsgWait(new Message(MsgType.SaveSession, payload))
+    if(resp.error) return toastError('Could not save session', resp.error)
+  }
+
+  loadSession = async (connName: string) => {
+    let payload = {
+      name: 'default',
+      conn: connName,
+    }
+    let resp = await sendWsMsgWait(new Message(MsgType.LoadSession, payload))
+    if(resp.error) return toastError('Could not load session', resp.error)
+  
+    this.connection.set(
+      c => {
+        Object.assign(c, resp.data.connection)
+        return c
+      })
+    this.schemaPanel.set(new SchemaPanelState(resp.data.schemaPanel))
+    this.objectPanel.set(new ObjectPanelState(resp.data.objectPanel))
+    this.queryPanel.set(new QueryPanelState(resp.data.queryPanel))
+    this.historyPanel.set(new HistoryPanelState(resp.data.historyPanel))
+  }
+  
+
+}
 export const globalStore = new GlobalStore()
 
 export const useStore = () => {

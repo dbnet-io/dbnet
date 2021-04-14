@@ -1,6 +1,8 @@
 package store
 
 import (
+	"time"
+
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
@@ -44,6 +46,8 @@ func InitDB(dbURL string) {
 		err = Db.AutoMigrate(table)
 		g.LogFatal(err, "error AutoMigrating table: "+tableName)
 	}
+
+	g.LogFatal(CleanupTasks(), "error running db cleanup tasks")
 }
 
 // Sync syncs to the store
@@ -94,4 +98,34 @@ func RemoveOld(table, conn, schemaName, tableName, columnName string) (err error
 
 	return err
 
+}
+
+// CleanupTasks cleans up the db
+func CleanupTasks() (err error) {
+	// delete query row data older than 1 month
+	oldMark := time.Now().Add(-30*24*time.Hour).UnixNano() / 1000000
+	err = Db.Exec(`update queries set rows = null where time < ?`, oldMark).Error
+	if err != nil {
+		return g.Error(err, "could not delete old queries")
+	}
+
+	// vacuum
+	err = Db.Exec(`vacuum`).Error
+	if err != nil {
+		return g.Error(err, "could not vacuum")
+	}
+
+	return
+}
+
+// Loop loops interval functions
+func Loop() {
+	ticker60Minute := time.NewTicker(60 * time.Minute)
+	defer ticker60Minute.Stop()
+	for {
+		select {
+		case <-ticker60Minute.C:
+			g.LogError(CleanupTasks())
+		}
+	}
 }

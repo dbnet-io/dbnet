@@ -15,10 +15,7 @@ const setFilter = _.debounce(
 )
 
 export const submitSQL = (tab: State<Tab>, sql?: string) => {
-  if(!sql) {
-    // get current block
-    sql = tab.editor.text.get()
-  }
+  if(!sql) sql = tab.editor.text.get() // get current block
 
   let tab_ = tab
 
@@ -43,6 +40,7 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
       tab.set(
         t => {
           t.query = query
+          t.query.pulled = true
           t.query.duration = Math.round(query.duration*100)/100
           t.rowView.rows = query.getRowData(0)
           t.loading = false

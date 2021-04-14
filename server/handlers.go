@@ -311,6 +311,7 @@ func handleSubmitSQL(msg Message) (respMsg Message) {
 
 	respMsg = net.NewMessage(msg.Type, g.ToMap(query), msg.ReqID)
 
+	query.TrimRows(100) // only store 100 rows in sqlite
 	Sync("queries", query)
 
 	return
@@ -338,19 +339,28 @@ func handleGetSQLRows(msg Message) (respMsg Message) {
 	if !ok {
 		g.Debug("could not find query %s. Resubmitting...", query.ID)
 		return handleSubmitSQL(msg)
+	} else if !query.Pulled {
+		err = store.Db.Where(`rows is not null`).First(&query).Error
+		if err != nil {
+			g.Debug("could not pull rows for query %s. Resubmitting...", query.ID)
+			return handleSubmitSQL(msg)
+		}
+	} else {
+		limit := cast.ToInt(msg.Data["limit"])
+		data, err := FetchRows(q, limit)
+		if err != nil {
+			err = g.Error(err, "could not fecth rows")
+			return net.NewMessageErr(err, msg.ReqID)
+		}
+		query.Rows = data.Rows
 	}
 
-	limit := cast.ToInt(msg.Data["limit"])
-	data, err := FetchRows(q, limit)
-	if err != nil {
-		err = g.Error(err, "could not fecth rows")
-		return net.NewMessageErr(err, msg.ReqID)
-	}
-	query.Rows = data.Rows
+	respMsg = net.NewMessage(msg.Type, g.ToMap(query), msg.ReqID)
 
+	query.TrimRows(100) // only store 100 rows in sqlite
 	Sync("queries", query, "status")
 
-	return net.NewMessage(msg.Type, g.ToMap(query), msg.ReqID)
+	return respMsg
 }
 
 // handleCancelSQL cancels an existing query

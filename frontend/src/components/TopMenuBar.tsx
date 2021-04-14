@@ -3,7 +3,7 @@ import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, useHS, useStoreWs, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
@@ -157,8 +157,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     style={{paddingLeft:"20px"}}
   ></img>
 
-  // const connected = useHookState(store().ws.connected)
-  const connected = useHS(true)
+  const connected = useStoreWs().connected
 
   const OmniBox = () => {
     const allTables = useVariable<string[]>([])
@@ -252,6 +251,23 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   const end = () => <div style={{paddingRight:"0px"}} className="p-inputgroup">
       <OmniBox/>
       <Tooltip target="#ws-status" position="left" />
+
+      <Button
+        icon="pi pi-desktop"
+        tooltip="Load session"
+        tooltipOptions={{ position: 'bottom' }}
+        className="p-button-sm p-button-outlined p-button-secondary"
+        onClick={(e) => { globalStore.loadSession(accessStore().connection.name.get())}}
+      />
+
+      <Button
+        icon="pi pi-save"
+        tooltip="Save session"
+        tooltipOptions={{ position: 'bottom' }}
+        className="p-button-sm p-button-outlined p-button-secondary"
+        onClick={(e) => { globalStore.saveSession()}}
+      />
+
       <span className="p-inputgroup-addon">
       {
         connected.get() ?

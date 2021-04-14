@@ -3,6 +3,8 @@ package store
 import (
 	"time"
 
+	"database/sql/driver"
+
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
@@ -41,22 +43,47 @@ const QueryStatusFetched QueryStatus = "fetched"
 const QueryStatusCancelled QueryStatus = "cancelled"
 const QueryStatusErrorred QueryStatus = "errorred"
 
+type Headers []string
+
+// Scan scan value into Jsonb, implements sql.Scanner interface
+func (h *Headers) Scan(value interface{}) error {
+	return g.JSONScanner(h, value)
+}
+
+// Value return json value, implement driver.Valuer interface
+func (h Headers) Value() (driver.Value, error) {
+	return g.JSONValuer(h, "[]")
+}
+
+type Rows [][]interface{}
+
+// Scan scan value into Jsonb, implements sql.Scanner interface
+func (r *Rows) Scan(value interface{}) error {
+	return g.JSONScanner(r, value)
+}
+
+// Value return json value, implement driver.Valuer interface
+func (r Rows) Value() (driver.Value, error) {
+	return g.JSONValuer(r, "[]")
+}
+
 // Query represents a query
 type Query struct {
-	ID        string          `json:"id" gorm:"primaryKey"`
-	Conn      string          `json:"conn" gorm:"index"`
-	Tab       string          `json:"tab"`
-	Text      string          `json:"text"`
-	Time      int64           `json:"time"`
-	Duration  float64         `json:"duration"`
-	Status    QueryStatus     `json:"status"`
-	Err       string          `json:"err"`
-	Headers   []string        `json:"headers" gorm:"-"`
-	Rows      [][]interface{} `json:"rows" gorm:"-"`
-	Context   g.Context       `json:"-" gorm:"-"`
-	Result    *sqlx.Rows      `json:"-" gorm:"-"`
-	Columns   []iop.Column    `json:"-" gorm:"-"`
-	UpdatedDt time.Time       `json:"-" gorm:"autoUpdateTime"`
+	ID        string       `json:"id" gorm:"primaryKey"`
+	Conn      string       `json:"conn" gorm:"index"`
+	Tab       string       `json:"tab"`
+	Text      string       `json:"text"`
+	Time      int64        `json:"time" gorm:"index:idx_query_time"`
+	Duration  float64      `json:"duration"`
+	Status    QueryStatus  `json:"status"`
+	Err       string       `json:"err"`
+	Headers   Headers      `json:"headers" gorm:"headers"`
+	Rows      Rows         `json:"rows" gorm:"rows"`
+	Context   g.Context    `json:"-" gorm:"-"`
+	Result    *sqlx.Rows   `json:"-" gorm:"-"`
+	Columns   []iop.Column `json:"-" gorm:"-"`
+	Pulled    bool         `json:"pulled" gorm:"-"`
+	UpdatedDt time.Time    `json:"-" gorm:"autoUpdateTime"`
 }
 
 // Session represents a connection session
@@ -66,4 +93,12 @@ type Session struct {
 	Data      g.Map     `json:"data" gorm:"type:json not null default '{}'"`
 	CreatedDt time.Time `json:"created_dt" gorm:"autoCreateTime"`
 	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+// TrimRows keeps a number of rows
+func (q *Query) TrimRows(n int) {
+	// only store n rows
+	if len(q.Rows) > n {
+		q.Rows = q.Rows[0:n]
+	}
 }

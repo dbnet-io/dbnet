@@ -5,11 +5,18 @@ import { ObjectAny } from '../utilities/interfaces';
 import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/methods';
 import { accessStore, useStoreWs } from './state';
 
-const store = accessStore()
 
 export const sendWsMsg = (msg : Message) => {
   window.queue.send.push(msg)
-  store.ws.doRequest.set(v => v+1)
+  accessStore().ws.doRequest.set(v => v+1)
+}
+
+export const sendWsMsgWait = (msg : Message) : Promise<Message> => {
+  return new Promise(function(resolve) {
+    msg.callback = (data2: Message) => resolve(data2)
+    window.queue.send.push(msg)
+    accessStore().ws.doRequest.set(v => v+1)
+  });
 }
 
 export interface WsQueue {
@@ -101,7 +108,7 @@ export const Websocket: React.FC<Props> = (props) => {
   React.useEffect(() => {
     ws.connected.set(connected)
     if(connected) {
-      store.ws.doRequest.set(v => v+1)
+      accessStore().ws.doRequest.set(v => v+1)
     }
   }, [connected])
 
@@ -118,7 +125,6 @@ export const Websocket: React.FC<Props> = (props) => {
       if(req && req.type) { 
         if(req.callback) { 
           window.callbacks[req.req_id] = req.callback
-          console.log(window.callbacks)
         }
         sendMessage(JSON.stringify(req))
       }

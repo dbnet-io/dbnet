@@ -28,6 +28,7 @@ export const fetchRows = (tab: State<Tab>) => {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),
     text: tab.query.text.get(),
+    pulled: tab.query.pulled.get(),
     time: (new Date()).getTime(),
     tab: tab.id.get(),
     limit: tab.limit.get(),
@@ -41,7 +42,10 @@ export const fetchRows = (tab: State<Tab>) => {
       let tab = queryPanel.tabs[index]
       tab.set(
         t => {
+          t.query.id = query.id
           t.query.status = query.status
+          t.query.pulled = true
+          t.query.duration = Math.round(query.duration*100)/100
           t.query.rows = t.query.rows.concat(query.rows)
           t.loading = false
           return t

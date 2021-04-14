@@ -3,7 +3,7 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { TabNames } from "../components/TabNames";
 import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
-import { TabTable } from "../components/TabTable";
+import { fetchRows, TabTable } from "../components/TabTable";
 import { accessStore, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 
@@ -24,6 +24,10 @@ export const RightPane: React.FC<Props> = (props) => {
     const tabIndex = queryPanel.tabs.get().map(t => t.id).indexOf(tabId.get()) || 0
     const tabs = useStoreQueryPanel().tabs
     const tab = tabs[tabIndex]
+
+    React.useEffect(() => {
+      if(tab.query.status.get() && !tab.query.pulled.get()) fetchRows(tab)
+    }, [tabId.get()])
 
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
