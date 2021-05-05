@@ -1,11 +1,11 @@
 
 # Build Frontend Bundle
 cd frontend && npm install && npm run build || exit
-mv dist ../backend/
+mv build ../backend/
 
 cd ../backend 
 rm -rf static
-mv dist static
+mv build static
 
 # Build Backend Binary
 env GOOS=darwin GOARCH=amd64 packr build -o backend-mac || exit
