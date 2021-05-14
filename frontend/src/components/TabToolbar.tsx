@@ -56,6 +56,7 @@ export const submitSQL = (tab: State<Tab>, sql?: string) => {
   tab.query.rows.set([])
   tab.query.headers.set([])
   tab.query.err.set('')
+  tab.query.duration.set(0)
   tab.loading.set(true);
 }
 

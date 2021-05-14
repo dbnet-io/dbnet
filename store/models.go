@@ -82,6 +82,7 @@ type Query struct {
 	Context   g.Context    `json:"-" gorm:"-"`
 	Result    *sqlx.Rows   `json:"-" gorm:"-"`
 	Columns   []iop.Column `json:"-" gorm:"-"`
+	Limit     int          `json:"-" gorm:"-"`
 	Pulled    bool         `json:"pulled" gorm:"-"`
 	UpdatedDt time.Time    `json:"-" gorm:"autoUpdateTime"`
 }

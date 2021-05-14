@@ -52,6 +52,12 @@ export const App = () => {
   React.useEffect(()=> {
     // init load session
 
+    // get all connections
+    let getConnsCallback = (msg: Message) => {
+      store.app.connections.set(msg.data.conns)
+    }
+    sendWsMsg(new Message(MsgType.GetConnections, {callback: getConnsCallback}))
+
     // get all schema objects
     let data = {
       conn: store.connection.name.get(),

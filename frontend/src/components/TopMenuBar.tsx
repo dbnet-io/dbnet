@@ -8,6 +8,10 @@ import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
 import { useState } from "@hookstate/core";
+import { toastInfo } from "../utilities/methods";
+
+
+const store = accessStore()
 
 interface Props {}
 
@@ -135,10 +139,12 @@ const items : MenuItem[] = [
      ]
   },
   {
-     label:'Quit',
-     icon:'pi pi-fw pi-power-off',
-     command: () => { console.log('hello')},
-  }
+     label:'Connections',
+     icon:'pi pi-fw pi-sitemap',
+     command: () => { 
+      console.log(store.app.connections.get())
+     },
+  },
 ];
 
 

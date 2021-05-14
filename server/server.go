@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -57,22 +58,27 @@ func NewServer() *Server {
 
 	e.GET(RouteWs.String(), wsServer.NewClient)
 
-	e.GET(RouteGetConnections.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetSchemata.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetSchemas.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetTables.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetColumns.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetAnalysisSQL.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetHistory.String(), func(c echo.Context) (err error) { return })
-	e.GET(RouteGetSQLRows.String(), func(c echo.Context) (err error) { return })
+	e.GET(RouteGetConnections.String(), GetConnections)
+	e.GET(RouteGetSchemata.String(), GetSchemata)
+	e.GET(RouteGetSchemas.String(), GetSchemas)
+	e.GET(RouteGetTables.String(), GetTables)
+	e.GET(RouteGetColumns.String(), GetColumns)
+	e.GET(RouteGetAnalysisSQL.String(), GetAnalysisSQL)
+	e.GET(RouteGetHistory.String(), GetHistory)
+	e.GET(RouteGetSQLRows.String(), GetSQLRows)
+	e.GET(RouteLoadSession.String(), GetLoadSession)
 
-	e.POST(RouteSubmitSQL.String(), func(c echo.Context) (err error) { return })
-	e.POST(RouteCancelSQL.String(), func(c echo.Context) (err error) { return })
-	e.POST(RouteLoadSession.String(), func(c echo.Context) (err error) { return })
-	e.POST(RouteSaveSession.String(), func(c echo.Context) (err error) { return })
+	e.POST(RouteSubmitSQL.String(), PostSubmitQuery)
+	e.POST(RouteCancelSQL.String(), PostCancelQuery)
+	e.POST(RouteSaveSession.String(), PostSaveSession)
+
+	port := os.Getenv("DBNET_PORT")
+	if port == "" {
+		port = "5987"
+	}
 
 	return &Server{
-		Port:       "5987",
+		Port:       port,
 		EchoServer: e,
 		WsServer:   wsServer,
 		StartTime:  time.Now(),

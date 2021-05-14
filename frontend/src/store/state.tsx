@@ -324,6 +324,8 @@ export class Connection {
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || 'PG_BIONIC_URL' || 'PRIMARY_DATABASE_URL'
+    this.name = data.name || 'POLLY_SNOWFLAKE'
+    // this.name = data.name || 'LEADIQ_REDSHIFT'
     this.type = data.type
     this.data = data.data
     this.schemas = data.schemas || {}

@@ -161,7 +161,21 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsCnt = selected.get().map(v => v.column_name)
                 .map(c => `count(${c}) cnt_${c}`)
             let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
-            let sql = `select\n  count(*) cnt${colsCntStr}\nfrom ${objectView.name.get()}\n;`
+            let sql = `select\n  count(1) cnt${colsCntStr}\nfrom ${objectView.name.get()}\n;`
+            let tab = createTab(objectView.name.get(), sql)
+            submitSQL(tab, sql)
+          }}
+        />
+        <Button
+          icon="pi pi-sort-amount-down"
+          tooltip="Column Distro"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-secondary"
+          onClick={(e) => {
+            let cols = selected.get().map(v => v.column_name)
+            if(cols.length === 0 ) return toastError('need to select columns')
+            let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
+            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${objectView.name.get()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
             let tab = createTab(objectView.name.get(), sql)
             submitSQL(tab, sql)
           }}
