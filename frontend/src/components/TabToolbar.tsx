@@ -1,63 +1,68 @@
 import * as React from "react";
-import { accessStore, Query, Tab, useHS } from "../store/state";
+import { accessStore, globalStore, Query, Tab, useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
-import { Message, MsgType, sendWsMsg } from "../store/websocket";
+import { MsgType } from "../store/websocket";
 import _ from "lodash";
-import { copyToClipboard, jsonClone, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, jsonClone, new_ts_id, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
+import { apiPost } from "../store/api";
 
 
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
 )
 
-export const submitSQL = (tab: State<Tab>, sql?: string) => {
+export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   if(!sql) sql = tab.editor.text.get() // get current block
 
   let tab_ = tab
 
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
-  let data = {
+  let data1 = {
+    id: new_ts_id('query.'),
     conn: connection.name.get(),
     text: sql,
     time: (new Date()).getTime(),
     tab: tab.id.get(),
     limit: tab.limit.get(),
-    callback: (msg: Message) => {
-      if(msg.error) { 
-        toastError(msg.error)
-        tab_.query.err.set(msg.error)
-        return tab_.loading.set(false)
-      }
-      
-      let query = new Query(msg.data)
-      let index = queryPanel.get().getTabIndexByID(query.tab)
-      let tab = queryPanel.tabs[index]
-      tab.set(
-        t => {
-          t.query = query
-          t.query.pulled = true
-          t.query.duration = Math.round(query.duration*100)/100
-          t.rowView.rows = query.getRowData(0)
-          t.loading = false
-          return t
-        }
-      )
-      queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
-    }
+    wait: true,
   }
-  sendWsMsg(new Message(MsgType.SubmitSQL, data))
+
   tab.query.time.set(new Date().getTime())
   tab.lastTableSelection.set([0, 0, 0, 0])
   tab.query.rows.set([])
   tab.query.headers.set([])
   tab.query.err.set('')
   tab.query.duration.set(0)
-  tab.loading.set(true);
+  tab.loading.set(true)
+
+  try {
+    let data2 = await apiPost(MsgType.SubmitSQL, data1)
+    if(data2.error) throw new Error(data2.error)
+    let query = new Query(data2)
+    let index = queryPanel.get().getTabIndexByID(query.tab)
+    let tab = queryPanel.tabs[index]
+    tab.set(
+      t => {
+        t.query = query
+        t.query.pulled = true
+        t.query.duration = Math.round(query.duration*100)/100
+        t.rowView.rows = query.getRowData(0)
+        t.loading = false
+        return t
+      }
+    )
+    queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
+  } catch (error) {
+    toastError(error)
+    tab_.query.err.set(error)
+  }
+  tab_.loading.set(false)
+  globalStore.saveSession()
 }
 
 export function TabToolbar(props: { tab: State<Tab>; }) {

@@ -3,7 +3,7 @@ import './TabTable.css'
 import {  Query, QueryStatus, Tab, useVariable, accessStore } from "../store/state";
 import { State } from "@hookstate/core";
 import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
-import { Message, MsgType, sendWsMsg } from "../store/websocket";
+import { MsgType } from "../store/websocket";
 import { useState } from "@hookstate/core";
 import _ from "lodash";
 
@@ -11,6 +11,7 @@ import { HotTable } from '@handsontable/react';
 import 'handsontable/dist/handsontable.full.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { apiGet } from "../store/api";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
@@ -19,12 +20,11 @@ interface Props {
   tab: State<Tab>
 }
 
-export const fetchRows = (tab: State<Tab>) => {
+export const fetchRows = async (tab: State<Tab>) => {
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
-  let tab_ = tab
   const queryPanel = accessStore().queryPanel
-  let data = {
+  let data1 = {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),
     text: tab.query.text.get(),
@@ -32,30 +32,32 @@ export const fetchRows = (tab: State<Tab>) => {
     time: (new Date()).getTime(),
     tab: tab.id.get(),
     limit: tab.limit.get(),
-    callback: (msg: Message) => {
-      if(msg.error) { 
-        toastError(msg.error)
-        return tab_.loading.set(false)
-      }
-      let query = msg.data as Query
-      let index = queryPanel.get().getTabIndexByID(query.tab)
-      let tab = queryPanel.tabs[index]
-      tab.set(
-        t => {
-          t.query.id = query.id
-          t.query.status = query.status
-          t.query.pulled = true
-          t.query.duration = Math.round(query.duration*100)/100
-          t.query.rows = t.query.rows.concat(query.rows)
-          t.loading = false
-          return t
-        }
-      )
-    }
+    wait: true,
   }
 
-  sendWsMsg(new Message(MsgType.GetSQLRows, data))
   tab.loading.set(true);
+  tab.query.time.set(new Date().getTime())
+  try {
+    let data2 = await apiGet(MsgType.GetSQLRows, data1)
+    if(data2.error) throw new Error(data2.error)
+    let query = data2 as Query
+    let index = queryPanel.get().getTabIndexByID(query.tab)
+    let tab = queryPanel.tabs[index]
+    tab.set(
+      t => {
+        t.query.id = query.id
+        t.query.status = query.status
+        t.query.pulled = true
+        t.query.duration = Math.round(query.duration*100)/100
+        t.query.rows = t.query.rows.concat(query.rows)
+        t.loading = false
+        return t
+      }
+    )
+  } catch (error) {
+    toastError(error)
+  }
+  tab.loading.set(false)
 }
 
 const debounceFetchRows = _.debounce((tab: State<Tab>) => fetchRows(tab), 400)

@@ -7,39 +7,39 @@ import * as React from "react";
 import { accessStore, useHS, useVariable } from "../store/state";
 import _ from "lodash";
 import { State, useState } from "@hookstate/core";
-import { Message, MsgType, sendWsMsg } from "../store/websocket";
+import { MsgType } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, split_schema_table, toastError, toastInfo } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
+import { apiGet } from "../store/api";
 
 interface Props {}
 
-export const loadMetaTable = (tableName: string) => {
+export const loadMetaTable = async (tableName: string) => {
   let store = accessStore()
   let objectView = store.objectPanel.table
   let {schema, table} = split_schema_table(tableName)
-  let data = {
-    conn: store.connection.name.get(),
-    schema,
-    table,
-    callback: (msg: Message) => {
-      if(msg.error) { 
-        toastError(msg.error)
-        return objectView.loading.set(false)
-      }
-      objectView.set(
-        o => {
-          o.rows = data_req_to_records(msg.data).map((r, i) => Object.assign(r, {id: i+1}))
-          o.name = tableName
-          o.loading = false
-          return o
-        }
-      )
+  try {
+    let data1 = {
+      conn: store.connection.name.get(),
+      schema,
+      table,
     }
+    objectView.loading.set(true);
+    let data2 = await apiGet(MsgType.GetColumns, data1)
+    objectView.set(
+      o => {
+        o.rows = data_req_to_records(data2).map((r, i) => Object.assign(r, {id: i+1}))
+        o.name = tableName
+        o.loading = false
+        return o
+      }
+    )
+  } catch (error) {
+    toastError(error)
   }
-  sendWsMsg(new Message(MsgType.GetColumns, data))
-  objectView.loading.set(true);
+  objectView.loading.set(false)
 }
 
 

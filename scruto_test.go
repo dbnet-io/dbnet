@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
@@ -25,8 +26,8 @@ func TestExport(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	// go srv.EchoServer.Logger.Fatal(srv.EchoServer.Start(":" + srv.Port))
-	// time.Sleep(3 * time.Second)
+	go srv.EchoServer.Start(":" + srv.Port)
+	time.Sleep(3 * time.Second)
 	testSubmitSQL(t)
 	testGetConnections(t)
 	testGetSchemas(t)
@@ -38,6 +39,52 @@ func TestAll(t *testing.T) {
 
 func handleMsg(msg net.Message) net.Message {
 	return server.Handlers[msg.Type](msg)
+}
+
+func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+	url := g.F("http://localhost:%s%s", srv.Port, route.String())
+	g.P(url)
+	_, respBytes, err := net.ClientDo("POST", url, strings.NewReader(g.Marshal(data1)), headers, 5)
+	if err != nil {
+		err = g.Error(err)
+		return
+	}
+	err = g.Unmarshal(string(respBytes), &data2)
+	if err != nil {
+		err = g.Error(err)
+		return
+	}
+	return
+}
+
+func getRequest(route server.RouteName, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
+	headers := map[string]string{"Content-Type": "application/json"}
+	vals := url.Values{}
+	for k, v := range data1 {
+		switch v.(type) {
+		case map[string]interface{}:
+			v = string(g.MarshalMap(v.(map[string]interface{})))
+		}
+		val := cast.ToString(v)
+		if val == "" {
+			continue
+		}
+		vals.Set(k, val)
+	}
+	url := g.F("http://localhost:%s%s?%s", srv.Port, route.String(), vals.Encode())
+	g.P(url)
+	_, respBytes, err := net.ClientDo("GET", url, nil, headers, 5)
+	if err != nil {
+		err = g.Error(err)
+		return
+	}
+	err = g.Unmarshal(string(respBytes), &data2)
+	if err != nil {
+		err = g.Error(err)
+		return
+	}
+	return
 }
 
 func newPostRequest(handler func(echo.Context) error, data map[string]interface{}) (*httptest.ResponseRecorder, error) {
@@ -79,13 +126,11 @@ func testSubmitSQL(t *testing.T) {
 		"text", "select * from housing.landwatch2 limit 138",
 		"wait", true,
 	)
-	rec, err := newPostRequest(server.PostSubmitQuery, m)
+	data, err := postRequest(server.RouteSubmitSQL, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
 
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	assert.Contains(t, data, "headers")
 	assert.Contains(t, data, "rows")
 	if !assert.Contains(t, data, "id") {
@@ -103,12 +148,10 @@ func testSubmitSQL(t *testing.T) {
 }
 
 func testGetSQLRows(t *testing.T, m map[string]interface{}) {
-	rec, err := newGetRequest(server.GetSQLRows, m)
+	data, err := getRequest(server.RouteGetSQLRows, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	rows := data["rows"].([]interface{})
 	assert.Len(t, rows, 38)
 }
@@ -121,43 +164,35 @@ func testCancelSQL(t *testing.T) {
 		"wait", false,
 	)
 
-	rec, err := newPostRequest(server.PostSubmitQuery, m)
+	data, err := postRequest(server.RouteSubmitSQL, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	if assert.NotEmpty(t, data) {
 		m["id"] = data["id"].(string)
 	}
 
-	rec, err = newPostRequest(server.PostCancelQuery, m)
+	data, err = postRequest(server.RouteCancelSQL, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data = g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	assert.Equal(t, "cancelled", data["status"].(string))
 
 	// try to get more rows, should create new query id
 	m["wait"] = true
-	rec, err = newPostRequest(server.PostSubmitQuery, m)
+	data, err = postRequest(server.RouteSubmitSQL, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data = g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	assert.EqualValues(t, store.QueryStatusCompleted, data["status"].(string))
 }
 
 func testGetConnections(t *testing.T) {
 	m := g.M("id", g.NewTsID())
-	rec, err := newGetRequest(server.GetConnections, m)
+	data, err := getRequest(server.RouteGetConnections, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	conns := data["conns"].([]interface{})
 	assert.Greater(t, len(conns), 1)
 }
@@ -167,12 +202,10 @@ func testGetSchemas(t *testing.T) {
 		"id", g.NewTsID(),
 		"conn", "PG_BIONIC",
 	)
-	rec, err := newGetRequest(server.GetSchemas, m)
+	data, err := getRequest(server.RouteGetSchemas, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	rows := data["rows"].([]interface{})
 	assert.Greater(t, len(rows), 1)
 }
@@ -183,12 +216,10 @@ func testGetTables(t *testing.T) {
 		"conn", "PG_BIONIC",
 		"schema", "public",
 	)
-	rec, err := newGetRequest(server.GetTables, m)
+	data, err := getRequest(server.RouteGetTables, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	rows := data["rows"].([]interface{})
 	if assert.Greater(t, len(rows), 1) {
 		schema := rows[0].([]interface{})[0].(string)
@@ -203,12 +234,10 @@ func testGetColumns(t *testing.T, tableName string) {
 		"schema", "public",
 		"table", tableName,
 	)
-	rec, err := newGetRequest(server.GetColumns, m)
+	data, err := getRequest(server.RouteGetColumns, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	g.Unmarshal(rec.Body.String(), &data)
 	rows := data["rows"].([]interface{})
 	assert.Greater(t, len(rows), 1)
 }
@@ -222,7 +251,7 @@ func testSaveSession(t *testing.T) {
 			"test", "ing",
 		),
 	)
-	_, err := newPostRequest(server.PostSaveSession, m)
+	_, err := postRequest(server.RouteSaveSession, m)
 	g.AssertNoError(t, err)
 }
 
@@ -232,12 +261,10 @@ func testLoadSession(t *testing.T) {
 		"conn", "PG_BIONIC",
 		"name", "default",
 	)
-	rec, err := newGetRequest(server.GetLoadSession, m)
+	data, err := getRequest(server.RouteLoadSession, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	data := g.M()
-	err = g.Unmarshal(rec.Body.String(), &data)
 	if assert.NoError(t, err) {
 		assert.Equal(t, "ing", data["test"].(string))
 	}

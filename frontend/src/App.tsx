@@ -11,15 +11,15 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import { Message, MsgType, sendWsMsg, Websocket, WsQueue } from './store/websocket';
-import { accessStore, Schema } from './store/state';
+import {  MsgType, WsQueue } from './store/websocket';
+import { accessStore, globalStore, Schema } from './store/state';
 import { data_req_to_records, jsonClone, toastError } from './utilities/methods';
 import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
-import { useState } from "@hookstate/core";
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
+import { apiGet } from './store/api';
 
 interface Props {}
 interface State {
@@ -51,19 +51,15 @@ export const App = () => {
 
   React.useEffect(()=> {
     // init load session
+    globalStore.loadSession(store.connection.name.get())
 
-    // get all connections
-    let getConnsCallback = (msg: Message) => {
-      store.app.connections.set(msg.data.conns)
-    }
-    sendWsMsg(new Message(MsgType.GetConnections, {callback: getConnsCallback}))
-
-    // get all schema objects
-    let data = {
+    globalStore.schemaPanel.loading.set(true)
+    apiGet(MsgType.GetSchemata, {
       conn: store.connection.name.get(),
-      callback: (msg: Message) => {
-        if(msg.error) { return toastError(msg.error) }
-        let rows = data_req_to_records(msg.data)
+    }).then(
+      data => {
+        globalStore.schemaPanel.loading.set(false)
+        let rows = data_req_to_records(data)
         let schemas : { [key: string]: Schema; } = {}
         for(let row of rows) {
           if(!(row.schema_name in schemas)) {
@@ -75,11 +71,13 @@ export const App = () => {
           }
           store.connection.schemas.set(schemas)
         }
-      },
-    }
-    if(Object.keys(store.connection.schemas.get()).length === 0) {
-      sendWsMsg(new Message(MsgType.GetSchemata, data))
-    }
+      }
+    ).catch(
+      error => {
+        toastError(error)
+        globalStore.schemaPanel.loading.set(false)
+      }
+    )
   }, [])
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
@@ -107,7 +105,6 @@ export const App = () => {
       <Toast ref={toast}/>
       <PreviewPanel/>
       <RowViewPanel/>
-      <Websocket/>
       <div style={{paddingBottom: '7px'}}>
         <TopMenuBar/>
       </div>

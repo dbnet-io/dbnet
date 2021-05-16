@@ -272,6 +272,10 @@ func LoadSchemata(connName string) (err error) {
 // 4. how to get addional rows?
 func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) {
 
+	if query.Limit == 0 {
+		query.Limit = 100
+	}
+
 	// get connection
 	c, err := GetConn(query.Conn)
 	if err != nil {

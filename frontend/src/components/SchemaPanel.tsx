@@ -5,11 +5,12 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
 import { ListBox } from 'primereact/listbox';
 import { Schema, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
-import { Message, MsgType, sendWsMsg } from "../store/websocket";
+import { MsgType } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
 import { State, useState } from "@hookstate/core";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
+import { apiGet } from "../store/api";
 
 interface Props {}
 
@@ -30,7 +31,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const schemaOptions = useHS<Schema[]>([])
   const selectedTables = useVariable<Table[]>([])
   const tableOptions = useHS<Table[]>([])
-  const loading = useHS(false)
+  const loading = schemaPanel.loading
   const schemaFilter = useHS('')
 
   const menu = [
@@ -114,50 +115,51 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
-  const GetSchemas = (connName: string) => {
+  const GetSchemas = async (connName: string) => {
     loading.set(true)
-    let data = {
-      conn: connName,
-      callback: (msg: Message) => {
-        loading.set(false)
-        if(msg.error) { return toastError(msg.error) }
-        let rows = data_req_to_records(msg.data)
-        let schemas_ : { [key: string]: Schema; } = {}
-        rows.map(r => schemas_[r.schema_name] = {name: r.schema_name, tables: {}})
-        for(let key of Object.keys(schemas_)) {
-          if (key in schemas.get()) {
-            schemas_[key].tables = jsonClone(schemas.get()[key].tables || {})
-          }
+    try {
+      let data2 = await apiGet(MsgType.GetSchemas, { conn: connName })
+      if(data2.error) throw new Error(data2.error)
+      let rows = data_req_to_records(data2)
+      let schemas_ : { [key: string]: Schema; } = {}
+      rows.map(r => schemas_[r.schema_name] = {name: r.schema_name, tables: {}})
+      for(let key of Object.keys(schemas_)) {
+        if (key in schemas.get()) {
+          schemas_[key].tables = jsonClone(schemas.get()[key].tables || {})
         }
-        schemas.set(schemas_)
-        connection.schemas.set(schemas_)
       }
+      schemas.set(schemas_)
+      connection.schemas.set(schemas_)
+    } catch (error) {
+      toastError(error)
     }
-    sendWsMsg(new Message(MsgType.GetSchemas, data))
+    loading.set(false)
   }
 
 
-  const GetTables = (connName: string, schemaName: string) => {
+  const GetTables = async (connName: string, schemaName: string) => {
     loading.set(true)
-    let data = {
-      conn: connName,
-      schema: schemaName,
-      callback: (msg: Message) => {
-        loading.set(false)
-        if(msg.error) { return toastError(msg.error) }
-        let rows = data_req_to_records(msg.data)
-        let tables : { [key: string]: Table; } = {}
-        rows.map(r => tables[r.name] = {schema: schemaName, name: r.name})
-        schemas.set(
-          s => {
-            s[schemaName].tables = tables
-            return s
-          }
-        )
-        tableOptions.set(Object.values(tables))
+    try {
+      let data1 = {
+        conn: connName,
+        schema: schemaName,
       }
+      let data2 = await apiGet(MsgType.GetTables, data1)
+      if(data2.error) throw new Error(data2.error)
+      let rows = data_req_to_records(data2)
+      let tables : { [key: string]: Table; } = {}
+      rows.map(r => tables[r.name] = {schema: schemaName, name: r.name})
+      schemas.set(
+        s => {
+          s[schemaName].tables = tables
+          return s
+        }
+      )
+      tableOptions.set(Object.values(tables))
+    } catch (error) {
+      toastError(error)
     }
-    sendWsMsg(new Message(MsgType.GetTables, data))
+    loading.set(false)
   }
 
   const FocusNode = (nodes: HTMLCollection | undefined, text: string ) => {
