@@ -36,12 +36,12 @@ type Connection struct {
 
 // Request is the typical request struct
 type Request struct {
-	Name      string      `json:"name"`
-	Conn      string      `json:"conn"`
-	Schema    string      `json:"schema"`
-	Table     string      `json:"table"`
-	Procedure string      `json:"procedure"`
-	Data      interface{} `json:"data"`
+	Name      string      `json:"name" query:"name"`
+	Conn      string      `json:"conn" query:"conn"`
+	Schema    string      `json:"schema" query:"schema"`
+	Table     string      `json:"table" query:"table"`
+	Procedure string      `json:"procedure" query:"procedure"`
+	Data      interface{} `json:"data" query:"data"`
 }
 
 func init() {
@@ -92,12 +92,13 @@ func LoadProfile(path string) (conns map[string]*Connection, err error) {
 
 				conn, err := connection.NewConnectionFromMap(g.M("name", name, "data", data, "type", data["type"]))
 				if err != nil {
+					g.Warn("could not load connection %s", name)
 					g.LogError(err)
 					continue
 				}
 
 				conns[name] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}}
-				g.Info("found in profile: " + name)
+				g.Trace("found in profile: " + name)
 			default:
 				g.Warn("did not handle %s", name)
 			}
@@ -278,57 +279,72 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 		return
 	}
 
+	query.Status = store.QueryStatusSubmitted
 	query.Context = g.NewContext(c.DbConn.Context().Ctx)
-	start := time.Now()
-	Sync("queries", query)
-	query.Result, err = c.DbConn.Db().QueryxContext(query.Context.Ctx, query.Text)
-	if err != nil {
-		query.Status = store.QueryStatusErrorred
-		query.Err = g.ErrMsg(err)
-		query.Duration = time.Since(start).Seconds()
-		Sync("queries", query)
-		err = g.Error(err, "could not execute query")
-		return
-	}
-
-	colTypes, err := query.Result.ColumnTypes()
-	if err != nil {
-		err = g.Error(err, "result.ColumnTypes()")
-		return
-	}
-
-	query.Columns = database.SQLColumns(colTypes, c.DbConn.Template().NativeTypeMap)
+	result = map[string]interface{}{}
 
 	mux.Lock()
 	c.Queries[query.ID] = query
 	mux.Unlock()
 
-	// expire the query after 10 minutes
-	timer := time.NewTimer(time.Duration(10*60) * time.Second)
-	go func() {
-		select {
-		case <-timer.C:
-			mux.Lock()
-			delete(c.Queries, query.ID)
-			mux.Unlock()
-		}
-	}()
+	Sync("queries", query)
 
-	// fetch rows
-	data, err := FetchRows(query)
-	if err != nil {
-		err = g.Error(err, "could not fecth rows")
-		return
+	doSubmit := func() {
+		start := time.Now()
+		query.Result, err = c.DbConn.Db().QueryxContext(query.Context.Ctx, query.Text)
+		if err != nil {
+			query.Status = store.QueryStatusErrorred
+			query.Err = g.ErrMsg(err)
+			query.Duration = time.Since(start).Seconds()
+			Sync("queries", query)
+			err = g.Error(err, "could not execute query")
+			return
+		}
+
+		colTypes, err := query.Result.ColumnTypes()
+		if err != nil {
+			err = g.Error(err, "result.ColumnTypes()")
+			return
+		}
+
+		query.Columns = database.SQLColumns(colTypes, c.DbConn.Template().NativeTypeMap)
+
+		// expire the query after 10 minutes
+		timer := time.NewTimer(time.Duration(10*60) * time.Second)
+		go func() {
+			select {
+			case <-timer.C:
+				mux.Lock()
+				delete(c.Queries, query.ID)
+				mux.Unlock()
+			}
+		}()
+
+		// fetch rows
+		data, err := FetchRows(query)
+		if err != nil {
+			err = g.Error(err, "could not fecth rows")
+			return
+		}
+
+		query.Duration = time.Since(start).Seconds()
+		query.Headers = data.Columns.Names()
+		query.Rows = data.Rows
+
+		result = g.ToMap(query)
+
+		query.TrimRows(100) // only store 100 rows in sqlite
+		Sync("queries", query)
+
+		query.TrimRows(1) // only store 1 row in mem
 	}
 
-	query.Duration = time.Since(start).Seconds()
-	query.Headers = data.Columns.Names()
-	query.Rows = data.Rows
-
-	result = g.ToMap(query)
-
-	query.TrimRows(100) // only store 100 rows in sqlite
-	Sync("queries", query)
+	if query.Wait {
+		doSubmit()
+	} else {
+		result = g.ToMap(query)
+		go doSubmit()
+	}
 
 	return
 }
@@ -347,7 +363,7 @@ func GetConn(name string) (c *Connection, err error) {
 	os.Setenv("DBIO_USE_POOL", "TRUE")
 	c.DbConn, err = database.NewConn(c.Conn.URL(), g.MapToKVArr(c.Conn.DataS())...)
 	if err != nil {
-		err = g.Error(err, "could not initialize database connection with provided credentials/url.")
+		err = g.Error(err, "could not initialize database connection '%s' with provided credentials/url.", name)
 		return
 	}
 	err = c.DbConn.Connect()

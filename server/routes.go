@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
@@ -205,16 +206,20 @@ func GetHistory(c echo.Context) (err error) {
 }
 
 func GetSQLRows(c echo.Context) (err error) {
-	query := new(store.Query)
-	if err = c.Bind(query); err != nil {
+	q := new(store.Query)
+	if err = c.Bind(q); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
 	}
 
 	// get connection
-	conn, err := GetConn(query.Conn)
+	conn, err := GetConn(q.Conn)
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", query.Conn)
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", q.Conn)
 	}
+
+	mux.Lock()
+	query, ok := conn.Queries[q.ID]
+	mux.Unlock()
 
 	resubmit := func() error {
 		result, err := doSubmitSQL(query)
@@ -224,20 +229,30 @@ func GetSQLRows(c echo.Context) (err error) {
 		return c.JSON(200, result)
 	}
 
-	mux.Lock()
-	q, ok := conn.Queries[query.ID]
-	mux.Unlock()
 	if !ok {
+		query = q
 		g.Debug("could not find query %s. Resubmitting...", query.ID)
 		return resubmit()
-	} else if !query.Pulled {
+	} else if !query.Pulled() {
+		if query.Status == store.QueryStatusSubmitted {
+			if q.Wait {
+				for {
+					if query.Status != store.QueryStatusSubmitted {
+						break
+					}
+					time.Sleep(1 * time.Second)
+				}
+			} else {
+				return c.JSON(200, g.ToMap(query))
+			}
+		}
 		err = store.Db.Where(`rows is not null`).First(&query).Error
 		if err != nil {
 			g.Debug("could not pull rows for query %s. Resubmitting...", query.ID)
 			return resubmit()
 		}
 	} else {
-		data, err := FetchRows(q)
+		data, err := FetchRows(query)
 		if err != nil {
 			return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
 		}
@@ -272,7 +287,9 @@ func PostCancelQuery(c echo.Context) (err error) {
 	}
 
 	q.Context.Cancel()
-	q.Result.Close()
+	if q.Result != nil {
+		q.Result.Close()
+	}
 
 	query.Status = store.QueryStatusCancelled
 	query.Rows = nil
@@ -290,6 +307,10 @@ func PostSubmitQuery(c echo.Context) (err error) {
 	query := new(store.Query)
 	if err = c.Bind(query); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
+	}
+
+	if query.Limit == 0 {
+		query.Limit = 100
 	}
 
 	result, err := doSubmitSQL(query)
