@@ -76,7 +76,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
             return {
               label: c,
               command: () => { 
-                toastInfo(c)
+                globalStore.loadSession(c)
               },
             }
           }),
@@ -123,11 +123,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
     const getAllTables = () => {
       let all: string[] = []
-      for (let key of Object.keys(schemas.get())) {
-        let tables = schemas.get()[key].tables
-        if (!tables) { continue }
-        for (let name of Object.keys(tables)) {
-          let table = tables[name]
+      for (let shema of schemas.get()) {
+        if (!shema.tables) { continue }
+        for (let table of shema.tables) {
           all.push(`${table.schema}.${table.name}`.toLowerCase())
         }
       }
@@ -210,14 +208,14 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       onClick={(e) => { globalStore.saveSession() }}
     />
 
-    <span className="p-inputgroup-addon">
+    {/* <span className="p-inputgroup-addon">
       {
         connected.get() ?
           <i id="ws-status" style={{ color: 'rgb(131 255 51)', fontSize: '23px' }} className='pi pi-circle-on p-ml-2' data-pr-tooltip='Connected'></i>
           :
           <i id="ws-status" style={{ color: 'red', fontSize: '23px' }} className='pi pi-circle-on p-ml-2' data-pr-tooltip='Disconnected'></i>
       }
-    </span>
+    </span> */}
   </div>
 
   return (

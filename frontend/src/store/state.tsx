@@ -19,7 +19,7 @@ export class Editor {
   undoManager: any
 
   constructor(data: ObjectAny = {}) {
-    this.text = data.text || 'select * from housing.landwatch2'
+    this.text = data.text || ''
     this.selection = data.selection || [0,0,0,0]
     this.undoManager = data.undoManager || {}
   }
@@ -156,14 +156,14 @@ export interface Key {
 export interface Table {
   schema: string
   name: string
-  columns?: { [key: string]: Column; }
+  columns?: Column[]
   primaryKey?: Key
   indexes?: Key[]
 }
 
 export interface Schema {
   name: string
-  tables: { [key: string]: Table; }
+  tables: Table[]
 }
 
 
@@ -320,16 +320,16 @@ export class Connection {
   name: string
   type: ConnType
   data: ObjectString;
-  schemas: { [key: string]: Schema; }
+  schemas: Schema[]
   history: Query[]
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || 'PG_BIONIC_URL'
-    // this.name = data.name || 'POLLY_SNOWFLAKE'
+    this.name = data.name || 'POLLY_SNOWFLAKE'
     // this.name = data.name || 'LEADIQ_REDSHIFT'
     this.type = data.type
     this.data = data.data
-    this.schemas = data.schemas || {}
+    this.schemas = data.schemas || []
     this.history = data.history || []
   }
 
@@ -550,11 +550,17 @@ class GlobalStore {
     try {
       let data = await apiGet(MsgType.LoadSession, payload)
       if(data.error) throw new Error(data.error)
-      this.connection.set(
-        c => {
-          Object.assign(c, data.connection)
-          return c
-        })
+      // this.connection.set(
+      //   c => {
+      //     Object.assign(c, new Connection(data.connection))
+      //     return c
+      //   })
+      let connection = new Connection(data.connection)
+      this.connection.name.set(connection.name)
+      this.connection.type.set(connection.type)
+      this.connection.data.set(connection.data)
+      this.connection.schemas.set(connection.schemas)
+      this.connection.history.set(connection.history)
       this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))

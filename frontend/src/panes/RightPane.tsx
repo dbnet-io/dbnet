@@ -25,9 +25,9 @@ export const RightPane: React.FC<Props> = (props) => {
     const tabs = useStoreQueryPanel().tabs
     const tab = tabs[tabIndex]
 
-    React.useEffect(() => {
-      if(tab.query.status.get() && !tab.query.pulled.get()) fetchRows(tab)
-    }, [tabId.get()])
+    // React.useEffect(() => {
+    //   if(tab.query.status.get() && !tab.query.pulled.get()) fetchRows(tab)
+    // }, [tabId.get()])
 
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>

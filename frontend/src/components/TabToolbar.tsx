@@ -18,8 +18,6 @@ const setFilter = _.debounce(
 export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   if(!sql) sql = tab.editor.text.get() // get current block
 
-  let tab_ = tab
-
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
   let data1 = {
@@ -36,6 +34,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   tab.lastTableSelection.set([0, 0, 0, 0])
   tab.query.rows.set([])
   tab.query.headers.set([])
+  tab.query.text.set(sql)
   tab.query.err.set('')
   tab.query.duration.set(0)
   tab.loading.set(true)
@@ -56,12 +55,13 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
         return t
       }
     )
-    queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
   } catch (error) {
+    console.log(error)
     toastError(error)
-    tab_.query.err.set(error)
+    tab.query.err.set(`${error}`)
   }
-  tab_.loading.set(false)
+  tab.loading.set(false)
+  queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
   globalStore.saveSession()
 }
 

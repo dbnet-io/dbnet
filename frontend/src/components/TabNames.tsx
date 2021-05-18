@@ -104,7 +104,7 @@ export const TabNames: React.FC<Props> = (props) => {
       value={getSelectedTabName()}
       options={['del', 'add'].concat(tabOptions)}
       onChange={(e: any) => actionTab(e.value)}
-      style={{ width: '100%', position: 'fixed', zIndex: 999, overflowX: "scroll"}}
+      style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll", fontSize: '12px'}}
       // options={justifyOptions}
       itemTemplate={optionTemplate} />
   );

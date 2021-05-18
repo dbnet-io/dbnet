@@ -119,7 +119,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       {/* <h3>{ objectView.name.get() }</h3>  */}
       <p>
         <span
-          style={{fontFamily: 'monospace', fontSize: '16px', backgroundColor: 'white', color:'blue'}}
+          style={{fontFamily: 'monospace', fontSize: '13px', backgroundColor: 'white', color:'blue'}}
           onDoubleClick={() => { copyToClipboard(objectView.name.get()) }}
         >
           <strong>{objectView.name.get()}</strong>
@@ -147,8 +147,9 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-info"
           onClick={(e) => {
             let cols = getSelectedColsOrAll()
-            let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectView.name.get()}\n;`
-            let tab = createTab(objectView.name.get(), sql)
+            let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectView.name.get()}\nlimit 5000;`
+            let name_arr = objectView.name.get().split('.')
+            let tab = createTab(name_arr[name_arr.length-1], sql)
             submitSQL(tab, sql)
           }}
         />

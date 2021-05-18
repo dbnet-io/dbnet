@@ -32,6 +32,7 @@ type Connection struct {
 	Conn    *connection.Connection
 	DbConn  database.Connection
 	Queries map[string]*store.Query
+	Props   map[string]string // to cache vars
 }
 
 // Request is the typical request struct
@@ -55,7 +56,7 @@ func init() {
 		if err != nil {
 			continue
 		}
-		Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}}
+		Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
 	}
 }
 
@@ -97,7 +98,11 @@ func LoadProfile(path string) (conns map[string]*Connection, err error) {
 					continue
 				}
 
-				conns[name] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}}
+				conns[name] = &Connection{
+					Conn:    &conn,
+					Queries: map[string]*store.Query{},
+					Props:   map[string]string{},
+				}
 				g.Trace("found in profile: " + name)
 			default:
 				g.Warn("did not handle %s", name)
@@ -365,7 +370,8 @@ func GetConn(name string) (c *Connection, err error) {
 
 	// connect or use pool
 	os.Setenv("DBIO_USE_POOL", "TRUE")
-	c.DbConn, err = database.NewConn(c.Conn.URL(), g.MapToKVArr(c.Conn.DataS())...)
+	props := append(g.MapToKVArr(c.Props), g.MapToKVArr(c.Conn.DataS())...)
+	c.DbConn, err = database.NewConn(c.Conn.URL(), props...)
 	if err != nil {
 		err = g.Error(err, "could not initialize database connection '%s' with provided credentials/url.", name)
 		return
@@ -375,6 +381,7 @@ func GetConn(name string) (c *Connection, err error) {
 		err = g.Error(err, "could not connect with provided credentials/url")
 		return
 	}
+	c.Props = c.DbConn.Props()
 
 	return
 }

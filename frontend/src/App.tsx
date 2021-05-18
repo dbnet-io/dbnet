@@ -63,14 +63,14 @@ export const App = () => {
         let schemas : { [key: string]: Schema; } = {}
         for(let row of rows) {
           if(!(row.schema_name in schemas)) {
-            schemas[row.schema_name] = {name: row.schema_name, tables: {}}
+            schemas[row.schema_name] = {name: row.schema_name, tables: []}
           } 
-          schemas[row.schema_name].tables[row.table_name] = {
+          schemas[row.schema_name].tables.push({
             schema: row.schema_name,
             name: row.table_name,
-          }
-          store.connection.schemas.set(schemas)
+          })
         }
+        store.connection.schemas.set(Object.values(schemas))
       }
     ).catch(
       error => {

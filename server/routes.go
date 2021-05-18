@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/flarco/dbio/iop"
@@ -331,7 +332,11 @@ func GetLoadSession(c echo.Context) (err error) {
 	session := store.Session{Conn: req.Conn, Name: req.Name}
 	err = store.Db.First(&session).Error
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not load session")
+		if !strings.Contains(err.Error(), "record not found") {
+			return g.ErrJSON(http.StatusInternalServerError, err, "could not load session")
+		}
+		err = nil // create new session
+		session.Data = g.M("connection", g.M("name", req.Conn))
 	}
 
 	return c.JSON(200, session.Data)

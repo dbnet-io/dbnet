@@ -33,6 +33,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const tableOptions = useHS<Table[]>([])
   const loading = schemaPanel.loading
   const schemaFilter = useHS('')
+  const tableFilter = useHS('')
 
   const menu = [
       {
@@ -71,12 +72,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   React.useEffect(()=>{
     let schemaName = localSelectedSchema.get().name
-    if(schemaName in schemas.get()) {
-      let schema =  schemas.get()[schemaName]
-      if(schema.tables && Object.keys(schema.tables).length > 0) {
-        tableOptions.set(Object.values(schema.tables))
-      } 
-      GetTables(connection.name.get(), localSelectedSchema.get().name) // refresh anyways
+    let index = schemas.get().map(s => s.name).indexOf(schemaName)
+    if(index > -1) {
+      let schema = jsonClone<Schema>(schemas.get()[index])
+      if(schema.tables && schema.tables.length > 0) {
+        tableOptions.set(schema.tables)
+      }
     }
   },[localSelectedSchema.get()])
 
@@ -121,11 +122,11 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let data2 = await apiGet(MsgType.GetSchemas, { conn: connName })
       if(data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
-      let schemas_ : { [key: string]: Schema; } = {}
-      rows.map(r => schemas_[r.schema_name] = {name: r.schema_name, tables: {}})
-      for(let key of Object.keys(schemas_)) {
-        if (key in schemas.get()) {
-          schemas_[key].tables = jsonClone(schemas.get()[key].tables || {})
+      let schemas_ : Schema[] = rows.map(r => { return {name: r.schema_name, tables: []}})
+      for(let shema of schemas_) {
+        let index = schemas.get().map(s => s.name).indexOf(shema.name)
+        if (index > -1) {
+          schemas_[index].tables = jsonClone(schemas.get()[index].tables || {})
         }
       }
       schemas.set(schemas_)
@@ -147,15 +148,17 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let data2 = await apiGet(MsgType.GetTables, data1)
       if(data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
-      let tables : { [key: string]: Table; } = {}
-      rows.map(r => tables[r.name] = {schema: schemaName, name: r.name})
-      schemas.set(
-        s => {
-          s[schemaName].tables = tables
-          return s
-        }
-      )
-      tableOptions.set(Object.values(tables))
+      let tables : Table[] = rows.map(r => { return {schema: schemaName, name: r.name}})
+      let index = schemas.get().map(s => s.name).indexOf(schemaName)
+      if(index > -1) {
+        schemas[index].set(
+          s => {
+            s.tables = tables
+            return s
+          }
+        )
+        tableOptions.set(tables)
+      }
     } catch (error) {
       toastError(error)
     }
@@ -177,8 +180,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     return (
       <div
         onClick={(e) => { 
-          loadMetaTable(`${table.schema}.${table.name}`) 
-          selectedMetaTab.set('Object')
+          // loadMetaTable(`${table.schema}.${table.name}`) 
+          // selectedMetaTab.set('Object')
           // preview.name.set(`${table.schema}.${table.name}`)
           // preview.show.set(true)
         }}
@@ -204,11 +207,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           if(!e.value) { return }
           localSelectedSchema.set(e.value)
           selectedSchema.set(jsonClone<Schema>(e.value))
+          // GetTables(connection.name.get(), e.value.name)
         }}
         optionLabel="name"
         // itemTemplate={countryTemplate}
         style={{width: '100%', maxHeight: '400px'}}
-        listStyle={{minHeight:'150px', maxHeight: '150px'}}
+        listStyle={{minHeight:'150px', maxHeight: '150px', fontSize: '12px'}}
       />
     )
   }
@@ -218,7 +222,6 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     return (
       <ListBox
         multiple
-        filter
         id="schema-table-list"
         value={selectedTables.get()}
         options={ options.get() }
@@ -231,16 +234,26 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         optionLabel="name"
         itemTemplate={tableItemTemplate}
         style={{width: '100%', maxHeight: '400px'}}
-        listStyle={{minHeight:'150px', maxHeight: '150px'}}
+        listStyle={{minHeight:'150px', maxHeight: '150px', fontSize: '12px'}}
       />
     )
   }
 
-  const omniKeyPress = (e: any) =>{
-    // omni search
-    if(e.key === 'Escape') { 
-      schemaFilter.set('')
-    }
+  const FilterBox = (props: { filter: State<string>, loading: State<boolean>, onClick?: React.MouseEventHandler<HTMLButtonElement> | undefined }) => {
+    return (
+      <div className="p-col-12" style={{paddingBottom:'10px'}}>
+        <div className="p-inputgroup">
+          <InputText
+            id="schema-filter"
+            placeholder="Filters..."
+            value={props.filter.get()}
+            onChange={(e:any) => { props.filter.set(e.target.value) }}
+            onKeyDown={(e: any) =>{ if(e.key === 'Escape') { props.filter.set('') }}}
+          />
+          <Button icon={props.loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={props.onClick}/>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -261,21 +274,11 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       /> */}
 
       <h4 style={{textAlign:'center', margin: '9px'}}>Schemas</h4>
-      <div className="p-col-12" style={{paddingBottom:'10px'}}>
-        <div className="p-inputgroup">
-          <InputText
-            id="schema-filter"
-            placeholder="Filters..."
-            value={schemaFilter.get()}
-            onChange={(e:any) => { schemaFilter.set(e.target.value) }}
-            onKeyDown={omniKeyPress}
-          />
-          <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => GetSchemas(connection.name.get())}/>
-        </div>
-      </div>
+      <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())}/>
       <SchemaList options={schemaOptions}/>
 
       <h4 style={{textAlign:'center', margin: '9px'}}>Tables</h4>
+      <FilterBox filter={tableFilter} loading={loading} onClick={() => GetTables(connection.name.get(), localSelectedSchema.get().name)}/>
       <TableList options={tableOptions}/>
 
     </div>
