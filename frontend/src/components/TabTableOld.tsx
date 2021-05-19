@@ -7,7 +7,6 @@ import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
 import { jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { jsOptions, JSpreadsheet, ObjectAny } from "../utilities/interfaces";
-import { Message, MsgType, sendWsMsg } from "../store/websocket";
 import { useState } from "@hookstate/core";
 import _ from "lodash";
 const jspreadsheet = require("jspreadsheet-ce");
@@ -15,43 +14,6 @@ const jspreadsheet = require("jspreadsheet-ce");
 interface Props {
   tab: State<Tab>
 }
-
-export const fetchRows = (tab: State<Tab>) => {
-  if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
-
-  let tab_ = tab
-  const queryPanel = accessStore().queryPanel
-  let data = {
-    id: tab.query.id.get(),
-    conn: tab.query.conn.get(),
-    text: tab.query.text.get(),
-    time: (new Date()).getTime(),
-    tab: tab.id.get(),
-    limit: tab.limit.get(),
-    callback: (msg: Message) => {
-      if(msg.error) { 
-        toastError(msg.error)
-        return tab_.loading.set(false)
-      }
-      let query = msg.data as Query
-      let index = queryPanel.get().getTabIndexByID(query.tab)
-      let tab = queryPanel.tabs[index]
-      tab.set(
-        t => {
-          t.query.status = query.status
-          t.query.rows = t.query.rows.concat(query.rows)
-          t.loading = false
-          return t
-        }
-      )
-    }
-  }
-
-  sendWsMsg(new Message(MsgType.GetSQLRows, data))
-  tab.loading.set(true);
-}
-
-const debounceFetchRows = _.debounce((tab: State<Tab>) => fetchRows(tab), 400)
 
 export const TabTableOld: React.FC<Props> = React.memo((props) => {
   const resultHeight = document.getElementById("result-panel")?.parentElement?.clientHeight

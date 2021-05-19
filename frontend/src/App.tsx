@@ -11,15 +11,16 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import { Message, MsgType, sendWsMsg, Websocket, WsQueue } from './store/websocket';
-import { accessStore, Schema } from './store/state';
+import {  MsgType, WsQueue } from './store/websocket';
+import { accessStore, globalStore, Schema } from './store/state';
 import { data_req_to_records, jsonClone, toastError } from './utilities/methods';
 import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
-import { useState } from "@hookstate/core";
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
+import { apiGet } from './store/api';
+import { GetSchemata } from './components/SchemaPanel';
 
 interface Props {}
 interface State {
@@ -51,29 +52,7 @@ export const App = () => {
 
   React.useEffect(()=> {
     // init load session
-
-    // get all schema objects
-    let data = {
-      conn: store.connection.name.get(),
-      callback: (msg: Message) => {
-        if(msg.error) { return toastError(msg.error) }
-        let rows = data_req_to_records(msg.data)
-        let schemas : { [key: string]: Schema; } = {}
-        for(let row of rows) {
-          if(!(row.schema_name in schemas)) {
-            schemas[row.schema_name] = {name: row.schema_name, tables: {}}
-          } 
-          schemas[row.schema_name].tables[row.table_name] = {
-            schema: row.schema_name,
-            name: row.table_name,
-          }
-          store.connection.schemas.set(schemas)
-        }
-      },
-    }
-    if(Object.keys(store.connection.schemas.get()).length === 0) {
-      sendWsMsg(new Message(MsgType.GetSchemata, data))
-    }
+    globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata())
   }, [])
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
@@ -101,7 +80,6 @@ export const App = () => {
       <Toast ref={toast}/>
       <PreviewPanel/>
       <RowViewPanel/>
-      <Websocket/>
       <div style={{paddingBottom: '7px'}}>
         <TopMenuBar/>
       </div>

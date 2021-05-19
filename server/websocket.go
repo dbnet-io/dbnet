@@ -53,20 +53,7 @@ type WsClient struct {
 }
 
 // Handlers are the ws handlers
-var Handlers = map[MessageType]func(msg Message) (respMsg Message){
-	MsgTypeSubmitSQL:      handleSubmitSQL,
-	MsgTypeGetSQLRows:     handleGetSQLRows,
-	MsgTypeCancelSQL:      handleCancelSQL,
-	MsgTypeGetConnections: handleGetConnections,
-	MsgTypeGetSchemata:    handleGetAllSchemaTables,
-	MsgTypeGetSchemas:     handleGetSchemas,
-	MsgTypeGetTables:      handleGetTables,
-	MsgTypeGetColumns:     handleGetColumns,
-	MsgTypeGetAnalysisSQL: handleGetAnalysisSQL,
-	MsgTypeGetHistory:     handleGetHistory,
-	MsgTypeLoadSession:    handleLoadSession,
-	MsgTypeSaveSession:    handleSaveSession,
-}
+var Handlers = map[MessageType]func(msg Message) (respMsg Message){}
 
 // NewWsServer creates a websocket server
 func NewWsServer() *WsServer {

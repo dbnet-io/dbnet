@@ -36,9 +36,6 @@ export const LeftPane: React.FC<Props> = (props) => {
           style={{width: '100%'}}
         />
       </div>
-      <Splitter id="control-pane" layout="vertical" gutterSize={1}>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-
           { 
             tabValue.get() === "Schema" ?
             <SchemaPanel/> : null
@@ -53,11 +50,6 @@ export const LeftPane: React.FC<Props> = (props) => {
             tabValue.get() === 'History' ?
             <HistoryPanel/> : null
           }
-        </SplitterPanel>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          {/* <div> Panel 2</div> */}
-        </SplitterPanel>
-      </Splitter>
 
     </div>
   );

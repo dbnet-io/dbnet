@@ -242,6 +242,7 @@ export function TabEditor(props: { tab: State<Tab>; }) {
         wrapBehavioursEnabled: true,
         showPrintMargin: false,
         tabSize: 2,
+        fontSize: "11px"
       }} />
   </div>;
 }

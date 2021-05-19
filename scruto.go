@@ -5,8 +5,11 @@ import (
 	"github.com/flarco/scruto/store"
 )
 
-func main() {
+func init() {
 	store.InitDB("file:./test.db")
+}
+
+func main() {
 	go store.Loop()
 	srv := server.NewServer()
 	srv.EchoServer.Logger.Fatal(srv.EchoServer.Start(":" + srv.Port))

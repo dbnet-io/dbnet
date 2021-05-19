@@ -6,6 +6,8 @@ import { createBrowserHistory } from "history";
 import * as React from "react";
 import { jsonClone, new_ts_id, toastError, toastSuccess } from "../utilities/methods";
 import { Message, MsgType, sendWsMsgWait } from "./websocket";
+import { apiGet, apiPost } from "./api";
+import { GetSchemata } from "../components/SchemaPanel";
 
 
 export const masterToast = createRef<Toast>()
@@ -18,7 +20,7 @@ export class Editor {
   undoManager: any
 
   constructor(data: ObjectAny = {}) {
-    this.text = data.text || 'select * from housing.landwatch2'
+    this.text = data.text || ''
     this.selection = data.selection || [0,0,0,0]
     this.undoManager = data.undoManager || {}
   }
@@ -155,14 +157,14 @@ export interface Key {
 export interface Table {
   schema: string
   name: string
-  columns?: { [key: string]: Column; }
+  columns?: Column[]
   primaryKey?: Key
   indexes?: Key[]
 }
 
 export interface Schema {
   name: string
-  tables: { [key: string]: Table; }
+  tables: Table[]
 }
 
 
@@ -217,7 +219,7 @@ export class Query {
   constructor(data: ObjectAny = {}) {
     this.conn = data.conn
     this.tab = data.tab
-    this.id = data.id || new_ts_id('query')
+    this.id = data.id || new_ts_id('query.')
     this.time = data.tme || new Date().getTime()
     this.duration = data.duration || 0
     this.type = data.type || QueryType.SQL
@@ -264,6 +266,17 @@ export class MetaTable {
     this.selected = data.selected || null
     this.loading = data.loading || false
     this.show = data.show || false
+  }
+
+  schema = () => {
+    let name_arr = this.name.split('.')
+    if(name_arr.length === 1) return undefined
+    return name_arr[0]
+  }
+
+  table = () => {
+    let name_arr = this.name.split('.')
+    return name_arr[name_arr.length-1]
   }
 }
 
@@ -319,14 +332,16 @@ export class Connection {
   name: string
   type: ConnType
   data: ObjectString;
-  schemas: { [key: string]: Schema; }
+  schemas: Schema[]
   history: Query[]
 
   constructor(data: ObjectAny = {}) {
-    this.name = data.name || 'PG_BIONIC_URL' || 'PRIMARY_DATABASE_URL'
+    this.name = data.name || 'PG_BIONIC_URL'
+    this.name = data.name || 'POLLY_SNOWFLAKE'
+    // this.name = data.name || 'LEADIQ_REDSHIFT'
     this.type = data.type
     this.data = data.data
-    this.schemas = data.schemas || {}
+    this.schemas = data.schemas || []
     this.history = data.history || []
   }
 
@@ -433,10 +448,12 @@ export function useVariable<S>(initialState: S | (() => S)): Variable<S> {
 class SchemaPanelState {
   selectedSchema: Schema
   selectedSchemaTables: Table[]
+  loading: boolean
 
   constructor(data: ObjectAny = {}) {
     this.selectedSchema = data.selectedSchema || {}
     this.selectedSchemaTables = data.selectedSchemaTables || []
+    this.loading = data.loading || false
   }
 }
 
@@ -529,8 +546,12 @@ class GlobalStore {
         historyPanel: jsonClone(this.historyPanel.get()),
       },
     }
-    let resp = await sendWsMsgWait(new Message(MsgType.SaveSession, payload))
-    if(resp.error) return toastError('Could not save session', resp.error)
+    try {
+      let resp = await apiPost(MsgType.SaveSession, payload)
+      if(resp.error) throw new Error(resp.error)
+    } catch (error) {
+      toastError('Could not save session', error)
+    }
   }
 
   loadSession = async (connName: string) => {
@@ -538,21 +559,28 @@ class GlobalStore {
       name: 'default',
       conn: connName,
     }
-    let resp = await sendWsMsgWait(new Message(MsgType.LoadSession, payload))
-    if(resp.error) return toastError('Could not load session', resp.error)
-  
-    this.connection.set(
-      c => {
-        Object.assign(c, resp.data.connection)
-        return c
-      })
-    this.schemaPanel.set(new SchemaPanelState(resp.data.schemaPanel))
-    this.objectPanel.set(new ObjectPanelState(resp.data.objectPanel))
-    this.queryPanel.set(new QueryPanelState(resp.data.queryPanel))
-    this.historyPanel.set(new HistoryPanelState(resp.data.historyPanel))
+    try {
+      let data = await apiGet(MsgType.LoadSession, payload)
+      if(data.error) throw new Error(data.error)
+      // this.connection.set(
+      //   c => {
+      //     Object.assign(c, new Connection(data.connection))
+      //     return c
+      //   })
+      let connection = new Connection(data.connection)
+      this.connection.name.set(connection.name)
+      this.connection.type.set(connection.type)
+      this.connection.data.set(connection.data)
+      // this.connection.schemas.set(connection.schemas)
+      this.connection.history.set(connection.history)
+      this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      this.objectPanel.set(new ObjectPanelState(data.objectPanel))
+      this.queryPanel.set(new QueryPanelState(data.queryPanel))
+      this.historyPanel.set(new HistoryPanelState(data.historyPanel))
+    } catch (error) {
+      toastError('Could not load session', error)
+    }
   }
-  
-
 }
 export const globalStore = new GlobalStore()
 

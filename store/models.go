@@ -42,6 +42,7 @@ const QueryStatusCompleted QueryStatus = "completed"
 const QueryStatusFetched QueryStatus = "fetched"
 const QueryStatusCancelled QueryStatus = "cancelled"
 const QueryStatusErrorred QueryStatus = "errorred"
+const QueryStatusSubmitted QueryStatus = "submitted"
 
 type Headers []string
 
@@ -69,20 +70,21 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Query represents a query
 type Query struct {
-	ID        string       `json:"id" gorm:"primaryKey"`
-	Conn      string       `json:"conn" gorm:"index"`
-	Tab       string       `json:"tab"`
-	Text      string       `json:"text"`
-	Time      int64        `json:"time" gorm:"index:idx_query_time"`
-	Duration  float64      `json:"duration"`
-	Status    QueryStatus  `json:"status"`
-	Err       string       `json:"err"`
-	Headers   Headers      `json:"headers" gorm:"headers"`
-	Rows      Rows         `json:"rows" gorm:"rows"`
+	ID        string       `json:"id" query:"id" gorm:"primaryKey"`
+	Conn      string       `json:"conn" query:"conn" gorm:"index"`
+	Tab       string       `json:"tab" query:"tab"`
+	Text      string       `json:"text" query:"text"`
+	Time      int64        `json:"time" query:"time" gorm:"index:idx_query_time"`
+	Duration  float64      `json:"duration" query:"duration"`
+	Status    QueryStatus  `json:"status" query:"status"`
+	Err       string       `json:"err" query:"err"`
+	Headers   Headers      `json:"headers" query:"headers" gorm:"headers"`
+	Rows      Rows         `json:"rows" query:"rows" gorm:"rows"`
 	Context   g.Context    `json:"-" gorm:"-"`
 	Result    *sqlx.Rows   `json:"-" gorm:"-"`
 	Columns   []iop.Column `json:"-" gorm:"-"`
-	Pulled    bool         `json:"pulled" gorm:"-"`
+	Limit     int          `json:"-" gorm:"-"`
+	Wait      bool         `json:"wait" query:"wait" gorm:"-"`
 	UpdatedDt time.Time    `json:"-" gorm:"autoUpdateTime"`
 }
 
@@ -101,4 +103,9 @@ func (q *Query) TrimRows(n int) {
 	if len(q.Rows) > n {
 		q.Rows = q.Rows[0:n]
 	}
+}
+
+// Pulled returns true if rows are pulled
+func (q *Query) Pulled() bool {
+	return q.Status == QueryStatusCompleted || q.Status == QueryStatusFetched
 }

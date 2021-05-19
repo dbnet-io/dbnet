@@ -71,7 +71,7 @@ const socketOptions = {
 }
 
 // export const socketUrl = window.location.origin.replace("http", "ws") + '/ws/client'
-const socketUrl = 'ws://localhost:5987/ws'
+const socketUrl = 'ws://localhost:7788/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
   const ws = useStoreWs()
