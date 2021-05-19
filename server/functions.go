@@ -48,16 +48,16 @@ type Request struct {
 func init() {
 	Connections, _ = LoadProfile(g.UserHomeDir() + "/profile.yaml")
 
-	for key, val := range g.KVArrToMap(os.Environ()...) {
-		if !strings.Contains(val, ":/") {
-			continue
-		}
-		conn, err := connection.NewConnectionFromURL(key, val)
-		if err != nil {
-			continue
-		}
-		Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
-	}
+	// for key, val := range g.KVArrToMap(os.Environ()...) {
+	// 	if !strings.Contains(val, ":/") {
+	// 		continue
+	// 	}
+	// 	conn, err := connection.NewConnectionFromURL(key, val)
+	// 	if err != nil {
+	// 		continue
+	// 	}
+	// 	Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
+	// }
 }
 
 // LoadProfile loads the profile from the `profile.yaml` file in the home dir
@@ -286,6 +286,33 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", query.Conn)
 		return
+	}
+
+	// see if analysis req
+	query.Text = strings.TrimSuffix(query.Text, ";")
+	if strings.HasPrefix(query.Text, "/* @{") && strings.HasSuffix(query.Text, "*/") {
+		// is analysis request
+		// /* @{"name":"field_count", "data": {...}} */
+		type analysisReq struct {
+			Name string                 `json:"name"`
+			Data map[string]interface{} `json:"data"`
+		}
+
+		req := analysisReq{}
+		g.Unmarshal(strings.TrimSuffix(strings.TrimPrefix(query.Text, "/* @"), "*/"), &req)
+
+		sql := ""
+		g.P(req)
+		sql, err = c.DbConn.GetAnalysis(req.Name, req.Data)
+		if err != nil {
+			query.Status = store.QueryStatusErrorred
+			query.Err = g.ErrMsg(err)
+			Sync("queries", query)
+			err = g.Error(err, "could not execute query")
+			return
+		}
+		// query.Text = query.Text + "\n\n" + sql
+		query.Text = sql
 	}
 
 	query.Status = store.QueryStatusSubmitted

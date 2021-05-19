@@ -4,7 +4,7 @@ import { data_req_to_records, jsonClone, toastError, toastInfo } from "../utilit
 import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
 import { ListBox } from 'primereact/listbox';
-import { Schema, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
+import { accessStore, globalStore, Schema, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
 import { State, useState } from "@hookstate/core";
@@ -13,6 +13,33 @@ import { InputText } from "primereact/inputtext";
 import { apiGet } from "../store/api";
 
 interface Props {}
+
+export const GetSchemata = async () => {
+
+  const store = accessStore()
+  
+  globalStore.schemaPanel.loading.set(true)
+  try {
+    let data = await apiGet(MsgType.GetSchemata, {conn: store.connection.name.get()})
+    globalStore.schemaPanel.loading.set(false)
+    let rows = data_req_to_records(data)
+    let schemas : { [key: string]: Schema; } = {}
+    for(let row of rows) {
+      row.schema_name = row.schema_name.toLowerCase()
+      if(!(row.schema_name in schemas)) {
+        schemas[row.schema_name] = {name: row.schema_name, tables: []}
+      } 
+      schemas[row.schema_name].tables.push({
+        schema: row.schema_name,
+        name: row.table_name.toLowerCase(),
+      })
+    }
+    store.connection.schemas.set(Object.values(schemas))
+  } catch (error) {
+    toastError(error)
+  }
+  globalStore.schemaPanel.loading.set(false)
+}
 
 export const SchemaPanel: React.FC<Props> = (props) => {
   const [nodes, setNodes] = React.useState<any[]>([]);
@@ -122,11 +149,11 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let data2 = await apiGet(MsgType.GetSchemas, { conn: connName })
       if(data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
-      let schemas_ : Schema[] = rows.map(r => { return {name: r.schema_name, tables: []}})
+      let schemas_ : Schema[] = rows.map(r => { return {name: r.schema_name.toLowerCase(), tables: []}})
       for(let shema of schemas_) {
-        let index = schemas.get().map(s => s.name).indexOf(shema.name)
+        let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(shema.name.toLowerCase())
         if (index > -1) {
-          schemas_[index].tables = jsonClone(schemas.get()[index].tables || {})
+          schemas_[index].tables = jsonClone(schemas.get()[index].tables || [])
         }
       }
       schemas.set(schemas_)
@@ -140,6 +167,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   const GetTables = async (connName: string, schemaName: string) => {
     loading.set(true)
+    schemaName = schemaName.toLowerCase()
     try {
       let data1 = {
         conn: connName,
@@ -148,8 +176,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let data2 = await apiGet(MsgType.GetTables, data1)
       if(data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
-      let tables : Table[] = rows.map(r => { return {schema: schemaName, name: r.name}})
-      let index = schemas.get().map(s => s.name).indexOf(schemaName)
+      let tables : Table[] = rows.map(r => { return {schema: schemaName, name: r.name.toLowerCase()}})
+      let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(schemaName)
       if(index > -1) {
         schemas[index].set(
           s => {
@@ -180,8 +208,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     return (
       <div
         onClick={(e) => { 
-          // loadMetaTable(`${table.schema}.${table.name}`) 
-          // selectedMetaTab.set('Object')
+          loadMetaTable(`${table.schema}.${table.name}`) 
+          selectedMetaTab.set('Object')
           // preview.name.set(`${table.schema}.${table.name}`)
           // preview.show.set(true)
         }}
@@ -233,8 +261,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         metaKeySelection={true}
         optionLabel="name"
         itemTemplate={tableItemTemplate}
-        style={{width: '100%', maxHeight: '400px'}}
-        listStyle={{minHeight:'150px', maxHeight: '150px', fontSize: '12px'}}
+        style={{width: '100%'}}
+        listStyle={{minHeight:'150px', maxHeight: '300px', fontSize: '12px'}}
       />
     )
   }

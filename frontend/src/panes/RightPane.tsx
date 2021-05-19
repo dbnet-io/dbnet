@@ -6,6 +6,7 @@ import { TabEditor } from "../components/TabEditor";
 import { fetchRows, TabTable } from "../components/TabTable";
 import { accessStore, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
+import { SubTabs } from "../components/SubTabs";
 
 interface Props {}
 
@@ -41,6 +42,7 @@ export const RightPane: React.FC<Props> = (props) => {
           <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px'}}>
             
             <TabToolbar tab={tab}/>
+            <SubTabs tab={tab}/>
             <TabTable tab={tab}/>
           </div>
         </SplitterPanel>

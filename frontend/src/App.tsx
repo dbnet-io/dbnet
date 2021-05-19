@@ -20,6 +20,7 @@ import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { apiGet } from './store/api';
+import { GetSchemata } from './components/SchemaPanel';
 
 interface Props {}
 interface State {
@@ -51,33 +52,7 @@ export const App = () => {
 
   React.useEffect(()=> {
     // init load session
-    globalStore.loadSession(store.connection.name.get())
-
-    globalStore.schemaPanel.loading.set(true)
-    apiGet(MsgType.GetSchemata, {
-      conn: store.connection.name.get(),
-    }).then(
-      data => {
-        globalStore.schemaPanel.loading.set(false)
-        let rows = data_req_to_records(data)
-        let schemas : { [key: string]: Schema; } = {}
-        for(let row of rows) {
-          if(!(row.schema_name in schemas)) {
-            schemas[row.schema_name] = {name: row.schema_name, tables: []}
-          } 
-          schemas[row.schema_name].tables.push({
-            schema: row.schema_name,
-            name: row.table_name,
-          })
-        }
-        store.connection.schemas.set(Object.values(schemas))
-      }
-    ).catch(
-      error => {
-        toastError(error)
-        globalStore.schemaPanel.loading.set(false)
-      }
-    )
+    globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata())
   }, [])
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))

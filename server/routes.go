@@ -194,7 +194,27 @@ func GetAnalysisSQL(c echo.Context) (err error) {
 	if err = c.Bind(&req); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get analysis sql request")
 	}
-	return
+
+	// get connection
+	conn, err := GetConn(req.Conn)
+	if err != nil {
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", req.Conn)
+	}
+
+	template, ok := conn.DbConn.Template().Analysis[req.Procedure]
+	if !ok {
+		err = g.Error("did not find Analysis: " + req.Procedure)
+		return g.ErrJSON(http.StatusNotFound, err)
+	}
+
+	data := g.M()
+	err = g.Unmarshal(g.Marshal(req.Data), &data)
+	if err != nil {
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not unmarshal")
+	}
+
+	sql := g.Rm(template, data)
+	return c.JSON(http.StatusOK, g.M("sql", sql))
 }
 
 // GetHistory returns a a list of queries from the history.
@@ -203,7 +223,25 @@ func GetHistory(c echo.Context) (err error) {
 	if err = c.Bind(&req); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get history request")
 	}
-	return
+
+	entries := []store.Query{}
+	switch req.Procedure {
+	case "get_latest":
+		err = store.Db.Order("time desc").Limit(100).
+			Where("conn = ?", req.Conn).Find(&entries).Error
+
+	case "search":
+		filter := g.F("%%%s%%", strings.ToLower(req.Name))
+		err = store.Db.Order("time desc").Limit(100).
+			Where("conn = ? and lower(text) like ?", req.Conn, filter).Find(&entries).Error
+	}
+
+	if err != nil {
+		err = g.Error(err, "could not %s history", req.Procedure)
+		return
+	}
+
+	return c.JSON(200, g.M("history", entries))
 }
 
 func GetSQLRows(c echo.Context) (err error) {

@@ -15,19 +15,45 @@ const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
 )
 
+export const cancelSQL = async (tab: State<Tab>) => {
+  const connection = accessStore().connection
+
+  let data1 = {
+    id: tab.query.id.get(),
+    conn: connection.name.get(),
+    tab: tab.id.get(),
+    wait: true,
+  }
+
+  try {
+    let data2 = await apiPost(MsgType.CancelSQL, data1)
+    if(data2.error) throw new Error(data2.error)
+  } catch (error) {
+    console.log(error)
+    toastError(error)
+  }
+}
+
+
 export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   if(!sql) sql = tab.editor.text.get() // get current block
 
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
+
+
   let data1 = {
     id: new_ts_id('query.'),
     conn: connection.name.get(),
-    text: sql,
+    text: sql.trim(),
     time: (new Date()).getTime(),
     tab: tab.id.get(),
     limit: tab.limit.get(),
     wait: true,
+  }
+
+  if(data1.text.endsWith(';')) {
+    data1.text = data1.text.slice(0, -1).trim()
   }
 
   tab.query.time.set(new Date().getTime())
@@ -37,6 +63,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   tab.query.text.set(sql)
   tab.query.err.set('')
   tab.query.duration.set(0)
+  tab.query.id.set(data1.id)
   tab.loading.set(true)
 
   try {
@@ -75,14 +102,26 @@ export function TabToolbar(props: { tab: State<Tab>; }) {
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
       <div className="p-col-12">
         <div className="work-buttons p-inputgroup" style={{ fontFamily: 'monospace' }}>
-          <Button
-            icon="pi pi-play"
-            tooltip="Execute query"
-            tooltipOptions={{ position: 'top' }}
-            className="p-button-sm p-button-primary"
-            onClick={(e) => {
-              submitSQL(tab, tab.editor.text.get())
-            }} />
+          {
+            tab.loading.get() ?
+            <Button
+              icon="pi pi-times"
+              tooltip="Kill query"
+              tooltipOptions={{ position: 'top' }}
+              className="p-button-sm p-button-danger"
+              onClick={(e) => {
+                cancelSQL(tab)
+              }} />
+            :
+            <Button
+              icon="pi pi-play"
+              tooltip="Execute query"
+              tooltipOptions={{ position: 'top' }}
+              className="p-button-sm p-button-primary"
+              onClick={(e) => {
+                submitSQL(tab, tab.editor.text.get())
+              }} />
+          }
 
 
           <Button

@@ -27,7 +27,7 @@ func TestExport(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	go srv.EchoServer.Start(":" + srv.Port)
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	testSubmitSQL(t)
 	testGetConnections(t)
 	testGetSchemas(t)
@@ -35,6 +35,7 @@ func TestAll(t *testing.T) {
 	testCancelSQL(t)
 	testSaveSession(t)
 	testLoadSession(t)
+	testGetHistory(t)
 }
 
 func handleMsg(msg net.Message) net.Message {
@@ -271,4 +272,29 @@ func testLoadSession(t *testing.T) {
 }
 
 func testGetAnalysisSQL(t *testing.T) {}
-func testGetHistory(t *testing.T)     {}
+
+func testGetHistory(t *testing.T) {
+	m := g.M(
+		"id", g.NewTsID(),
+		"conn", "PG_BIONIC",
+		"procedure", "get_latest",
+	)
+	data, err := getRequest(server.RouteGetHistory, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+	assert.Greater(t, len(cast.ToSlice(data["history"])), 1)
+
+	m = g.M(
+		"id", g.NewTsID(),
+		"conn", "PG_BIONIC",
+		"procedure", "search",
+		"name", "select",
+	)
+	data, err = getRequest(server.RouteGetHistory, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+	assert.Greater(t, len(cast.ToSlice(data["history"])), 1)
+	g.P(data)
+}

@@ -63,3 +63,4 @@ typings/
 .next
 backend/a_main-packr.go
 .DS_Store
+test.db

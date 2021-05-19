@@ -286,12 +286,12 @@ export function IsValidDate(obj: any) {
   return Object.keys(obj).length !== 0 && obj.toLocaleString() !== 'Invalid Date'
 }
 
-export function copyToClipboard(text: string) {
+export function copyToClipboard(text: string, toast='Copied to clipboard') {
   var textField = document.createElement('textarea')
   textField.value = text
   document.body.appendChild(textField)
   textField.select()
   document.execCommand('copy')
   textField.remove()
-  toastInfo('Copied to clipboard')
+  if(toast) toastInfo(toast)
 }

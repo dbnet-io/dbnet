@@ -7,6 +7,8 @@ import { InputText } from "primereact/inputtext";
 const queryPanel = accessStore().queryPanel
 
 export const createTab = (name: string = '', sql = '') => {
+  let name_arr = name.split('.')
+  name = name_arr[name_arr.length-1]
   let index = queryPanel.get().getTabIndexByName(name)
   if (index > -1) {
     // tab already exists, append sql to bottom, or focus on existing
@@ -40,13 +42,13 @@ export const TabNames: React.FC<Props> = (props) => {
     let icon = '';
     if (option === 'del') { icon = 'pi pi-times'; }
     if (option === 'add') { icon = 'pi pi-plus'; }
-    if (icon) { return <i className={icon}></i>; }
+    if (icon) { return <i style={{fontSize: '15px'}} className={icon}></i>; }
 
     let index = queryPanel.get().tabs.map(t => t.name).indexOf(option);
     const loading = queryPanel.tabs[index].loading.get()
     return <>
-      { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px'}}><i className="pi pi-spin pi-spinner"></i></span> : null}
-      {option}
+      { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
+      <span style={{fontSize: '12px'}}>{option}</span >
     </> 
     return (
       <>
@@ -104,7 +106,7 @@ export const TabNames: React.FC<Props> = (props) => {
       value={getSelectedTabName()}
       options={['del', 'add'].concat(tabOptions)}
       onChange={(e: any) => actionTab(e.value)}
-      style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll", fontSize: '12px'}}
+      style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
       // options={justifyOptions}
       itemTemplate={optionTemplate} />
   );

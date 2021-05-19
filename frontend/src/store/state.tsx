@@ -7,6 +7,7 @@ import * as React from "react";
 import { jsonClone, new_ts_id, toastError, toastSuccess } from "../utilities/methods";
 import { Message, MsgType, sendWsMsgWait } from "./websocket";
 import { apiGet, apiPost } from "./api";
+import { GetSchemata } from "../components/SchemaPanel";
 
 
 export const masterToast = createRef<Toast>()
@@ -265,6 +266,17 @@ export class MetaTable {
     this.selected = data.selected || null
     this.loading = data.loading || false
     this.show = data.show || false
+  }
+
+  schema = () => {
+    let name_arr = this.name.split('.')
+    if(name_arr.length === 1) return undefined
+    return name_arr[0]
+  }
+
+  table = () => {
+    let name_arr = this.name.split('.')
+    return name_arr[name_arr.length-1]
   }
 }
 
@@ -559,7 +571,7 @@ class GlobalStore {
       this.connection.name.set(connection.name)
       this.connection.type.set(connection.type)
       this.connection.data.set(connection.data)
-      this.connection.schemas.set(connection.schemas)
+      // this.connection.schemas.set(connection.schemas)
       this.connection.history.set(connection.history)
       this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))

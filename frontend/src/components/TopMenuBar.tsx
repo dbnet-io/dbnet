@@ -11,6 +11,8 @@ import { useState } from "@hookstate/core";
 import { toastError, toastInfo } from "../utilities/methods";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
+import { ObjectString } from "../utilities/interfaces";
+import { GetSchemata } from "./SchemaPanel";
 
 
 const store = accessStore()
@@ -61,6 +63,7 @@ const itemsDefault: MenuItem[] = [
 export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const items = useHS(itemsDefault)
+  const connName = useHS(globalStore.connection.name)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -76,7 +79,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
             return {
               label: c,
               command: () => { 
-                globalStore.loadSession(c)
+                globalStore.loadSession(c).then(() => GetSchemata())
               },
             }
           }),
@@ -122,14 +125,14 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     }
 
     const getAllTables = () => {
-      let all: string[] = []
+      let all : ObjectString = {}
       for (let shema of schemas.get()) {
         if (!shema.tables) { continue }
         for (let table of shema.tables) {
-          all.push(`${table.schema}.${table.name}`.toLowerCase())
+          all[`${table.schema}.${table.name}`.toLowerCase()] = ''
         }
       }
-      return all
+      return Object.keys(all)
     }
 
     React.useEffect(() => {
@@ -187,7 +190,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   }
 
   const end = () => <div style={{ paddingRight: "0px" }} className="p-inputgroup">
-    <h3 style={{paddingRight: '8px'}}>{store.connection.name.get()}</h3>
+    <h3 style={{paddingRight: '8px'}}>{connName.get()}</h3>
 
     <OmniBox />
     <Tooltip target="#ws-status" position="left" />
@@ -197,7 +200,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Load session"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { globalStore.loadSession(accessStore().connection.name.get()) }}
+      onClick={(e) => { globalStore.loadSession(connName.get()) }}
     />
 
     <Button
