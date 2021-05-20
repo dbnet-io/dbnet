@@ -231,9 +231,9 @@ func LoadSchemata(connName string) (err error) {
 		for _, table := range schema.Tables {
 			totColumns = totColumns + len(table.Columns)
 			schemaTables[i] = store.SchemaTable{
-				Conn:       connName,
-				SchemaName: schemaName,
-				TableName:  table.Name,
+				Conn:       strings.ToLower(connName),
+				SchemaName: strings.ToLower(schemaName),
+				TableName:  strings.ToLower(table.Name),
 				IsView:     table.IsView,
 			}
 			i++
@@ -247,12 +247,12 @@ func LoadSchemata(connName string) (err error) {
 			tableColumns := make([]store.TableColumn, len(table.Columns))
 			for i, col := range table.Columns {
 				tableColumns[i] = store.TableColumn{
-					Conn:       connName,
-					SchemaName: schemaName,
-					TableName:  table.Name,
-					Name:       col.Name,
+					Conn:       strings.ToLower(connName),
+					SchemaName: strings.ToLower(schemaName),
+					TableName:  strings.ToLower(table.Name),
+					Name:       strings.ToLower(col.Name),
 					ID:         col.Position,
-					Type:       col.Type,
+					Type:       strings.ToLower(col.Type),
 					Precision:  0,
 					Scale:      0,
 				}

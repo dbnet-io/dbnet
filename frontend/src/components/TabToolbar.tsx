@@ -5,7 +5,7 @@ import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import _ from "lodash";
-import { copyToClipboard, jsonClone, new_ts_id, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, jsonClone, new_ts_id, showNotification, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 import { apiPost } from "../store/api";
@@ -90,9 +90,17 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   tab.loading.set(false)
   queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
   globalStore.saveSession()
+
+  // notify if out of focus
+  if (queryPanel.get().currTab().id != tab.id.get()) {
+    if(tab.query.err.get()) toastError(`Query ${tab.name.get()} failed`)
+    else toastInfo(`Query ${tab.name.get()} completed`)
+  } else if (!document.hasFocus()) {
+    showNotification(`Query ${tab.name.get()} ${tab.query.err.get() ? 'errored' : 'completed'}!`)
+  }
 }
 
-export function TabToolbar(props: { tab: State<Tab>; }) {
+export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
   const tab = props.tab;
   const filter = useHS(tab.filter);
   const limit = useHS(tab.limit);
@@ -119,7 +127,9 @@ export function TabToolbar(props: { tab: State<Tab>; }) {
               tooltipOptions={{ position: 'top' }}
               className="p-button-sm p-button-primary"
               onClick={(e) => {
-                submitSQL(tab, tab.editor.text.get())
+                let sql = props.aceEditor.current.editor.getSelectedText()
+                if(sql === '') { sql = tab.editor.get().getBlock() }
+                if(sql.trim() !== '') { submitSQL(tab, sql) }
               }} />
           }
 

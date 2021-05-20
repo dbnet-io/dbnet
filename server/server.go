@@ -84,3 +84,19 @@ func NewServer() *Server {
 		StartTime:  time.Now(),
 	}
 }
+
+// Start starts the server
+func (srv *Server) Start() {
+	srv.EchoServer.Logger.Fatal(srv.EchoServer.Start(":" + srv.Port))
+}
+
+// Loop cycles tasks
+func (srv *Server) Loop() {
+	ticker6Hours := time.NewTicker(6 * time.Hour)
+	defer ticker6Hours.Stop()
+	for {
+		select {
+		case <-ticker6Hours.C:
+		}
+	}
+}

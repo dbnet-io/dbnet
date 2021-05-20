@@ -11,171 +11,46 @@ import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
 import ace from "react-ace";
 
-const contextItems = [
-  {
-     label:'File',
-     icon:'pi pi-fw pi-file',
-     items:[
-        {
-           label:'New',
-           icon:'pi pi-fw pi-plus',
-           items:[
-              {
-                 label:'Bookmark',
-                 icon:'pi pi-fw pi-bookmark'
-              },
-              {
-                 label:'Video',
-                 icon:'pi pi-fw pi-video'
-              },
 
-           ]
-        },
-        {
-           label:'Delete',
-           icon:'pi pi-fw pi-trash'
-        },
-        {
-           separator:true
-        },
-        {
-           label:'Export',
-           icon:'pi pi-fw pi-external-link'
-        }
-     ]
-  },
-  {
-     label:'Edit',
-     icon:'pi pi-fw pi-pencil',
-     items:[
-        {
-           label:'Left',
-           icon:'pi pi-fw pi-align-left'
-        },
-        {
-           label:'Right',
-           icon:'pi pi-fw pi-align-right'
-        },
-        {
-           label:'Center',
-           icon:'pi pi-fw pi-align-center'
-        },
-        {
-           label:'Justify',
-           icon:'pi pi-fw pi-align-justify'
-        },
-
-     ]
-  },
-  {
-     label:'Users',
-     icon:'pi pi-fw pi-user',
-     items:[
-        {
-           label:'New',
-           icon:'pi pi-fw pi-user-plus',
-
-        },
-        {
-           label:'Delete',
-           icon:'pi pi-fw pi-user-minus',
-
-        },
-        {
-           label:'Search',
-           icon:'pi pi-fw pi-users',
-           items:[
-              {
-                 label:'Filter',
-                 icon:'pi pi-fw pi-filter',
-                 items:[
-                    {
-                       label:'Print',
-                       icon:'pi pi-fw pi-print'
-                    }
-                 ]
-              },
-              {
-                 icon:'pi pi-fw pi-bars',
-                 label:'List'
-              }
-           ]
-        }
-     ]
-  },
-  {
-     label:'Events',
-     icon:'pi pi-fw pi-calendar',
-     items:[
-        {
-           label:'Edit',
-           icon:'pi pi-fw pi-pencil',
-           items:[
-              {
-                 label:'Save',
-                 icon:'pi pi-fw pi-calendar-plus'
-              },
-              {
-                 label:'Delete',
-                 icon:'pi pi-fw pi-calendar-minus'
-              },
-
-           ]
-        },
-        {
-           label:'Archieve',
-           icon:'pi pi-fw pi-calendar-times',
-           items:[
-              {
-                 label:'Remove',
-                 icon:'pi pi-fw pi-calendar-minus'
-              }
-           ]
-        }
-     ]
-  },
-  {
-     separator:true
-  },
-  {
-     label:'Quit',
-     icon:'pi pi-fw pi-power-off'
-  }
-];
-
-export function TabEditor(props: { tab: State<Tab>; }) {
+export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
   const tab = useHS(props.tab)
   const cm = React.useRef(null);
   const sql = useHS(tab.editor.text);
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
+  const tabNamesHeight = useHS(40)
 
-  React.useEffect(()=>{
+  React.useEffect(() => {
+    tabNamesHeight.set(document.getElementById("tab-names")?.offsetHeight || 40)
     return () => {
       // save session & history
       // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
     }
-  },[])
+  }, [])
 
-  
-  const commands : ICommand[] = [
+  const getDefinition = () => {
+    let word = props.aceEditor.current.editor.getSelectedText()
+    if (word === '') { word = tab.editor.get().getWord() }
+    if (word.trim() !== '') { loadMetaTable(word) }
+  }
+
+  const executeText = () => {
+    let sql = props.aceEditor.current.editor.getSelectedText()
+    if (sql === '') { sql = tab.editor.get().getBlock() }
+    if (sql.trim() !== '') { submitSQL(props.tab, sql) }
+  }
+
+
+  const commands: ICommand[] = [
     {
       name: 'execute',
       bindKey: { win: "Ctrl-Enter", mac: "Command-Enter" },
-      exec: (editor: Ace.Editor, args?: any) => {
-        let sql = editor.getSelectedText()
-        if(sql === '') { sql = tab.editor.get().getBlock() }
-        if(sql.trim() !== '') { submitSQL(props.tab, sql) }
-      },
+      exec: (editor: Ace.Editor, args?: any) => executeText(),
     },
     {
       name: 'object',
       bindKey: { win: "Shift-Space", mac: "Shift-Space" },
-      exec: (editor: Ace.Editor, args?: any) => {
-        let word = editor.getSelectedText()
-        if(word === '') { word = tab.editor.get().getWord() }
-        if(word.trim() !== '') { loadMetaTable(word) }
-      },
+      exec: (editor: Ace.Editor, args?: any) => getDefinition(),
     },
     {
       name: 'duplicate',
@@ -185,16 +60,40 @@ export function TabEditor(props: { tab: State<Tab>; }) {
       },
     },
   ]
+
+
+  const contextItems = [
+    {
+      label: 'Execute',
+      icon: 'pi pi-fw pi-play',
+      command: () => executeText(),
+    },
+    {
+      label: 'Definition',
+      icon: 'pi pi-fw pi-file',
+      command: () => getDefinition(),
+    },
+    // {
+    //   separator: true
+    // },
+    // {
+    //   label: 'Quit',
+    //   icon: 'pi pi-fw pi-power-off'
+    // }
+  ]
+
+
   return <div
-    style={{ paddingTop: '40px', display: tab.showSql.get() ? '' : 'none'}}
+    style={{ paddingTop: `${tabNamesHeight.get()}px`, display: tab.showSql.get() ? '' : 'none' }}
     onContextMenu={(e: any) => (cm as any).current.show(e)}
   >
 
     <ContextMenu model={contextItems} ref={cm}></ContextMenu>
     <AceEditor
+      ref={props.aceEditor}
       width="100%"
       // height={ !editorHeight || editorHeight < 400 ? '400px' : `${editorHeight}px` }
-      height={ editorHeight ? `${editorHeight-56}px` : '1000px' }
+      height={editorHeight ? `${editorHeight - 56}px` : '1000px'}
       // height={ '200px' }
       mode="pgsql"
       name="sql-editor"
@@ -217,7 +116,7 @@ export function TabEditor(props: { tab: State<Tab>; }) {
           selection[0], selection[1],
           selection[2], selection[3],
         ))
-        editor.scrollToLine(selection[0], true, false, () => {})
+        editor.scrollToLine(selection[0], true, false, () => { })
         editor.focus()
       }}
       // onSelectionChange={(e) => {

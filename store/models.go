@@ -33,6 +33,8 @@ type TableColumn struct {
 	NumRows     int64     `json:"num_rows"`
 	NumDistinct int64     `json:"num_distinct"`
 	NumNulls    int64     `json:"num_nulls"`
+	MinLen      int       `json:"min_len"`
+	MaxLen      int       `json:"max_len"`
 	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
 

@@ -123,8 +123,8 @@ export class Tab {
   lastTableSelection: number[] // r1,c1,r2,c22
 
   constructor(data: ObjectAny = {}) {
-    this.id = data.id || new_ts_id('tab')
     this.name = data.name || ''
+    this.id = data.id || new_ts_id(`tab-${this.name}.`)
     this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
@@ -460,9 +460,11 @@ class SchemaPanelState {
 class ObjectPanelState {
   table: MetaTable
   history: string[]
+  historyI: number
   constructor(data: ObjectAny = {}) {
     this.table = new MetaTable(data.table)
     this.history = data.history || []
+    this.historyI = -1
   }
 }
 

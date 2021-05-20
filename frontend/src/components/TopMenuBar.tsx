@@ -71,6 +71,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     // get all connections
     apiGet(MsgType.GetConnections, {}).then(
       data => {
+        if(data.error) return toastError(data.error)
         store.app.connections.set(data.conns)
         items[0].set({
           label: 'Connections',

@@ -36,6 +36,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
     }
     try {
       let data2 = await apiGet(MsgType.GetHistory, data1)
+      if(data2.error) throw new Error(data2.error)
       options.set(data2.history.map((v:any) => new Query(v)))
     } catch (error) {
       toastError(error, "Could not get latest history entries")
@@ -51,6 +52,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
     }
     try {
       let data2 = await apiGet(MsgType.GetHistory, data1)
+      if(data2.error) throw new Error(data2.error)
       options.set(data2.history.map((v:any) => new Query(v)))
     } catch (error) {
       toastError(error, "Could not get latest history entries")

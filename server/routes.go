@@ -35,17 +35,28 @@ func GetSchemata(c echo.Context) (err error) {
 	}
 
 	rf := func(c *Connection, req Request) (iop.Dataset, error) {
-		err := LoadSchemata(req.Conn)
-		if err != nil {
-			return iop.Dataset{}, g.Error(err, "could not get schemata")
+		schemaTables := []store.SchemaTable{}
+		load := func() error {
+			err := store.Db.Where("conn = ?", strings.ToLower(req.Conn)).
+				Order("schema_name, table_name").
+				Find(&schemaTables).Error
+			if err != nil {
+				return g.Error(err, "could not query schemata")
+			}
+			return nil
 		}
 
-		schemaTables := []store.SchemaTable{}
-		err = store.Db.Where("conn = ?", req.Conn).
-			Order("schema_name, table_name").
-			Find(&schemaTables).Error
-		if err != nil {
-			return iop.Dataset{}, g.Error(err, "could not query schemata")
+		err := load()
+		if len(schemaTables) == 0 {
+			err = LoadSchemata(req.Conn)
+			if err != nil {
+				return iop.Dataset{}, g.Error(err, "could not get schemata")
+			}
+
+			err = load()
+			if err != nil {
+				return iop.Dataset{}, g.Error(err, "could not query schemata")
+			}
 		}
 
 		columns := []string{"schema_name", "table_name", "is_view"}
@@ -115,9 +126,9 @@ func GetTables(c echo.Context) (err error) {
 		schemaTables := make([]store.SchemaTable, len(data.Rows))
 		for i, r := range data.Rows {
 			schemaTables[i] = store.SchemaTable{
-				Conn:       req.Conn,
-				SchemaName: req.Schema,
-				TableName:  cast.ToString(r[0]),
+				Conn:       strings.ToLower(req.Conn),
+				SchemaName: strings.ToLower(req.Schema),
+				TableName:  strings.ToLower(cast.ToString(r[0])),
 				IsView:     cast.ToBool(r[1]),
 			}
 		}
@@ -145,36 +156,51 @@ func GetColumns(c echo.Context) (err error) {
 	}
 
 	rf := func(c *Connection, req Request) (data iop.Dataset, err error) {
-		table := g.F("%s.%s", req.Schema, req.Table)
-		data, err = c.DbConn.GetColumnsFull(table)
-		if err != nil {
-			err = g.Error(err, "could not get columns")
-			return
-		}
+		tableColumns := []store.TableColumn{}
+		store.Db.
+			Where(`conn = ? and schema_name = ? 
+			and table_name = ?`, strings.ToLower(req.Conn),
+				strings.ToLower(req.Schema), strings.ToLower(req.Table)).
+			Order("id").Find(&tableColumns)
 
-		// to store
-		tableColumns := make([]store.TableColumn, len(data.Rows))
-		for i, r := range data.Rows {
-			tableColumns[i] = store.TableColumn{
-				Conn:       req.Conn,
-				SchemaName: req.Schema,
-				TableName:  req.Table,
-				Name:       cast.ToString(r[2]),
-				ID:         i + 1,
-				Type:       cast.ToString(r[3]),
-				Precision:  0,
-				Scale:      0,
+		if len(tableColumns) == 0 || req.Procedure == "refresh" {
+			table := g.F("%s.%s", req.Schema, req.Table)
+			data, err = c.DbConn.GetColumnsFull(table)
+			if err != nil {
+				err = g.Error(err, "could not get columns")
+				return
 			}
-		}
 
-		if len(tableColumns) > 0 {
-			Sync(
-				"table_columns", &tableColumns, "conn",
-				"schema_name", "table_name",
-				"name", "id", "type", "precision", "scale",
-			)
+			// to store
+			tableColumns = make([]store.TableColumn, len(data.Rows))
+			for i, r := range data.Rows {
+				tableColumns[i] = store.TableColumn{
+					Conn:       strings.ToLower(req.Conn),
+					SchemaName: strings.ToLower(req.Schema),
+					TableName:  strings.ToLower(req.Table),
+					Name:       strings.ToLower(cast.ToString(r[2])),
+					ID:         i + 1,
+					Type:       strings.ToLower(cast.ToString(r[3])),
+					Precision:  0,
+					Scale:      0,
+				}
+			}
+
+			if len(tableColumns) > 0 {
+				Sync(
+					"table_columns", &tableColumns, "conn",
+					"schema_name", "table_name",
+					"name", "id", "type", "precision", "scale",
+				)
+			} else {
+				err = g.Error("No columns found for table %s", table)
+			}
 		} else {
-			err = g.Error("No columns found for table %s", table)
+			data.Columns = iop.NewColumnsFromFields("schema_name", "table_name", "column_name", "data_type", "position")
+			for _, col := range tableColumns {
+				row := []interface{}{col.SchemaName, col.TableName, col.Name, col.Type, col.ID}
+				data.Rows = append(data.Rows, row)
+			}
 		}
 
 		return

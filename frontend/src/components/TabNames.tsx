@@ -103,6 +103,7 @@ export const TabNames: React.FC<Props> = (props) => {
 
   return (
     <SelectButton
+      id="tab-names"
       value={getSelectedTabName()}
       options={['del', 'add'].concat(tabOptions)}
       onChange={(e: any) => actionTab(e.value)}

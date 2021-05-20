@@ -12,5 +12,5 @@ func init() {
 func main() {
 	go store.Loop()
 	srv := server.NewServer()
-	srv.EchoServer.Logger.Fatal(srv.EchoServer.Start(":" + srv.Port))
+	srv.Start()
 }

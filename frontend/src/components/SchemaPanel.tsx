@@ -21,6 +21,7 @@ export const GetSchemata = async () => {
   globalStore.schemaPanel.loading.set(true)
   try {
     let data = await apiGet(MsgType.GetSchemata, {conn: store.connection.name.get()})
+    if(data.error) throw new Error(data.error)
     globalStore.schemaPanel.loading.set(false)
     let rows = data_req_to_records(data)
     let schemas : { [key: string]: Schema; } = {}

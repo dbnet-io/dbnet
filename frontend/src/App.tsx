@@ -19,7 +19,6 @@ import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
-import { apiGet } from './store/api';
 import { GetSchemata } from './components/SchemaPanel';
 
 interface Props {}
