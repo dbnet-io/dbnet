@@ -1,12 +1,20 @@
 package main
 
 import (
+	"os"
+
+	"github.com/flarco/g"
 	"github.com/flarco/scruto/server"
 	"github.com/flarco/scruto/store"
 )
 
 func init() {
-	store.InitDB("file:./test.db")
+	if os.Getenv("DBNET_DIR") == "" {
+		os.Setenv("DBNET_DIR", g.UserHomeDir()+"/.dbnet")
+		os.MkdirAll(os.Getenv("DBNET_DIR"), 0755)
+	}
+
+	store.InitDB()
 }
 
 func main() {

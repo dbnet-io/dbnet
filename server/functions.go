@@ -47,11 +47,6 @@ type Request struct {
 }
 
 func init() {
-	if HomeDir == "" {
-		HomeDir = g.UserHomeDir() + "/.dbnet"
-		os.MkdirAll(HomeDir, 0755)
-		g.Debug(HomeDir)
-	}
 
 	Connections, _ = LoadProfile(HomeDir + "/profile.yaml")
 

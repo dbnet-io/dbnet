@@ -21,10 +21,6 @@ var (
 	srv = server.NewServer()
 )
 
-func TestExport(t *testing.T) {
-	store.InitDB("file:./test.db")
-}
-
 func TestAll(t *testing.T) {
 	go srv.EchoServer.Start(":" + srv.Port)
 	time.Sleep(1 * time.Second)

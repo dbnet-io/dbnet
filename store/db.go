@@ -1,6 +1,7 @@
 package store
 
 import (
+	"os"
 	"time"
 
 	"github.com/flarco/dbio/database"
@@ -20,9 +21,10 @@ var (
 )
 
 // InitDB initializes the database
-func InitDB(dbURL string) {
+func InitDB() {
 	var err error
 
+	dbURL := g.F("file:%s/storage.db", os.Getenv("DBNET_DIR"))
 	conn, err := database.NewConn(dbURL)
 	g.LogFatal(err, "Could not initialize database connection")
 
