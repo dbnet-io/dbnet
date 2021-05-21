@@ -50,7 +50,7 @@ export const TabNames: React.FC<Props> = (props) => {
       { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
       <span style={{fontSize: '12px'}}>{option}</span >
     </> 
-    return (
+    return (  // eslint-disable-line
       <>
         <Inplace closable>
           <InplaceDisplay>

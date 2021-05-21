@@ -5,11 +5,10 @@ import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, globalStore, MetaTable, useHS, useStoreObjectPanel, useVariable } from "../store/state";
-import _ from "lodash";
+import { accessStore, globalStore, MetaTable, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
-import { copyToClipboard, data_req_to_records, jsonClone, split_schema_table, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, data_req_to_records, split_schema_table, toastError } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
@@ -71,7 +70,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
 }
 
 
-const Search = (props : { search : State<string>}) => {
+const Search = (props : { search : State<string>}) => {// eslint-disable-line
   const search = useHS(props.search)
   const searchResults = useHS<string[]>([])
   const tables = useHS(['schema1.table2', 'schema2.table2', 'schema3.table2', 'housing.landwatch2'])
@@ -158,7 +157,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   React.useEffect(() => {
     // reset the selected columns
     selected.set([])
-  }, [objectPanel.table.name.get()])
+  }, [objectPanel.table.name.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
@@ -188,7 +187,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           onDoubleClick={() => { copyToClipboard(objectPanel.table.name.get()) }}
         >
           <strong>{objectPanel.table.name.get()}</strong>
-          <a onClick={(e) => {copyToClipboard(objectPanel.table.name.get())}}>
+          <a href="#;" onClick={() => {copyToClipboard(objectPanel.table.name.get())}}>
             <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
           </a>
         </span>
@@ -425,7 +424,7 @@ const FormCountOverTime = () => {
 
   const objectPanel = accessStore().objectPanel
 
-  const submit = () => {
+  const submit = () => { // eslint-disable-line
     let data = {
       name: 'distro_field_date_wide',
       data: {

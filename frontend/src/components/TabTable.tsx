@@ -4,7 +4,6 @@ import {  Query, QueryStatus, Tab, useVariable, accessStore } from "../store/sta
 import { State } from "@hookstate/core";
 import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { MsgType } from "../store/websocket";
-import { useState } from "@hookstate/core";
 import _ from "lodash";
 
 import { HotTable } from '@handsontable/react';
@@ -60,7 +59,7 @@ export const fetchRows = async (tab: State<Tab>) => {
   tab.loading.set(false)
 }
 
-const debounceFetchRows = _.debounce((tab: State<Tab>) => fetchRows(tab), 400)
+const debounceFetchRows = _.debounce((tab: State<Tab>) => fetchRows(tab), 400)  // eslint-disable-line
 
 const settings = {
   // colHeaders: ["Year", "Ford", "Volvo", "Toyota", "Honda"],
@@ -103,18 +102,15 @@ export const TabTable: React.FC<Props> = (props) => {
   React.useEffect(()=>{
     // let p = jsonClone<number[]>(tab.lastTableSelection.get())
     // hot.current.hotInstance.selectCell(p[0], p[1], p[2], p[3])
-  },[])
+  },[])  // eslint-disable-line
 
   React.useEffect(()=>{
     // let p = jsonClone<number[]>(tab.lastTableSelection.get())
     // hot.current.hotInstance.selectCell(p[0], p[1], p[2], p[3])
-    let filter = tab.filter.get().trim()
-    if(filter === '') return
-    let filters = filter.split(',')
-    for(let filter of filters) {
-
-    }
-  },[tab.filter.get()])
+    // let filter = tab.filter.get().trim()
+    // if(filter === '') return
+    // let filters = filter.split(',')
+  },[tab.filter.get()])  // eslint-disable-line
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {
@@ -153,7 +149,7 @@ export const TabTable: React.FC<Props> = (props) => {
       return () => {
         clearInterval(durationInterval)
       }
-    }, [])
+    }, []) // eslint-disable-line
   
     React.useEffect(()=>{
       if(tab.loading.get()) {
@@ -164,7 +160,7 @@ export const TabTable: React.FC<Props> = (props) => {
         duration.set('loading...')
         clearInterval(durationInterval)
       }
-    }, [tab.loading.get()])
+    }, [tab.loading.get()]) // eslint-disable-line
 
     return <div style={{height: tableHeight, width: resultWidth, textAlign:'center'}}>
       <ProgressSpinner style={{width: '50px', height: '50px'}} strokeWidth="8" fill="#EEEEEE" animationDuration=".5s"/>

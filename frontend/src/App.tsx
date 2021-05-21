@@ -11,21 +11,15 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import {  MsgType, WsQueue } from './store/websocket';
-import { accessStore, globalStore, Schema } from './store/state';
-import { data_req_to_records, jsonClone, toastError } from './utilities/methods';
-import { JSpreadsheet, ObjectAny, RecordsData } from './utilities/interfaces';
+import { WsQueue } from './store/websocket';
+import { accessStore, globalStore } from './store/state';
+import { jsonClone } from './utilities/methods';
+import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { GetSchemata } from './components/SchemaPanel';
-
-interface Props {}
-interface State {
-    count: number;
-}
-
 
 // this is to extends the window global functions
 declare global {
@@ -49,19 +43,19 @@ export const App = () => {
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
 
-  React.useEffect(()=> {
+  React.useEffect(() => {
     // init load session
     globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata())
-  }, [])
+  }, [])// eslint-disable-line
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
   const debounceRefresh = _.debounce(() => refresh(), 400)
 
-  const onKeyPress = (e: React.KeyboardEvent) =>{
+  const onKeyPress = (e: React.KeyboardEvent) => {
     // omni search
-    if((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') { 
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') {
       let el = document.getElementById('omni-search')
-      if(el) {
+      if (el) {
         (el.children[0] as HTMLElement).focus()
       }
     }
@@ -72,22 +66,22 @@ export const App = () => {
   return (
     <div
       className="App"
-      style={{backgroundColor: '#d3d3d3'}}
+      style={{ backgroundColor: '#d3d3d3' }}
       // onKeyPress={onKeyPress}
       onKeyDown={onKeyPress}
     >
-      <Toast ref={toast}/>
-      <PreviewPanel/>
-      <RowViewPanel/>
-      <div style={{paddingBottom: '7px'}}>
-        <TopMenuBar/>
+      <Toast ref={toast} />
+      <PreviewPanel />
+      <RowViewPanel />
+      <div style={{ paddingBottom: '7px' }}>
+        <TopMenuBar />
       </div>
-      <Splitter style={{height: splitterHeight, marginLeft: '5px'}} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"}  onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
+      <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <LeftPane/>
+          <LeftPane />
         </SplitterPanel>
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
-          <RightPane/>
+          <RightPane />
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>

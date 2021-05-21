@@ -1,8 +1,8 @@
 import { useState } from '@hookstate/core';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
-import { jsonClone, new_ts_id, toastError, toastInfo } from '../utilities/methods';
+import { new_ts_id } from '../utilities/methods';
 import { accessStore, useStoreWs } from './state';
 
 
@@ -92,7 +92,7 @@ export const Websocket: React.FC<Props> = (props) => {
     }
   };
 
-  const connectionStatus = {
+  const connectionStatus = {  // eslint-disable-line
     [ReadyState.CONNECTING]: 'Connecting',
     [ReadyState.OPEN]: 'Open',
     [ReadyState.CLOSING]: 'Closing',
@@ -110,7 +110,7 @@ export const Websocket: React.FC<Props> = (props) => {
     if(connected) {
       accessStore().ws.doRequest.set(v => v+1)
     }
-  }, [connected])
+  }, [connected]) // eslint-disable-line
 
   React.useMemo(() => {
     let queue : Message[] = []
@@ -139,7 +139,7 @@ export const Websocket: React.FC<Props> = (props) => {
       window.queue.send.push(msg)
     }
 
-  }, [doRequest.get()])
+  }, [doRequest.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////

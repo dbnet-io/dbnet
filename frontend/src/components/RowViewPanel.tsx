@@ -3,7 +3,7 @@ import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import * as React from "react";
-import { accessStore, useHS, useStoreQueryPanel } from "../store/state";
+import { useHS, useStoreQueryPanel } from "../store/state";
 
 interface Props {}
 

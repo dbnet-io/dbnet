@@ -3,7 +3,7 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { TabNames } from "../components/TabNames";
 import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
-import { fetchRows, TabTable } from "../components/TabTable";
+import { TabTable } from "../components/TabTable";
 import { accessStore, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";

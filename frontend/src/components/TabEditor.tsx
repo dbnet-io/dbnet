@@ -1,15 +1,13 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
-import { Ace, Range, UndoManager } from "ace-builds";
+import { Ace, Range } from "ace-builds";
 import { Tab, useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";
 import "ace-builds/src-noconflict/theme-textmate";
-import { toastInfo } from "../utilities/methods";
 import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
-import ace from "react-ace";
 
 
 export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
@@ -26,7 +24,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
       // save session & history
       // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
     }
-  }, [])
+  }, []) // eslint-disable-line
 
   const getDefinition = () => {
     let word = props.aceEditor.current.editor.getSelectedText()

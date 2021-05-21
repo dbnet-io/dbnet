@@ -7,7 +7,7 @@ import { ListBox } from 'primereact/listbox';
 import { accessStore, globalStore, Schema, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
-import { State, useState } from "@hookstate/core";
+import { State } from "@hookstate/core";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { apiGet } from "../store/api";
@@ -107,7 +107,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         tableOptions.set(schema.tables)
       }
     }
-  },[localSelectedSchema.get()])
+  },[localSelectedSchema.get()]) // eslint-disable-line
 
   React.useEffect(()=>{
     // init load
@@ -128,7 +128,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     if(st && st.length > 0) {
       selectedTables.set(jsonClone<Table[]>(selectedSchemaTables.get()))
     }
-  },[])
+  },[]) // eslint-disable-line
   
   React.useEffect(()=>{
     schemaOptions.set(Object.values(schemas.get()))
@@ -139,7 +139,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     //   let tables = schema.tables
     //   if(tables) { tableOptions.set(Object.values(tables)) }
     // }
-  },[schemas.get()])
+  },[schemas.get()]) // eslint-disable-line
   
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -194,7 +194,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     loading.set(false)
   }
 
-  const FocusNode = (nodes: HTMLCollection | undefined, text: string ) => {
+  const FocusNode = (nodes: HTMLCollection | undefined, text: string ) => {  // eslint-disable-line
     if(!nodes) return
     for(let node of nodes) {
       if(node.textContent === text) {
@@ -288,7 +288,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   return (
     <div id='history-panel'>
       <ContextMenu model={menu} ref={cm} onHide={() => setSelectedNodeKey('')}/>
-      {/* <Tree
+      <Tree
+        style={{display:'none'}}
         value={nodes}
         expandedKeys={expandedKeys}
         onToggle={e => setExpandedKeys(e.value)}
@@ -300,7 +301,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           fontSize: '0.8rem',
           padding: 0,
         }}
-      /> */}
+      />
 
       <h4 style={{textAlign:'center', margin: '9px'}}>Schemas</h4>
       <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())}/>

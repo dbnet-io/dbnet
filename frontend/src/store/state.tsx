@@ -4,10 +4,9 @@ import { createRef } from "react";
 import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
 import * as React from "react";
-import { jsonClone, new_ts_id, toastError, toastSuccess } from "../utilities/methods";
-import { Message, MsgType, sendWsMsgWait } from "./websocket";
+import { jsonClone, new_ts_id, toastError } from "../utilities/methods";
+import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
-import { GetSchemata } from "../components/SchemaPanel";
 
 
 export const masterToast = createRef<Toast>()

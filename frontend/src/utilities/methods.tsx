@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { ObjectAny, ObjectString, RecordsData } from "./interfaces";
+import { ObjectAny, ObjectString } from "./interfaces";
 import { Toast, ToastMessage } from 'primereact/toast';
 import { FormEvent, RefObject, useEffect, useRef } from "react";
 
@@ -308,7 +308,7 @@ export const showNotification = (text: string, options: NotificationOptions = {}
   // Let's check whether notification permissions have alredy been granted
   else if (Notification.permission === "granted") {
     // If it's okay let's create a notification
-    var notification = new Notification(text, options)
+    var notification = new Notification(text, options)  // eslint-disable-line
   }
 
   // Otherwise, we need to ask the user for permission
@@ -316,7 +316,7 @@ export const showNotification = (text: string, options: NotificationOptions = {}
     Notification.requestPermission(function (permission) {
       // If the user accepts, let's create a notification
       if (permission === "granted") {
-        var notification = new Notification(text, options)
+        var notification = new Notification(text, options)  // eslint-disable-line
       }
     });
   }

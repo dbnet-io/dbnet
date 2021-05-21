@@ -25,7 +25,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   React.useEffect(() => {
     if(filter.get() === '') getLatest()
     else  debounceSearch(filter.get())
-  }, [filter.get()])
+  }, [filter.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const getLatest = async () => {

@@ -1,11 +1,10 @@
 import * as React from "react";
 import { SelectButton } from "primereact/selectbutton";
 import { useStoreApp } from "../store/state";
-import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { MetaTablePanel } from "../components/MetaTablePanel";
-import { State, useState } from "@hookstate/core";
+import { useState } from "@hookstate/core";
 
 
 interface Props {}

@@ -1,14 +1,12 @@
 import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, globalStore, useHS, useStoreWs, useVariable } from "../store/state";
+import { accessStore, globalStore, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { useState } from "@hookstate/core";
-import { toastError, toastInfo } from "../utilities/methods";
+import { toastError } from "../utilities/methods";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { ObjectString } from "../utilities/interfaces";
@@ -89,7 +87,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     ).catch(
       error => toastError(error)
     )
-  }, [])
+  }, []) // eslint-disable-line
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
 
@@ -100,8 +98,6 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     className="p-mr-2"
     style={{ paddingLeft: "20px" }}
   ></img>
-
-  const connected = useStoreWs().connected
 
   const OmniBox = () => {
     const allTables = useVariable<string[]>([])
@@ -139,7 +135,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     React.useEffect(() => {
       let all = getAllTables()
       allTables.set(all)
-    }, [])
+    }, []) // eslint-disable-line
 
     const searchTable = (e: any) => {
       let query = e.query.trim() as string
