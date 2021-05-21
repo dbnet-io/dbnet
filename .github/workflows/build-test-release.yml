@@ -29,6 +29,11 @@ jobs:
     - name: Build frontend
       run: |
         bash scripts/build.frontend.sh
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: webapp-dist
+        path: server/app
   
   build-backend:
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
@@ -93,7 +98,11 @@ jobs:
       uses: actions/setup-go@v1
       with:
         go-version: '1.16.2'
-  
+
+    - uses: actions/download-artifact@v2
+      with:
+        name: webapp-dist
+    
     - name: Prepare Build (Unix)
       if: runner.os != 'windows'
       run: |

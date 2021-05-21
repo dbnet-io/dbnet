@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/flarco/g"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cast"
@@ -63,18 +62,15 @@ func NewServer() *Server {
 	}))
 
 	// embedded files
-	fsys, err := fs.Sub(appFiles, "app")
-	if err != nil {
-		panic(g.Error(err, "could not load embed files"))
-	}
-	assetHandler := http.FileServer(http.FS(fsys))
+	contentHandler := echo.WrapHandler(http.FileServer(http.FS(appFiles)))
+	contentRewrite := middleware.Rewrite(map[string]string{"/*": "/app/$1"})
 
 	// websocket server
 	wsServer := NewWsServer()
 
 	e.GET(RouteWs.String(), wsServer.NewClient)
 
-	e.GET(RouteIndex.String(), echo.WrapHandler(assetHandler))
+	e.GET(RouteIndex.String()+"*", contentHandler, contentRewrite)
 	e.GET(RouteGetConnections.String(), GetConnections)
 	e.GET(RouteGetSchemata.String(), GetSchemata)
 	e.GET(RouteGetSchemas.String(), GetSchemas)

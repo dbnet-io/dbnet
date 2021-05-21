@@ -64,3 +64,5 @@ typings/
 backend/a_main-packr.go
 .DS_Store
 test.db
+server/app/*
+dbnet
