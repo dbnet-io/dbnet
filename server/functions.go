@@ -24,7 +24,8 @@ var (
 	mux          sync.Mutex
 	defaultLimit = 100
 	// Sync syncs to store
-	Sync = store.Sync
+	Sync    = store.Sync
+	HomeDir = os.Getenv("DBNET_DIR")
 )
 
 // Connection is a connection
@@ -46,7 +47,13 @@ type Request struct {
 }
 
 func init() {
-	Connections, _ = LoadProfile(g.UserHomeDir() + "/profile.yaml")
+	if HomeDir == "" {
+		HomeDir = g.UserHomeDir() + "/.dbnet"
+		os.MkdirAll(HomeDir, 0755)
+		g.Debug(HomeDir)
+	}
+
+	Connections, _ = LoadProfile(HomeDir + "/profile.yaml")
 
 	// for key, val := range g.KVArrToMap(os.Environ()...) {
 	// 	if !strings.Contains(val, ":/") {

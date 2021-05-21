@@ -296,5 +296,4 @@ func testGetHistory(t *testing.T) {
 		return
 	}
 	assert.Greater(t, len(cast.ToSlice(data["history"])), 1)
-	g.P(data)
 }
