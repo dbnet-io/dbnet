@@ -1,9 +1,14 @@
 package server
 
 import (
+	"embed"
+	"io/fs"
+	"log"
+	"net/http"
 	"os"
 	"time"
 
+	"github.com/flarco/g"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cast"
@@ -17,11 +22,15 @@ type Server struct {
 	StartTime  time.Time
 }
 
+//go:embed app
+var appFiles embed.FS
+
 // RouteName is the name of a route
 type RouteName string
 
 const (
 	// RouteWs is the websocket route
+	RouteIndex          RouteName = "/"
 	RouteWs             RouteName = "/ws"
 	RouteSubmitSQL      RouteName = "/submit-sql"
 	RouteCancelSQL      RouteName = "/cancel-sql"
@@ -53,11 +62,19 @@ func NewServer() *Server {
 		},
 	}))
 
+	// embedded files
+	fsys, err := fs.Sub(appFiles, "app")
+	if err != nil {
+		panic(g.Error(err, "could not load embed files"))
+	}
+	assetHandler := http.FileServer(http.FS(fsys))
+
 	// websocket server
 	wsServer := NewWsServer()
 
 	e.GET(RouteWs.String(), wsServer.NewClient)
 
+	e.GET(RouteIndex.String(), echo.WrapHandler(assetHandler))
 	e.GET(RouteGetConnections.String(), GetConnections)
 	e.GET(RouteGetSchemata.String(), GetSchemata)
 	e.GET(RouteGetSchemas.String(), GetSchemas)
@@ -99,4 +116,19 @@ func (srv *Server) Loop() {
 		case <-ticker6Hours.C:
 		}
 	}
+}
+
+func getFileSystem(useOS bool) http.FileSystem {
+	if useOS {
+		log.Print("using live mode")
+		return http.FS(os.DirFS("app"))
+	}
+
+	log.Print("using embed mode")
+	fsys, err := fs.Sub(appFiles, "app")
+	if err != nil {
+		panic(err)
+	}
+
+	return http.FS(fsys)
 }

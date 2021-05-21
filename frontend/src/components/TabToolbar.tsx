@@ -56,23 +56,24 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
     data1.text = data1.text.slice(0, -1).trim()
   }
 
-  tab.query.time.set(new Date().getTime())
-  tab.lastTableSelection.set([0, 0, 0, 0])
-  tab.query.rows.set([])
-  tab.query.headers.set([])
-  tab.query.text.set(sql)
-  tab.query.err.set('')
-  tab.query.duration.set(0)
-  tab.query.id.set(data1.id)
-  tab.loading.set(true)
+  let index = queryPanel.get().getTabIndexByID(data1.tab)
+  let tab_ = queryPanel.tabs[index]
+
+  tab_.query.time.set(new Date().getTime())
+  tab_.lastTableSelection.set([0, 0, 0, 0])
+  tab_.query.rows.set([])
+  tab_.query.headers.set([])
+  tab_.query.text.set(sql)
+  tab_.query.err.set('')
+  tab_.query.duration.set(0)
+  tab_.query.id.set(data1.id)
+  tab_.loading.set(true)
 
   try {
     let data2 = await apiPost(MsgType.SubmitSQL, data1)
     if(data2.error) throw new Error(data2.error)
     let query = new Query(data2)
-    let index = queryPanel.get().getTabIndexByID(query.tab)
-    let tab = queryPanel.tabs[index]
-    tab.set(
+    tab_.set(
       t => {
         t.query = query
         t.query.pulled = true
@@ -85,17 +86,21 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   } catch (error) {
     console.log(error)
     toastError(error)
-    tab.query.err.set(`${error}`)
+    tab_.query.err.set(`${error}`)
   }
-  tab.loading.set(false)
-  queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get())) // to refresh
+  tab_.loading.set(false)
   globalStore.saveSession()
 
-  // notify if out of focus
-  if (queryPanel.get().currTab().id != tab.id.get()) {
+  // to refresh
+  if (queryPanel.get().currTab().id === tab_.id.get()) {
+    queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get()))
+  } else {
+    // notify if out of focus
     if(tab.query.err.get()) toastError(`Query ${tab.name.get()} failed`)
     else toastInfo(`Query ${tab.name.get()} completed`)
-  } else if (!document.hasFocus()) {
+  }
+  
+  if (!document.hasFocus()) {
     showNotification(`Query ${tab.name.get()} ${tab.query.err.get() ? 'errored' : 'completed'}!`)
   }
 }

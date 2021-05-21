@@ -1,0 +1,150 @@
+name: Test & Build, Release
+
+on: [push]
+
+jobs:
+  build-frontend:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+
+    # runs-on: ubuntu-latest
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Node 12
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    - name: Cache NPM
+      id: cache-npm
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+      
+    - name: Build frontend
+      run: |
+        bash scripts/build.frontend.sh
+  
+  build-backend:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    needs: [build-frontend]
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+  
+    - name: Build Backend
+      run: |
+        export WORK_FOLDER=/__/work/${GITHUB_RUN_NUMBER}
+        mkdir -p $WORK_FOLDER
+        cp -r . $WORK_FOLDER/scruto
+
+        # since gh-runner is ubuntu:focal, need this to avoid error: version `GLIBC_2.28' not found
+        docker run --rm -v /__:/__ -v $WORK_FOLDER:/work --workdir /work/scruto flarco/devbox:base bash -c "source /__/devbox/.env.sh && bash scripts/build.backend.sh"
+
+        rm -rf $WORK_FOLDER
+  
+  test:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    
+    needs: [build-backend]
+
+    runs-on: self-hosted
+    
+    steps:
+        
+    - uses: actions/checkout@v2
+  
+    - name: Run Go Tests
+      run: |
+        source /__/devbox/.env.sh
+        bash scripts/prep.gomod.sh
+        export _DEBUG=''
+        bash scripts/test.sh
+
+  release:
+    needs: [build-backend, test]
+    runs-on: ${{ matrix.os }}
+    # if: github.event.pull_request.merged
+
+    strategy:
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-2016 ]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Dump context
+      env:
+        JOB_CONTEXT: ${{ toJson(job) }}
+        MATRIX_CONTEXT: ${{ toJson(matrix) }}
+        RUNNER_CONTEXT: ${{ toJson(runner) }}
+      run: |
+        echo "JOB_CONTEXT -> $JOB_CONTEXT"
+        echo "MATRIX_CONTEXT -> $MATRIX_CONTEXT"
+        echo "RUNNER_CONTEXT -> $RUNNER_CONTEXT"
+      
+    - name: Set up GoLang
+      uses: actions/setup-go@v1
+      with:
+        go-version: '1.16.2'
+  
+    - name: Prepare Build (Unix)
+      if: runner.os != 'windows'
+      run: |
+        export GO_BIN_FOLDER=$HOME/go/bin
+        export TMPDIR=~/tmp/
+        export PATH=$GO_BIN_FOLDER:$PATH
+        mkdir -p $TMPDIR
+
+    - name: Prepare Build (Windows)
+      if: runner.os == 'windows'
+      run: |
+        setx TMPDIR "C:\Users\runneradmin\tmp"
+        setx PATH "%PATH%;C:\Users\runneradmin\go\bin"
+        setx GO111MODULE "auto"
+        mkdir C:\Users\runneradmin\tmp
+        
+    - name: Build DbNet (Linux)
+      if: runner.os == 'linux'
+      run: |
+        echo "Building DbNet"
+        bash scripts/prep.gomod.sh
+        GOOS=linux GOARCH=amd64 go build -o dbnet *.go
+
+    - name: Build DbNet (Mac)
+      if: runner.os == 'macOS'
+      run: |
+        echo "Building DbNet"
+        bash scripts/prep.gomod.sh
+        GOOS=darwin GOARCH=amd64 go build -o dbnet *.go
+      
+    - name: Build DbNet (Windows)
+      if: runner.os == 'windows'
+      run: |
+        echo "Building DbNet.exe"
+        setx GOOS "windows"
+        setx GOARCH "386"
+        setx GO111MODULE "auto"
+
+        go mod edit -dropreplace='github.com/flarco/g' go.mod
+        go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+        go get github.com/flarco/g@HEAD
+        go get github.com/flarco/dbio@HEAD
+
+        go build -o dbnet.exe github.com/flarco/scruto
+
+    - name: Release Binaries to Github
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest-${{ runner.os }}"
+        prerelease: true
+        title: "Latest: ${{ runner.os }}"
+        files: |
+          dbnet*
