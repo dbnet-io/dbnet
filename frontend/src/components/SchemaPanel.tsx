@@ -51,188 +51,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const cm = React.useRef<ContextMenu>(null);
   const schemaPanel = useStoreSchemaPanel()
   const connection = useStoreConnection()
-  const selectedMetaTab = useStoreApp().selectedMetaTab
   const schemas = useHS(connection.schemas)
-  // const selectedSchema = useStore().selectedSchema
-  const selectedSchema = useHS(schemaPanel.selectedSchema)
-  // const selectedSchema = useSelectedSchema()
-  const selectedSchemaTables = useHS(schemaPanel.selectedSchemaTables)
-  const localSelectedSchema = useVariable<Schema>({} as Schema)
-  const schemaOptions = useHS<Schema[]>([])
-  const selectedTables = useVariable<Table[]>([])
-  const tableOptions = useHS<Table[]>([])
   const loading = schemaPanel.loading
-  const schemaFilter = useHS('')
-  const tableFilter = useHS('')
 
 
   ///////////////////////////  HOOKS  ///////////////////////////
 
   ///////////////////////////  EFFECTS  ///////////////////////////
-
-  // React.useEffect(() => {
-  //   setNodes([
-  //     {
-  //       "key": "0",
-  //       "label": "Documents",
-  //       "data": {name: "Documents", type: "database"},
-  //       // "icon": "pi pi-fw pi-book",
-  //       "children": [
-  //         {
-  //           "key": "0-0",
-  //           "label": "Work",
-  //           "data": "Work Folder",
-  //           // "icon": "pi pi-fw pi-cog",
-  //           "children": [
-  //             {
-  //               "key": "0-0-0",
-  //               "label": "Expenses.doc",
-  //               // "icon": "pi pi-fw pi-file",
-  //               "data": "Expenses Document"
-  //             },
-  //             {
-  //               "key": "0-0-1",
-  //               "label": "Resume.doc",
-  //               // "icon": "pi pi-fw pi-file",
-  //               "data": "Resume Document"
-  //             }
-  //           ]
-  //         },
-  //         {
-  //           "key": "0-1",
-  //           "label": "Home",
-  //           "data": "Home Folder",
-  //           // "icon": "pi pi-fw pi-home",
-  //           "children": [
-  //             {
-  //               "key": "0-1-0",
-  //               "label": "Invoices.txt",
-  //               // "icon": "pi pi-fw pi-file",
-  //               "data": "Invoices for this month"
-  //             }
-  //           ]
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       "key": "1",
-  //       "label": "Events",
-  //       "data": "Events Folder",
-  //       // "icon": "pi pi-fw pi-calendar",
-  //       "children": [
-  //         {
-  //           "key": "1-0",
-  //           "label": "Meeting",
-  //           // "icon": "pi pi-fw pi-calendar-plus",
-  //           "data": "Meeting"
-  //         },
-  //         {
-  //           "key": "1-1",
-  //           "label": "Product Launch",
-  //           // "icon": "pi pi-fw pi-calendar-plus",
-  //           "data": "Product Launch"
-  //         },
-  //         {
-  //           "key": "1-2",
-  //           "label": "Report Review",
-  //           // "icon": "pi pi-fw pi-calendar-plus",
-  //           "data": "Report Review"
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       "key": "2",
-  //       "label": "Movies",
-  //       "data": "Movies Folder",
-  //       // "icon": "pi pi-fw pi-star",
-  //       "children": [
-  //         {
-  //           "key": "2-0",
-  //           // "icon": "pi pi-fw pi-star",
-  //           "label": "Al Pacino",
-  //           "data": "Pacino Movies",
-  //           "children": [
-  //             {
-  //               "key": "2-0-0",
-  //               "label": "Scarface",
-  //               // "icon": "pi pi-fw pi-video",
-  //               "data": "Scarface Movie"
-  //             },
-  //             {
-  //               "key": "2-0-1",
-  //               "label": "Serpico",
-  //               // "icon": "pi pi-fw pi-video",
-  //               "data": "Serpico Movie"
-  //             }
-  //           ]
-  //         },
-  //         {
-  //           "key": "2-1",
-  //           "label": "Robert De Niro",
-  //           // "icon": "pi pi-fw pi-star",
-  //           "data": "De Niro Movies",
-  //           "children": [
-  //             {
-  //               "key": "2-1-0",
-  //               "label": "Goodfellas",
-  //               // "icon": "pi pi-fw pi-video",
-  //               "data": "Goodfellas Movie"
-  //             },
-  //             {
-  //               "key": "2-1-1",
-  //               "label": "Untouchables",
-  //               // "icon": "pi pi-fw pi-video",
-  //               "data": "Untouchables Movie"
-  //             }
-  //           ]
-  //         }
-  //       ]
-  //     }
-  //   ])
-  // }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  React.useEffect(() => {
-    let schemaName = localSelectedSchema.get()?.name
-    let index = schemas.get().map(s => s?.name).indexOf(schemaName)
-    if (index > -1) {
-      let schema = jsonClone<Schema>(schemas.get()[index])
-      if (schema.tables && schema.tables.length > 0) {
-        tableOptions.set(schema.tables)
-      }
-    }
-  }, [localSelectedSchema.get()]) // eslint-disable-line
-
-  React.useEffect(() => {
-    // init load
-
-    // load schemaOptions
-    if (Object.keys(schemas.get()).length > 0) {
-      schemaOptions.set(Object.values(schemas.get()))
-      // console.log(document.getElementById("schema-list"))
-    }
-
-    if (selectedSchema.get() && Object.keys(schemas.get()).length > 0) {
-      // console.log(jsonClone<Schema>(selectedSchema.get()))
-      localSelectedSchema.set(jsonClone<Schema>(selectedSchema.get()))
-      // FocusNode(document.getElementById("schema-list")?.children[0]?.children[0]?.children, `${selectedSchema.get()?.name}`)
-    }
-
-    let st = selectedSchemaTables.get()
-    if (st && st.length > 0) {
-      selectedTables.set(jsonClone<Table[]>(selectedSchemaTables.get()))
-    }
-  }, []) // eslint-disable-line
-
-  React.useEffect(() => {
-    schemaOptions.set(Object.values(schemas.get()).filter(s => s !== undefined))
-    // setNodes(MakeNodes(schemas.get()))
-    // let schemaName = selectedSchema.get().name
-    // let schema = schemas.get()[schemaName]
-    // if(schema) {
-    //   let tables = schema.tables
-    //   if(tables) { tableOptions.set(Object.values(tables)) }
-    // }
-  }, [schemas.get()]) // eslint-disable-line
 
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -251,42 +76,10 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         }
       }
       setSchemas(connection, schemas_)
-      // setNodes(MakeNodes(schemas_))
     } catch (error) {
       toastError(error)
     }
     loading.set(false)
-  }
-
-  const MakeNodes = (schemas: Schema[]) => {
-    let newNodes : TreeNode[] = []
-    for (let i = 0; i < schemas.length; i++) {
-      const schema = schemas[i]
-
-      let children : TreeNode[] = []
-      for(let table of schema.tables) {
-        children.push({
-          key: `${schema.name}.${table.name}`,
-          label: table.name,
-          data: {
-            type: 'table',
-            data: table,
-          },
-          children: [],
-        })
-      }
-
-      newNodes.push({
-        key: schema.name,
-        label: schema.name,
-        data: {
-          type: 'schema',
-          data: schema,
-        },
-        children: children,
-      })
-    }
-    return newNodes
   }
 
 
@@ -310,7 +103,6 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             return s
           }
         )
-        tableOptions.set(tables)
       }
     } catch (error) {
       toastError(error)
@@ -365,6 +157,17 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
     const menu = [
       {
+        label: 'Refresh',
+        icon: 'pi pi-refresh',
+        command: () => {
+          let keys = Object.keys(selectedKeys.get())
+          if(keys.length !== 1) return toastError("Must choose only one object")
+          let arr = keys[0].split('.')
+
+          GetTables(connection.name.get(), arr[0])
+        }
+      },
+      {
         label: 'SELECT *',
         icon: 'pi pi-play',
         command: () => {
@@ -418,6 +221,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       <Tree
         id="schema-tree"
         style={{ fontSize: '9px', padding: '0px'}}
+        filter filterMode="lenient"
+        filterPlaceholder="Filter..."
         loading={loading.get()}
         // value={schemaNodes}
         value={connection.get().schemaNodes()}
@@ -477,8 +282,17 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   return (
     <div id='history-panel'>
 
-      <h4 style={{ textAlign: 'center', margin: '9px' }}>Schemas</h4>
-      <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())} />
+      <h4 style={{ textAlign: 'center', margin: '9px' }}>
+        Schemas 
+        <a href="#;">
+          <i 
+            style={{color: 'orange', fontSize: '0.9em', paddingLeft: '5px'}}
+            className="pi pi-refresh"
+            onClick={() => GetSchemas(connection.name.get())}
+          />
+        </a>
+      </h4>
+      {/* <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())} /> */}
       <SchemaTree />
     </div>
   );

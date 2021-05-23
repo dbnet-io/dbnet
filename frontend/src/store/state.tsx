@@ -106,6 +106,14 @@ export interface RowView {
   rows: {n:number, name: string, value: any}[]
 }
 
+export const getParentTabName = (tabId: string) => {
+  let parent_name = ''
+  try {
+    parent_name = tabId.split('.')[0].split('-')[1]
+  } catch (error) { }
+  return parent_name
+} 
+
 export class Tab {
   id: string
   name: string
@@ -115,6 +123,7 @@ export class Tab {
   filter: string
   limit: number
   parent: string | undefined
+  selectedChild: string
   
   rowView: RowView
   showSql: boolean
@@ -125,7 +134,6 @@ export class Tab {
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || ''
-    this.id = data.id || new_ts_id(`tab-${this.name}.`)
     this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
@@ -139,6 +147,11 @@ export class Tab {
     this.refreshInterval = data.refreshInterval || 0
     this.lastTableSelection = data.lastTableSelection || [0,0,0,0]
     this.parent = data.parent
+    this.selectedChild = data.selectedChild
+
+    let parent_name = getParentTabName(this.parent || '')
+    this.id = data.id || new_ts_id(`tab-${this.name || parent_name}.`)
+    if(!this.name) this.name = this.id.slice(-7)
   }
 }
 
@@ -205,8 +218,9 @@ export enum QueryType {
 export enum QueryStatus {
   Fetched = 'fetched',
   Completed = 'completed',
-  Running = 'running',
-  Cancelled = 'cancelled'
+  Submitted = 'submitted',
+  Cancelled = 'cancelled',
+  Errored = 'errorred',
 }
 
 export class Query {
@@ -227,7 +241,7 @@ export class Query {
     this.conn = data.conn
     this.tab = data.tab
     this.id = data.id || new_ts_id('query.')
-    this.time = data.tme || new Date().getTime()
+    this.time = data.time || new Date().getTime()
     this.duration = data.duration || 0
     this.type = data.type || QueryType.SQL
     this.text = data.text || ''
@@ -365,16 +379,18 @@ export class Connection {
       const schema = this.schemas[i]
 
       let children : TreeNode[] = []
-      for(let table of schema.tables) {
-        children.push({
-          key: `${schema.name}.${table.name}`,
-          label: table.name,
-          data: {
-            type: 'table',
-            data: table,
-          },
-          children: [],
-        })
+      if(schema.tables) {
+        for(let table of schema.tables) {
+          children.push({
+            key: `${schema.name}.${table.name}`,
+            label: table.name,
+            data: {
+              type: 'table',
+              data: table,
+            },
+            children: [],
+          })
+        }
       }
 
       newNodes.push({
@@ -529,10 +545,28 @@ class HistoryPanelState {
 class QueryPanelState {
   tabs: Tab[]
   selectedTabId: string
+
   constructor(data: ObjectAny = {}) {
     this.tabs = data.tabs || []
-    if(this.tabs.length === 0 ) this.tabs = [new Tab({name: 'Q1'})]
-    else this.tabs = this.tabs.map(t => new Tab(t))
+    if(this.tabs.length === 0 ) {
+      let t1 = new Tab({name: 'Q1'})
+      let c1 = new Tab({name: 'C1', parent: t1.id})
+      t1.selectedChild = c1.id
+      this.tabs = [t1, c1]
+    } else {
+      this.tabs = this.tabs.map(t => new Tab(t))
+      let child_tabs = []
+      for (let i = 0; i < this.tabs.length; i++) {
+        const tab = this.tabs[i];
+        if(tab.parent) continue
+        if(!tab.selectedChild || this.getTabIndexByID(tab.selectedChild)===-1) {
+          let child = new Tab({parent: tab.id})
+          this.tabs[i].selectedChild = child.id
+          child_tabs.push(child)
+        } 
+      }
+      this.tabs = this.tabs.concat(child_tabs)
+    }
 
     this.selectedTabId = data.selectedTabId || this.tabs[0].id
   }
@@ -556,11 +590,20 @@ class QueryPanelState {
 
   payload = () => {
     let tabs : Tab[] = []
+    let parentTabs : ObjectAny = {}
+    for(let tab of this.tabs) { 
+      if(tab.parent) continue
+      parentTabs[tab.id] = 0 
+    }
+
     for(let tab of this.tabs) {
       let tab_ = jsonClone<Tab>(tab)
       tab_.query.rows = []
+      // clean up rogue child tabs
+      if(tab_.parent && !(tab_.parent in parentTabs)) continue
       tabs.push(tab_)
     }
+
     return {
       tabs: tabs,
       selectedTabId: this.selectedTabId,

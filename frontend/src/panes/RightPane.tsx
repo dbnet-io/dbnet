@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Splitter, SplitterPanel } from 'primereact/splitter';
-import { TabNames } from "../components/TabNames";
+import { getTabState, TabNames } from "../components/TabNames";
 import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
 import { TabTable } from "../components/TabTable";
-import { accessStore, useStoreQueryPanel } from "../store/state";
+import { accessStore, useHS, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
 
@@ -22,14 +22,9 @@ export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   const TabPanel = () => {
-    const tabIndex = queryPanel.tabs.get().map(t => t.id).indexOf(tabId.get()) || 0
-    const tabs = useStoreQueryPanel().tabs
-    const tab = tabs[tabIndex]
+    const tab = useHS(getTabState(tabId.get()))
+    const childTab = useHS(getTabState(tab.selectedChild.get()))
     const aceEditor = React.useRef(null);
-
-    // React.useEffect(() => {
-    //   if(tab.query.status.get() && !tab.query.pulled.get()) fetchRows(tab)
-    // }, [tabId.get()])
 
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
@@ -43,8 +38,8 @@ export const RightPane: React.FC<Props> = (props) => {
           <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px'}}>
             
             <SubTabs tab={tab}/>
-            <TabToolbar aceEditor={aceEditor} tab={tab}/>
-            <TabTable tab={tab}/>
+            <TabToolbar aceEditor={aceEditor} tab={childTab}/>
+            <TabTable tab={childTab}/>
           </div>
         </SplitterPanel>
       </Splitter>

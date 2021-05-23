@@ -9,6 +9,9 @@ import { copyToClipboard, jsonClone, new_ts_id, showNotification, toastError, to
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 import { apiPost } from "../store/api";
+import { createTabChild, getTabState } from "./TabNames";
+import { OverlayPanel } from 'primereact/overlaypanel';
+import { InputTextarea } from 'primereact/inputtextarea';
 
 
 const setFilter = _.debounce(
@@ -41,14 +44,17 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
 
+  // create child tab
+  let childTab = createTabChild(tab.get())
+  tab.selectedChild.set(childTab.id)
 
   let data1 = {
     id: new_ts_id('query.'),
     conn: connection.name.get(),
     text: sql.trim(),
     time: (new Date()).getTime(),
-    tab: tab.id.get(),
-    limit: tab.limit.get(),
+    tab: childTab.id,
+    limit: childTab.limit,
     wait: true,
   }
 
@@ -56,8 +62,8 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
     data1.text = data1.text.slice(0, -1).trim()
   }
 
-  let index = queryPanel.get().getTabIndexByID(data1.tab)
-  let tab_ = queryPanel.tabs[index]
+  let tab_ = getTabState(data1.tab)
+  let parentTab = getTabState(`${tab_.parent.get()}`)
 
   tab_.query.time.set(new Date().getTime())
   tab_.lastTableSelection.set([0, 0, 0, 0])
@@ -68,6 +74,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   tab_.query.duration.set(0)
   tab_.query.id.set(data1.id)
   tab_.loading.set(true)
+  parentTab.loading.set(true)
 
   try {
     let data2 = await apiPost(MsgType.SubmitSQL, data1)
@@ -89,19 +96,21 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
     tab_.query.err.set(`${error}`)
   }
   tab_.loading.set(false)
+  parentTab.loading.set(false)
   globalStore.saveSession()
 
+  
   // to refresh
-  if (queryPanel.get().currTab().id === tab_.id.get()) {
+  if (queryPanel.get().currTab().id === parentTab.id.get()) {
     queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get()))
   } else {
     // notify if out of focus
-    if(tab.query.err.get()) toastError(`Query ${tab.name.get()} failed`)
-    else toastInfo(`Query ${tab.name.get()} completed`)
+    if(tab_.query.err.get()) toastError(`Query "${parentTab.name.get()}" failed`)
+    else toastInfo(`Query "${parentTab.name.get()}" completed`)
   }
   
   if (!document.hasFocus()) {
-    showNotification(`Query ${tab.name.get()} ${tab.query.err.get() ? 'errored' : 'completed'}!`)
+    showNotification(`Query "${parentTab.name.get()}" ${tab_.query.err.get() ? 'errored' : 'completed'}!`)
   }
 }
 
@@ -110,6 +119,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
   const filter = useHS(tab.filter);
   const limit = useHS(tab.limit);
   const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()):'')
+  const sqlOp = React.useRef<any>(null);
 
   return (
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
@@ -145,17 +155,46 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltipOptions={{ position: 'top' }}
             className="p-button-sm p-button-info"
             onClick={(e) => {
-              submitSQL(tab, tab.query.text.get())
-            }} />
+              let childTab = getTabState(tab.id.get())
+              submitSQL(tab, childTab.query.text.get())
+            }} 
+          />
+          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{width: '450px'}} className="overlaypanel-demo">
+              <InputTextarea
+                style={{width: '100%', fontFamily:'monospace', fontSize: '11px'}}
+                rows={20}
+                value={tab.query.text.get()}
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  marginLeft: '-50px',
+                }}
+              >
+                <Button
+                  icon="pi pi-copy"
+                  className="p-button-rounded p-button-text p-button-info"
+                  onClick={() => copyToClipboard(tab.query.text.get())}
+                />
+              </span>
+          </OverlayPanel>
 
-            <Dropdown
-              id='limit-input'
-              value={ limit.get() }
-              options={ [100, 250, 500, 1000, 2500, 5000] }
-              onChange={(e) => limit.set(e.value) }
-              placeholder="Limit..."
-              maxLength={50}
-            />
+          <Button
+            label="SQL"
+            className="p-button-sm p-button-warning"
+            tooltip="Show Tab SQL"
+            tooltipOptions={{ position: 'top' }}
+            onClick={(e) => sqlOp.current.toggle(e)}
+          />
+
+          <Dropdown
+            id='limit-input'
+            value={ limit.get() }
+            options={ [100, 250, 500, 1000, 2500, 5000] }
+            onChange={(e) => limit.set(e.value) }
+            placeholder="Limit..."
+            maxLength={50}
+          />
 
           <Button
             icon="pi pi-clock"
@@ -174,7 +213,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
               "p-button-sm p-button-outlined p-button-secondary"
             }
             tooltipOptions={{ position: 'top' }}
-            onClick={() => { tab.rowView.show.set(true) }}
+            onClick={() => { tab.rowView.show.set(v => !v) }}
           />
 
           <Button

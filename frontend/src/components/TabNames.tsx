@@ -1,8 +1,7 @@
 import * as React from "react";
 import { accessStore, Tab, useHS } from "../store/state";
 import { SelectButton } from "primereact/selectbutton";
-import { Inplace, InplaceDisplay, InplaceContent } from 'primereact/inplace';
-import { InputText } from "primereact/inputtext";
+import { none } from "@hookstate/core";
 
 const queryPanel = accessStore().queryPanel
 
@@ -25,12 +24,39 @@ export const createTab = (name: string = '', sql = '') => {
   }
 
   let newTab = new Tab({ name, editor: {text: sql} });
-  queryPanel.tabs.set(
-    t => t.concat([newTab])
-  );
+  let childTab = createTabChild(newTab)
+  newTab.selectedChild = childTab.id
+  queryPanel.tabs.merge([newTab])
   queryPanel.selectedTabId.set(newTab.id);
   return queryPanel.tabs[queryPanel.tabs.length-1]
 }
+
+export const createTabChild = (parent: Tab) => {
+  let newTab = new Tab({ 
+    parent: parent.id, 
+    limit: parent.limit,
+  });
+
+  // add new child tab
+  queryPanel.tabs.merge([newTab])
+  getTabState(parent.id)?.selectedChild?.set(newTab.id)
+
+  // delete existing non-pinned child tabs
+  let tabs = queryPanel.tabs.get()
+  for (let i = 0; i < tabs.length; i++) {
+    if (tabs[i].parent === parent.id && !tabs[i].pinned && tabs[i].id !== newTab.id) {
+      queryPanel.tabs[i].set(none)
+    }
+  }
+
+  return newTab
+}
+
+export const getTabState = (tabID: string) => {
+  let index = queryPanel.get().getTabIndexByID(tabID)
+  return queryPanel.tabs[index]
+}
+
 interface Props {}
 
 export const TabNames: React.FC<Props> = (props) => {
@@ -44,24 +70,14 @@ export const TabNames: React.FC<Props> = (props) => {
     if (option === 'add') { icon = 'pi pi-plus'; }
     if (icon) { return <i style={{fontSize: '15px'}} className={icon}></i>; }
 
-    let index = queryPanel.get().tabs.map(t => t.name).indexOf(option);
-    const loading = queryPanel.tabs[index].loading.get()
+    let index = queryPanel.get().tabs.map(t => t.name).indexOf(option)
+    let tab = queryPanel.tabs[index]
+    let childTab = getTabState(tab.id.get())
+    const loading = tab.loading.get() || childTab.loading.get()
     return <>
       { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
       <span style={{fontSize: '12px'}}>{option}</span >
     </> 
-    return (  // eslint-disable-line
-      <>
-        <Inplace closable>
-          <InplaceDisplay>
-              {option}
-          </InplaceDisplay>
-          <InplaceContent>
-              <InputText value={option} onChange={(e:any) => console.log(e.target.value)} autoFocus width={10} />
-          </InplaceContent>
-        </Inplace>
-      </>
-    )
   };
 
 
@@ -75,18 +91,26 @@ export const TabNames: React.FC<Props> = (props) => {
     if (!name) {
       return;
     } else if (name === 'del') {
+      // delete selected tab
       let i = -1;
+      console.log(tabs.get().filter(v => !v.parent))
+      let parentTabs = tabs.get().filter(v => !v.parent)
+      for (let j = 0; j < parentTabs.length; j++) {
+        const tab = parentTabs[j];
+        if (tab.id === selectedTabId.get()) { i = j; }
+      }
+
       tabs.set(
-        t => t.filter((v, j) => {
-          if (v.id === selectedTabId.get()) { i = j; }
-          return v.id !== selectedTabId.get();
-        })
-      );
-      if (i > 0) { selectedTabId.set(tabs.get()[i - 1].id); }
-      else if (tabs.length > 0) { selectedTabId.set(tabs.get()[0].id); }
+        t => t.filter(v => v.id !== selectedTabId.get())
+      )
+      if (i > 0) { 
+        selectedTabId.set(parentTabs[i - 1].id)
+      } else if (tabs.length > 0) { 
+        selectedTabId.set(parentTabs[0].id)
+      }
       else { tabs.set([new Tab({ name: prefix+'1' })]); }
     } else if (name === 'add') {
-      // new tab
+      // add new tab
       let i = tabOptions.length + 1;
       let newName = `${prefix}${i}`;
       while (tabOptions.includes(newName)) {
@@ -95,8 +119,10 @@ export const TabNames: React.FC<Props> = (props) => {
       }
       createTab(newName)
     } else {
-      let index = queryPanel.get().tabs.map(t => t.name).indexOf(name);
-      selectedTabId.set(tabs[index].get().id);
+      let index = queryPanel.get().tabs.map(t => t.name).indexOf(name)
+      let tab = tabs[index].get()
+      if(!tab.selectedChild) createTabChild(tab)
+      selectedTabId.set(tab.id);
     }
     document.getElementById("table-filter")?.focus();
   };

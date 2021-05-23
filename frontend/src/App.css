@@ -148,3 +148,16 @@ font-size: 9px !important;
   padding-top: 4px;
   padding-bottom: 4px;
 }
+
+#sub-tabs > ul > li > span > a > i.pi {
+  margin-right: 5px;
+  font-size: 10px;
+}
+
+#sub-tabs > ul > li > span > a > i.pi.pi-chevron-circle-down {
+  color: red;
+}
+
+#sub-tabs > ul > li > span > a > i.pi.pi-spinner {
+  color: blue;
+}

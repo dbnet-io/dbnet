@@ -11,6 +11,7 @@ import 'handsontable/dist/handsontable.full.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { apiGet } from "../store/api";
+import { getTabState } from "./TabNames";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
@@ -40,8 +41,7 @@ export const fetchRows = async (tab: State<Tab>) => {
     let data2 = await apiGet(MsgType.GetSQLRows, data1)
     if(data2.error) throw new Error(data2.error)
     let query = data2 as Query
-    let index = queryPanel.get().getTabIndexByID(query.tab)
-    let tab = queryPanel.tabs[index]
+    let tab = getTabState(query.tab)
     tab.set(
       t => {
         t.query.id = query.id
