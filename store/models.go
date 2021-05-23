@@ -85,7 +85,7 @@ type Query struct {
 	Context   g.Context    `json:"-" gorm:"-"`
 	Result    *sqlx.Rows   `json:"-" gorm:"-"`
 	Columns   []iop.Column `json:"-" gorm:"-"`
-	Limit     int          `json:"-" gorm:"-"`
+	Limit     int          `json:"limit" query:"limit" gorm:"-"`
 	Wait      bool         `json:"wait" query:"wait" gorm:"-"`
 	UpdatedDt time.Time    `json:"-" gorm:"autoUpdateTime"`
 }

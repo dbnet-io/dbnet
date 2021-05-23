@@ -36,7 +36,7 @@ interface Props {}
 export const TabNames: React.FC<Props> = (props) => {
 
   const tabs = useHS(queryPanel.tabs)
-  const tabOptions = tabs.get().map(t => t.name);
+  const tabOptions = tabs.get().filter(t => !t.parent).map(t => t.name);
   const selectedTabId = useHS(queryPanel.selectedTabId)
   const optionTemplate = (option: string) => {
     let icon = '';

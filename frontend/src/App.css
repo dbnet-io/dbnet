@@ -104,6 +104,47 @@
   font-family: monospace !important;
  }
 
- #analysis-buttons {
-  font-size: 9px !important;
- }
+#analysis-buttons {
+font-size: 9px !important;
+}
+
+#schema-tree > ul > li > div {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+#schema-tree > ul > li > ul > li, #schema-tree > ul > li > ul > li > div {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+#schema-tree > ul > li > ul, #schema-tree > ul > li > ul > li > ul {
+  padding-left: 0px;
+}
+
+#schema-tree > ul > li > ul > li > div {
+  padding-left: 0px;
+}
+
+#schema-tree > ul > li > ul > li > ul > li > div {
+  padding: 0px;
+}
+
+#schema-tree > ul > li > ul > li > ul > li > div > button {
+  margin: 0px;
+}
+
+#schema-tree > ul > li > ul > li > div > button {
+  max-height: 20px !important;
+  font-size: 5px;
+}
+
+#sub-tabs > div.p-tabview-panels {
+  padding: 0px !important;
+  padding-top: 3px !important;
+}
+
+#sub-tabs > ul > li > a, #sub-tabs > ul > li > span > a {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}

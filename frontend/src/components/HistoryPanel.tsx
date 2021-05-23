@@ -68,7 +68,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
       <div className="p-col-12" style={{paddingBottom:'10px'}}>
         <div className="p-inputgroup">
           <InputText
-            id="schema-filter"
+            id="history-filter"
             placeholder="Filters..."
             value={props.filter.get()}
             onChange={(e:any) => { props.filter.set(e.target.value) }}

@@ -42,8 +42,8 @@ export const RightPane: React.FC<Props> = (props) => {
         <SplitterPanel className="p-d-flex p-ai-center p-jc-center" style={{overflowY: "scroll", height: "200px", minHeight:"100px"}}>
           <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px'}}>
             
-            <TabToolbar aceEditor={aceEditor} tab={tab}/>
             <SubTabs tab={tab}/>
+            <TabToolbar aceEditor={aceEditor} tab={tab}/>
             <TabTable tab={tab}/>
           </div>
         </SplitterPanel>

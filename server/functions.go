@@ -304,7 +304,6 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 		g.Unmarshal(strings.TrimSuffix(strings.TrimPrefix(query.Text, "/* @"), "*/"), &req)
 
 		sql := ""
-		g.P(req)
 		sql, err = c.DbConn.GetAnalysis(req.Name, req.Data)
 		if err != nil {
 			query.Status = store.QueryStatusErrorred

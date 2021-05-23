@@ -1,7 +1,7 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
 import { Ace, Range } from "ace-builds";
-import { Tab, useHS } from "../store/state";
+import { accessStore, Tab, useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";

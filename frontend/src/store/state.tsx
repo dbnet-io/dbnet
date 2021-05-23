@@ -1,5 +1,5 @@
 import { ObjectAny, ObjectString } from "../utilities/interfaces";
-import { createState, useState, State } from '@hookstate/core';
+import { createState, useState, State, none } from '@hookstate/core';
 import { createRef } from "react";
 import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
@@ -7,6 +7,7 @@ import * as React from "react";
 import { jsonClone, new_ts_id, toastError } from "../utilities/methods";
 import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
+import TreeNode from "primereact/components/treenode/TreeNode";
 
 
 export const masterToast = createRef<Toast>()
@@ -113,6 +114,7 @@ export class Tab {
   loading: boolean
   filter: string
   limit: number
+  parent: string | undefined
   
   rowView: RowView
   showSql: boolean
@@ -136,6 +138,7 @@ export class Tab {
     this.pinned = data.pinned || false
     this.refreshInterval = data.refreshInterval || 0
     this.lastTableSelection = data.lastTableSelection || [0,0,0,0]
+    this.parent = data.parent
   }
 }
 
@@ -161,9 +164,14 @@ export interface Table {
   indexes?: Key[]
 }
 
-export interface Schema {
+export class Schema {
   name: string
   tables: Table[]
+
+  constructor(data: ObjectAny = {}) {
+    this.name = data.name
+    this.tables = data.tables || []
+  }
 }
 
 
@@ -350,6 +358,46 @@ export class Connection {
       type: this.type,
     }
   }
+
+  schemaNodes = () => {
+    let newNodes : TreeNode[] = []
+    for (let i = 0; i < this.schemas.length; i++) {
+      const schema = this.schemas[i]
+
+      let children : TreeNode[] = []
+      for(let table of schema.tables) {
+        children.push({
+          key: `${schema.name}.${table.name}`,
+          label: table.name,
+          data: {
+            type: 'table',
+            data: table,
+          },
+          children: [],
+        })
+      }
+
+      newNodes.push({
+        key: schema.name,
+        label: schema.name,
+        data: {
+          type: 'schema',
+          data: schema,
+        },
+        children: children,
+      })
+    }
+    return newNodes
+  }
+}
+
+export const setSchemas = (conn: State<Connection>, schemas: Schema[]) => {
+  // let exSchemas = conn.schemas.get()
+  for (let i = 0; i < conn.schemas.length; i++) {
+    conn.schemas[i].set(none)
+  }
+  conn.schemas.set([])
+  conn.schemas.merge(schemas)
 }
 
 export class Ws {
@@ -447,12 +495,16 @@ export function useVariable<S>(initialState: S | (() => S)): Variable<S> {
 class SchemaPanelState {
   selectedSchema: Schema
   selectedSchemaTables: Table[]
+  expandedNodes: ObjectAny
+  selectedNodes: ObjectAny
   loading: boolean
 
   constructor(data: ObjectAny = {}) {
     this.selectedSchema = data.selectedSchema || {}
     this.selectedSchemaTables = data.selectedSchemaTables || []
     this.loading = data.loading || false
+    this.expandedNodes = data.expandedNodes || {}
+    this.selectedNodes = data.selectedNodes || {}
   }
 }
 
@@ -563,16 +615,11 @@ class GlobalStore {
     try {
       let data = await apiGet(MsgType.LoadSession, payload)
       if(data.error) throw new Error(data.error)
-      // this.connection.set(
-      //   c => {
-      //     Object.assign(c, new Connection(data.connection))
-      //     return c
-      //   })
       let connection = new Connection(data.connection)
       this.connection.name.set(connection.name)
       this.connection.type.set(connection.type)
       this.connection.data.set(connection.data)
-      // this.connection.schemas.set(connection.schemas)
+      this.connection.schemas.set(connection.schemas)
       this.connection.history.set(connection.history)
       this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))

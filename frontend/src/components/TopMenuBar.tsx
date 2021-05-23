@@ -123,11 +123,15 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
     const getAllTables = () => {
       let all : ObjectString = {}
-      for (let shema of schemas.get()) {
-        if (!shema.tables) { continue }
-        for (let table of shema.tables) {
-          all[`${table.schema}.${table.name}`.toLowerCase()] = ''
+      try {
+        for (let schema of schemas.get()) {
+          if (!schema.tables) { continue }
+          for (let table of schema.tables) {
+            all[`${table.schema}.${table.name}`.toLowerCase()] = ''
+          }
         }
+      } catch (error) {
+        console.log(error)
       }
       return Object.keys(all)
     }

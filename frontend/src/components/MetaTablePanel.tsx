@@ -19,10 +19,13 @@ interface Props {}
 const store = accessStore()
 
 export const loadMetaTable = async (tableName: string, refresh=false, fromHistory=false) => {
+  store.app.selectedMetaTab.set('Object')
+
   const objectPanel = store.objectPanel
   const history = objectPanel.history
   const historyI = objectPanel.historyI
 
+  tableName = tableName.replaceAll('"', '')
   let {schema, table} = split_schema_table(tableName)
   try {
     let data1 = {
@@ -297,7 +300,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let sql = `/* @${JSON.stringify(data)} */ ;`
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)
-            hideOverlay()
           }}
         />
 
@@ -386,7 +388,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         loading={objectPanel.table.loading.get()}
         rowHover={true}
         scrollable={true}
-        scrollHeight="450px"
+        scrollHeight={`${window.innerHeight - 270}px`}
         resizableColumns={true}
         className="p-datatable-sm p-datatable-gridlines"
         style={{fontSize:'10px'}}
