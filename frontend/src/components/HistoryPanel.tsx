@@ -5,7 +5,6 @@ import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, new_ts_id, relative_duration, toastError } from "../utilities/methods";
 import { InputText } from "primereact/inputtext";
-import { State } from "@hookstate/core";
 import { Button } from "primereact/button";
 import _ from "lodash";
 import { Tooltip } from "primereact/tooltip";
@@ -18,15 +17,15 @@ interface Props {}
 export const HistoryPanel: React.FC<Props> = (props) => {
   const store = accessStore()
   ///////////////////////////  HOOKS  ///////////////////////////
-  const selectedQuery = useVariable<Query>(new Query())
+  const selectedQuery = useHS(store.historyPanel.selectedQuery)
   const options = useVariable<Query[]>([])
   const loading = useHS(false)
-  const filter = useHS('')
+  const filter = useHS(store.historyPanel.filter)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
     if(filter.get() === '') getLatest()
-    else  debounceSearch(filter.get())
+    else debounceSearch(filter.get())
   }, [filter.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -61,26 +60,9 @@ export const HistoryPanel: React.FC<Props> = (props) => {
     }
   }
 
-  const debounceSearch = _.debounce((filter: string) => doSearch(filter), 400)
+  const [debounceSearch] = React.useState(() => _.debounce(doSearch, 500));
 
   ///////////////////////////  JSX  ///////////////////////////
-
-  const FilterBox = (props: { filter: State<string>, loading: State<boolean>, onClick?: React.MouseEventHandler<HTMLButtonElement> | undefined }) => {
-    return (
-      <div className="p-col-12" style={{paddingBottom:'10px'}}>
-        <div className="p-inputgroup">
-          <InputText
-            id="history-filter"
-            placeholder="Filters..."
-            value={props.filter.get()}
-            onChange={(e:any) => { props.filter.set(e.target.value) }}
-            onKeyDown={(e: any) =>{ if(e.key === 'Escape') { props.filter.set('') }}}
-          />
-          <Button icon={props.loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={props.onClick}/>
-        </div>
-      </div>
-    )
-  }
   
   const ItemTemplate = (query: Query) => {
     const shorten = (text: string, n: number) => {
@@ -135,7 +117,21 @@ export const HistoryPanel: React.FC<Props> = (props) => {
 
   return (
     <div>
-      <FilterBox filter={filter} loading={loading} onClick={() => doSearch(filter.get())}/>
+      <div className="p-col-12" style={{paddingBottom:'10px'}}>
+        <div className="p-inputgroup">
+          <InputText
+            id="history-filter"
+            placeholder="Filters..."
+            value={filter.get()}
+            onChange={(e:any) => { 
+              filter.set(e.target.value) 
+            }}
+            onKeyDown={(e: any) =>{ if(e.key === 'Escape') { filter.set('') }}}
+          />
+          <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => doSearch(filter.get())}/>
+        </div>
+      </div>
+
       <ListBox
         id="history-list"
         value={selectedQuery.get()}

@@ -4,13 +4,11 @@ import { getTabState, TabNames } from "../components/TabNames";
 import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
 import { TabTable } from "../components/TabTable";
-import { accessStore, useHS, useStoreQueryPanel } from "../store/state";
+import { useHS, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
 
 interface Props {}
-
-const queryPanel = accessStore().queryPanel
 
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////

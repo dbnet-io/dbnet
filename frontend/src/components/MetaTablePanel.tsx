@@ -164,9 +164,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
-  // const setFilter = _.debounce(
-  //   (filter: State<string>, newVal: string) => filter.set(newVal), 400
-  // )
 
   const getSelectedColsOrAll = () => {
     let cols = selected.get().map(v => v.column_name)

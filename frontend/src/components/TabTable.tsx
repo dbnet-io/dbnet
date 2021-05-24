@@ -1,6 +1,6 @@
 import * as React from "react";
 import './TabTable.css'
-import {  Query, QueryStatus, Tab, useVariable, accessStore } from "../store/state";
+import {  Query, QueryStatus, Tab, useVariable } from "../store/state";
 import { State } from "@hookstate/core";
 import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { MsgType } from "../store/websocket";
@@ -23,7 +23,6 @@ interface Props {
 export const fetchRows = async (tab: State<Tab>) => {
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
-  const queryPanel = accessStore().queryPanel
   let data1 = {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),

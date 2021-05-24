@@ -1,8 +1,6 @@
 import { State } from "@hookstate/core";
-import * as React from "react";
 import { accessStore, Tab, useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
-import { toastInfo } from "../utilities/methods";
 import { getTabState } from "./TabNames";
 
 const queryPanel = accessStore().queryPanel 

@@ -44,12 +44,17 @@ export const App = () => {
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
+    // last connection
+    let last_conn = localStorage.getItem("_connection_name")
+    if(last_conn) store.connection.name.set(last_conn)
+
     // init load session
     globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata())
   }, [])// eslint-disable-line
+
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
-  const debounceRefresh = _.debounce(() => refresh(), 400)
+  const [debounceRefresh] = React.useState(() => _.debounce(() => refresh(), 400));
 
   const onKeyPress = (e: React.KeyboardEvent) => {
     // omni search

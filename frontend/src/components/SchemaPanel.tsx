@@ -1,15 +1,11 @@
 import * as React from "react";
 import { Tree } from 'primereact/tree';
-import { data_req_to_records, jsonClone, toastError, toastInfo } from "../utilities/methods";
+import { data_req_to_records, jsonClone, toastError } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
 import { ObjectAny } from "../utilities/interfaces";
-import { ListBox } from 'primereact/listbox';
-import { accessStore, globalStore, Schema, setSchemas, Table, useHS, useStoreApp, useStoreConnection, useStoreSchemaPanel, useVariable } from "../store/state";
+import { accessStore, globalStore, Schema, setSchemas, Table, useHS, useStoreConnection, useStoreSchemaPanel } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { loadMetaTable } from "./MetaTablePanel";
-import { State } from "@hookstate/core";
-import { Button } from "primereact/button";
-import { InputText } from "primereact/inputtext";
 import { apiGet } from "../store/api";
 import { Tooltip } from "primereact/tooltip";
 import TreeNode from "primereact/components/treenode/TreeNode";
@@ -121,17 +117,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     const nodeTemplate = (node: TreeNode) => {
       let label = <></>
       let schema_name = ''
-      let tooltip = ''
       if(node.data.type === 'table') {
         label = <> {node.label} </>
         let table = node.data.data
         schema_name = table.schema
-        tooltip = `${table.schema}.${table.name}`
       } else {
         label = <b>{node.label}</b>
         let schema = node.data.data
-        tooltip = `${schema.name}`
-        let schema_name = schema.name
+        schema_name = schema.name
       }
 
       let id = `schema-node-${node?.key?.toString().replace('.', '-')}`
@@ -233,7 +226,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onToggle={e => expandedKeys.set(e.value)}
         onSelect={e => {
           if(e.node.data.type === 'table') {
-            let ts = (new Date).getTime()
+            let ts = (new Date()).getTime()
             if(lastClick.ts.get() === 0) {
               lastClick.set({ts:ts, key: e.node.key?.toString() })
             } else if (ts - lastClick.ts.get() < 500 && e.node.key === lastClick.key.get()) {
@@ -260,23 +253,6 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         }}
       />
     </>
-  }
-
-  const FilterBox = (props: { filter: State<string>, loading: State<boolean>, onClick?: React.MouseEventHandler<HTMLButtonElement> | undefined }) => {
-    return (
-      <div className="p-col-12" style={{ paddingBottom: '10px' }}>
-        <div className="p-inputgroup">
-          <InputText
-            id="schema-filter"
-            placeholder="Filters..."
-            value={props.filter.get()}
-            onChange={(e: any) => { props.filter.set(e.target.value) }}
-            onKeyDown={(e: any) => { if (e.key === 'Escape') { props.filter.set('') } }}
-          />
-          <Button icon={props.loading.get() ? "pi pi-spin pi-spinner" : "pi pi-refresh"} className="p-button-warning" onClick={props.onClick} />
-        </div>
-      </div>
-    )
   }
 
   return (

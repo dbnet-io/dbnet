@@ -357,9 +357,7 @@ export class Connection {
   history: Query[]
 
   constructor(data: ObjectAny = {}) {
-    this.name = data.name || 'PG_BIONIC_URL'
-    this.name = data.name || 'POLLY_SNOWFLAKE'
-    // this.name = data.name || 'LEADIQ_REDSHIFT'
+    this.name = data.name || ''
     this.type = data.type
     this.data = data.data
     this.schemas = data.schemas || []
@@ -537,8 +535,10 @@ class ObjectPanelState {
 
 class HistoryPanelState {
   selectedQuery: Query
+  filter: string
   constructor(data: ObjectAny = {}) {
     this.selectedQuery = new Query(data.selectedQuery)
+    this.filter = data.filter || ''
   }
 }
 
@@ -631,6 +631,7 @@ class GlobalStore {
   }
 
   saveSession = async () => {
+    localStorage.setItem("_connection_name", this.connection.get().name);
     let payload = {
       name: 'default',
       conn: this.connection.get().name,
@@ -651,6 +652,8 @@ class GlobalStore {
   }
 
   loadSession = async (connName: string) => {
+    if(connName === '') return
+
     let payload = {
       name: 'default',
       conn: connName,
