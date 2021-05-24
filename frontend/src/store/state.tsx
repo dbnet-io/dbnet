@@ -172,6 +172,7 @@ export interface Key {
 export interface Table {
   schema: string
   name: string
+  isView: boolean
   columns?: Column[]
   primaryKey?: Key
   indexes?: Key[]
@@ -300,54 +301,6 @@ export class MetaTable {
     return name_arr[name_arr.length-1]
   }
 }
-
-// export class Session {
-//   conn: Connection
-//   tabs: Tab[]
-//   selectedMetaTab: string
-//   selectedTabId: string
-//   selectedSchema: Schema
-//   selectedSchemaTables?: Table[]
-//   selectedMetaTable?: string
-//   selectedHistoryId?: Query
-//   objectView: MetaTable
-//   schemaView: SchemaView
-//   historyView: HistoryView
-
-//   constructor(data: ObjectAny = {}) {
-//     this.conn = new Connection(data.conn)
-//     this.tabs = data.tabs || []
-//     if(this.tabs.length === 0 ){ this.tabs = [new Tab({name: 'Q1'})] }
-//     else {this.tabs = this.tabs.map(t => new Tab(t))}
-//     this.selectedSchema = data.selectedSchema
-//     this.selectedSchemaTables = data.selectedSchemaTables || []
-//     this.selectedTabId = data.selectedTab || this.tabs[0].id
-//     this.selectedMetaTab = data.selectedMetaTab || 'Schema'
-//     this.selectedMetaTable = data.selectedMetaTable
-//     this.selectedHistoryId = data.selectedHistoryId
-//     this.objectView = new MetaTable()
-//     this.schemaView = new SchemaView()
-//     this.historyView = new HistoryView()
-
-//   }
-
-//   getTabIndexByID = (id: string) => {
-//     return this.tabs.map(t => t.id).indexOf(id)
-//   }
-//   getTabIndexByName = (name: string) => {
-//     return this.tabs.map(t => t.name).indexOf(name)
-//   }
-
-//   getTab = (id: string) => {
-//     let index = this.getTabIndexByID(id)
-//     if(index > -1) {
-//       return this.tabs[index]
-//     }
-//     return this.tabs[0]
-//   }
-//   currTab = () => this.getTab(this.selectedTabId)
-//   currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
-// }
 
 export class Connection {
   name: string

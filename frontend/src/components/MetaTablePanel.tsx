@@ -13,6 +13,11 @@ import { ObjectAny } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 import { apiGet } from "../store/api";
+import YAML from 'yaml'
+
+export const makeYAML = (data: ObjectAny) => {
+  return '/*@\n' + YAML.stringify(data).trim() + '\n@*/'
+}
 
 interface Props {}
 
@@ -287,14 +292,14 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-warning"
           onClick={(e) => {
             let data = {
-              name: 'field_stat',
+              analysis: 'field_stat',
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.name.get(),
                 fields: selected.get().map(v => v.column_name),
               },
             }
-            let sql = `/* @${JSON.stringify(data)} */ ;`
+            let sql = makeYAML(data) + ';'
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)
           }}
@@ -307,14 +312,14 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-warning"
           onClick={(e) => {
             let data = {
-              name: 'field_stat_deep',
+              analysis: 'field_stat_deep',
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.name.get(),
                 fields: selected.get().map(v => v.column_name),
               },
             }
-            let sql = `/* @${JSON.stringify(data)} */ ;`
+            let sql = makeYAML(data) + ';'
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
@@ -347,14 +352,14 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               return toastError('select only one field')
             }
             let data = {
-              name: 'distro_field_date',
+              analysis: 'distro_field_date',
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.get().table(),
                 field: selected.get().map(v => v.column_name)[0],
               },
             }
-            let sql = `/* @${JSON.stringify(data)} */ ;`
+            let sql = makeYAML(data) + ';'
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
@@ -425,7 +430,7 @@ const FormCountOverTime = () => {
 
   const submit = () => { // eslint-disable-line
     let data = {
-      name: 'distro_field_date_wide',
+      analysis: 'distro_field_date_wide',
       data: {
         schema: objectPanel.table.get().schema(),
         table: objectPanel.table.name.get(),
@@ -433,7 +438,7 @@ const FormCountOverTime = () => {
         // date_field: date_field.get()
       },
     }
-    let sql = `/* @${JSON.stringify(data)} */ ;`
+    let sql = makeYAML(data) + ';'
     let tab = createTab(objectPanel.table.name.get(), sql)
     submitSQL(tab, sql)
   }

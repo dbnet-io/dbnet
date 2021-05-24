@@ -292,19 +292,39 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 
 	// see if analysis req
 	query.Text = strings.TrimSuffix(query.Text, ";")
-	if strings.HasPrefix(query.Text, "/* @{") && strings.HasSuffix(query.Text, "*/") {
-		// is analysis request
-		// /* @{"name":"field_count", "data": {...}} */
+	if strings.HasPrefix(query.Text, "/*@") && strings.HasSuffix(query.Text, "@*/") {
+		// is data request in yaml or json
+		// /*@{"analysis":"field_count", "data": {...}} @*/
+		// /*@{"metadata":"ddl_table", "data": {...}} @*/
 		type analysisReq struct {
-			Name string                 `json:"name"`
-			Data map[string]interface{} `json:"data"`
+			Analysis string                 `json:"analysis" yaml:"analysis"`
+			Metadata string                 `json:"metadata" yaml:"metadata"`
+			Data     map[string]interface{} `json:"data" yaml:"data"`
 		}
 
 		req := analysisReq{}
-		g.Unmarshal(strings.TrimSuffix(strings.TrimPrefix(query.Text, "/* @"), "*/"), &req)
+		body := strings.TrimSuffix(strings.TrimPrefix(query.Text, "/*@"), "@*/")
+		err = yaml.Unmarshal([]byte(body), &req)
+		if err != nil {
+			query.Status = store.QueryStatusErrorred
+			query.Err = g.ErrMsg(err)
+			Sync("queries", query)
+			err = g.Error(err, "could not parse yaml/json request")
+			return
+		}
 
 		sql := ""
-		sql, err = c.DbConn.GetAnalysis(req.Name, req.Data)
+		switch {
+		case req.Analysis != "":
+			sql, err = c.DbConn.GetAnalysis(req.Analysis, req.Data)
+		case req.Metadata != "":
+			template, ok := c.DbConn.Template().Metadata[req.Metadata]
+			if !ok {
+				err = g.Error("metadata key '%s' not found", req.Metadata)
+			}
+			sql = g.Rm(template, req.Data)
+		}
+
 		if err != nil {
 			query.Status = store.QueryStatusErrorred
 			query.Err = g.ErrMsg(err)
@@ -312,8 +332,8 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 			err = g.Error(err, "could not execute query")
 			return
 		}
-		// query.Text = query.Text + "\n\n" + sql
-		query.Text = sql
+
+		query.Text = query.Text + "\n\n" + sql
 	}
 
 	query.Status = store.QueryStatusSubmitted

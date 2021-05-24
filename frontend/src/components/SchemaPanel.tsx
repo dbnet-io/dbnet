@@ -2,10 +2,9 @@ import * as React from "react";
 import { Tree } from 'primereact/tree';
 import { data_req_to_records, jsonClone, toastError } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
-import { ObjectAny } from "../utilities/interfaces";
 import { accessStore, globalStore, Schema, setSchemas, Table, useHS, useStoreConnection, useStoreSchemaPanel } from "../store/state";
 import { MsgType } from "../store/websocket";
-import { loadMetaTable } from "./MetaTablePanel";
+import { loadMetaTable, makeYAML } from "./MetaTablePanel";
 import { apiGet } from "../store/api";
 import { Tooltip } from "primereact/tooltip";
 import TreeNode from "primereact/components/treenode/TreeNode";
@@ -34,6 +33,7 @@ export const GetSchemata = async () => {
       schemas[row.schema_name].tables.push({
         schema: row.schema_name,
         name: row.table_name.toLowerCase(),
+        isView: row.is_view,
       })
     }
     setSchemas(store.connection, Object.values(schemas))
@@ -90,7 +90,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let data2 = await apiGet(MsgType.GetTables, data1)
       if (data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
-      let tables: Table[] = rows.map(r => { return { schema: schemaName, name: r.name.toLowerCase() } })
+      let tables: Table[] = rows.map(r => { return { schema: schemaName, name: r.name.toLowerCase(), isView: r.is_view } })
       let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(schemaName)
       if (index > -1) {
         schemas[index].set(
@@ -117,10 +117,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     const nodeTemplate = (node: TreeNode) => {
       let label = <></>
       let schema_name = ''
+      let isView = false
       if(node.data.type === 'table') {
         label = <> {node.label} </>
         let table = node.data.data
         schema_name = table.schema
+        isView = node.data.data.isView
       } else {
         label = <b>{node.label}</b>
         let schema = node.data.data
@@ -130,19 +132,25 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let id = `schema-node-${node?.key?.toString().replace('.', '-')}`
       return (
         <span id={id} data-pr-position="right"  data-pr-my="left+22">
-        <Tooltip target={`#${id}`} style={{fontSize: '11px', minWidth: '250px'}}>
-          <span>Schema: {schema_name}</span>
-          <br/>
-          { 
-            node.data.type === 'table'?
-            <>
-            <span>Table: {node.data.data.name}</span>
-            </>
-            :
-            null
-          }
-        </Tooltip>
-          {label}
+          <Tooltip target={`#${id}`} style={{fontSize: '11px', minWidth: '250px'}}>
+            <span>Schema: {schema_name}</span>
+            <br/>
+            { 
+              node.data.type === 'table'?
+              <>
+                {
+                  isView ?
+                  <span>View: {node.data.data.name}</span> :
+                  <span>Table: {node.data.data.name}</span>
+                }
+              </>
+              :
+              null
+            }
+          </Tooltip>
+          <span style={isView ? {color: 'brown'} : {}}>
+            {label}
+          </span>
         </span>
       )
     }
@@ -173,6 +181,42 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         }
       },
       {
+        label: 'View DDL',
+        icon: 'pi pi-book',
+        command: () => {
+          let keys = Object.keys(selectedKeys.get())
+          if(keys.length !== 1) return toastError("Must choose only one object")
+          let key = keys[0]
+          if(key.split('.').length !== 2) {return}
+          let schemaTable = {
+            schema: key.split('.')[0],
+            name: key.split('.')[1],
+            isView: false,
+          } as Table
+
+          let schemaNodes = connection.get().schemaNodes()
+
+          for(let schemaNode of schemaNodes) {
+            for(let tableNode of schemaNode.children) {
+              if(tableNode.key === key) {
+                schemaTable = tableNode.data.data as Table
+              }
+            }
+          }
+
+          let data = {
+            metadata: schemaTable.isView ? 'ddl_view': 'ddl_table',
+            data: {
+              schema: schemaTable.schema,
+              table: schemaTable.name,
+            },
+          }
+          let sql = makeYAML(data) + ';'
+          let tab = createTab(key, sql)
+          submitSQL(tab, sql)
+        }
+      },
+      {
         label: 'Analyze Table',
         icon: 'pi pi-chart-bar',
         command: () => {
@@ -182,31 +226,31 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           if(schema_table.split('.').length !== 2) {return}
 
           let data = {
-            name: 'field_stat',
+            analysis: 'field_stat',
             data: {
               schema: schema_table.split('.')[0],
               table: schema_table.split('.')[1],
               fields: [],
             },
           }
-          let sql = `/* @${JSON.stringify(data)} */ ;`
+          let sql = makeYAML(data) + ';'
           let tab = createTab(schema_table, sql)
           submitSQL(tab, sql)
         }
       },
-      {
-        label: 'Toggle',
-        icon: 'pi pi-cog',
-        command: () => {
-          let _expandedKeys: ObjectAny = { ...expandedKeys };
-          if (_expandedKeys[selectedNodeKey])
-            delete _expandedKeys[selectedNodeKey];
-          else
-            _expandedKeys[selectedNodeKey] = true;
+      // {
+      //   label: 'Toggle',
+      //   icon: 'pi pi-cog',
+      //   command: () => {
+      //     let _expandedKeys: ObjectAny = { ...expandedKeys };
+      //     if (_expandedKeys[selectedNodeKey])
+      //       delete _expandedKeys[selectedNodeKey];
+      //     else
+      //       _expandedKeys[selectedNodeKey] = true;
 
-            expandedKeys.set(_expandedKeys);
-        }
-      }
+      //       expandedKeys.set(_expandedKeys);
+      //   }
+      // },
     ];
 
     return <>

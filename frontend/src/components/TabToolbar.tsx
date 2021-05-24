@@ -13,7 +13,6 @@ import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
 
-
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
 )

@@ -93,7 +93,7 @@ const settings = {
 export const TabTable: React.FC<Props> = (props) => {
   const resultHeight = document.getElementById("result-panel")?.parentElement?.clientHeight
   const resultWidth = document.getElementById("result-panel")?.parentElement?.clientWidth
-  const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-38
+  const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-78
   const tab = props.tab
   const hot = React.createRef<any>()
 
@@ -201,6 +201,21 @@ export const TabTable: React.FC<Props> = (props) => {
     output = <InputTextarea
       value={err}
       style={{height: tableHeight, width: resultWidth, color:'red', fontSize:'16px'}}
+      readOnly
+    />
+  } else if(props?.tab?.query.text.get().includes('ddl_view') || props?.tab?.query.text.get().includes('ddl_table')) {
+    let ddl = ''
+    try {
+      ddl = props.tab.query.get().rows[0][0] 
+    } catch (error) {
+    }
+    output = <InputTextarea
+      value={ddl}
+      style={{
+        height: tableHeight, width: resultWidth, 
+        color:'blue', fontSize:'12px',
+        fontFamily: 'monospace',
+      }}
       readOnly
     />
   }
