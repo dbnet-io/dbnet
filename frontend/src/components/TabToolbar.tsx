@@ -12,6 +12,7 @@ import { apiPost } from "../store/api";
 import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
+import { Ace, Range } from "ace-builds";
 
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
@@ -37,15 +38,16 @@ export const cancelSQL = async (tab: State<Tab>) => {
 }
 
 
-export const submitSQL = async (tab: State<Tab>, sql?: string) => {
+export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if(!sql) sql = tab.editor.text.get() // get current block
 
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
 
   // create child tab
-  let childTab = createTabChild(tab.get())
+  if(!childTab) childTab = createTabChild(tab.get())
   tab.selectedChild.set(childTab.id)
+
 
   let data1 = {
     id: new_ts_id('query.'),
@@ -64,6 +66,10 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   let tab_ = getTabState(data1.tab)
   let parentTab = getTabState(`${tab_.parent.get()}`)
 
+  // mark text
+  let points = parentTab.editor.get().getBlockPoints(sql)
+  if(points) parentTab.editor.highlight.set(points)
+
   tab_.query.time.set(new Date().getTime())
   tab_.lastTableSelection.set([0, 0, 0, 0])
   tab_.query.rows.set([])
@@ -73,6 +79,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   tab_.query.duration.set(0)
   tab_.query.id.set(data1.id)
   tab_.loading.set(true)
+  tab_.filter.set('')
   parentTab.loading.set(true)
 
   try {
@@ -92,10 +99,11 @@ export const submitSQL = async (tab: State<Tab>, sql?: string) => {
   } catch (error) {
     console.log(error)
     toastError(error)
-    tab_.query.err.set(`${error}`)
+    tab_.query?.err.set(`${error}`)
   }
   tab_.loading.set(false)
   parentTab.loading.set(false)
+  parentTab.editor.highlight.set([0,0,0,0])
   globalStore.saveSession()
 
   
@@ -141,9 +149,10 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
               tooltipOptions={{ position: 'top' }}
               className="p-button-sm p-button-primary"
               onClick={(e) => {
-                let sql = props.aceEditor.current.editor.getSelectedText()
-                if(sql === '') { sql = tab.editor.get().getBlock() }
-                if(sql.trim() !== '') { submitSQL(tab, sql) }
+                let sql = (props.aceEditor.current.editor as Ace.Editor).getSelectedText()
+                let parentTab = getTabState(tab.parent.get() || '')
+                if(sql === '') { sql = parentTab.editor.get().getBlock() }
+                if(sql.trim() !== '') { submitSQL(parentTab, sql) }
               }} />
           }
 
@@ -155,8 +164,9 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             className="p-button-sm p-button-info"
             onClick={(e) => {
               let childTab = getTabState(tab.id.get())
-              submitSQL(tab, childTab.query.text.get())
-            }} 
+              let parentTab = getTabState(tab.parent.get() || '')
+              submitSQL(parentTab, childTab.query.text.get(), childTab.get())
+            }}
           />
           <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{width: '450px'}} className="overlaypanel-demo">
               <InputTextarea

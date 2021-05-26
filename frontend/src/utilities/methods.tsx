@@ -116,7 +116,7 @@ export const do_filter = _.debounce(args => {
   args.dt.loading = false
 }, 500)
 
-export const get_duration = function(secs : number) {
+export const get_duration = function(secs : number, simple=false) {
   let neg = ''
   if(secs == null || isNaN(secs)) return '-'
 
@@ -127,7 +127,7 @@ export const get_duration = function(secs : number) {
   if (secs < 3600) {
     let mins = Math.floor(secs/60)
     secs = secs - mins*60
-    return `${neg}${mins}m${secs}s`
+    return simple ? `${neg}${mins}m` : `${neg}${mins}m${secs}s`
   }
 
   if (secs < 3600*24) {
@@ -135,7 +135,7 @@ export const get_duration = function(secs : number) {
     secs = secs - hours*3600
     let mins = Math.floor(secs/60)
     secs = secs - mins*60
-    return `${neg}${hours}h${mins}m`
+    return simple ? `${neg}${hours}h` : `${neg}${hours}h${mins}m`
   }
 
   let days = Math.floor(secs/3600/24)
@@ -144,7 +144,7 @@ export const get_duration = function(secs : number) {
   secs = secs - hours*3600
   let mins = Math.floor(secs/60)
   secs = secs - mins*60
-  return `${neg}${days}d${hours}h`
+  return simple ? `${neg}${days}d` : `${neg}${days}d${hours}h`
 }
 
 export function jsonClone<T = any>(val: any) { 
@@ -159,21 +159,21 @@ export const clearTooltips = function() {
   for(var e of elements as any) e.parentNode.removeChild(e);
 }
 
-export const calc_duration = function(date1: Date, date2: Date) {
+export const calc_duration = function(date1: Date, date2: Date, simple=false) {
   if(!date1) return '?'
   if(!date2) date2 = new Date()
   try {
     let secs = Math.floor((date2.getTime() - date1.getTime())/1000)
-    return get_duration(secs)
+    return get_duration(secs, simple)
   } catch(error) {
     console.error(error)
     return '-'
   }
 }
 
-export const relative_duration = function(date: Date|undefined, past_allowed=true) {
+export const relative_duration = function(date: Date|undefined, past_allowed=true, simple=false) {
   if(!date) return ''
-  let dur = calc_duration(date, new Date())
+  let dur = calc_duration(date, new Date(), simple)
   if(dur === '-') return dur
 
   if(dur.startsWith('n')) {

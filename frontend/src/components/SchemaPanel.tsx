@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Tree } from 'primereact/tree';
-import { data_req_to_records, jsonClone, toastError } from "../utilities/methods";
+import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
 import { accessStore, globalStore, Schema, setSchemas, Table, useHS, useStoreConnection, useStoreSchemaPanel } from "../store/state";
 import { MsgType } from "../store/websocket";
@@ -15,12 +15,12 @@ interface Props { }
 
 const store = accessStore()
 
-export const GetSchemata = async () => {
+export const GetSchemata = async (connName: string, refresh=false) => {
 
 
   globalStore.schemaPanel.loading.set(true)
   try {
-    let data = await apiGet(MsgType.GetSchemata, { conn: store.connection.name.get() })
+    let data = await apiGet(MsgType.GetSchemata, { conn: connName, procedure: refresh ? 'refresh' : null })
     if (data.error) throw new Error(data.error)
     globalStore.schemaPanel.loading.set(false)
     let rows = data_req_to_records(data)
@@ -65,10 +65,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       if (data2.error) throw new Error(data2.error)
       let rows = data_req_to_records(data2)
       let schemas_: Schema[] = rows.map(r => { return { name: r.schema_name.toLowerCase(), tables: [] } })
-      for (let shema of schemas_) {
-        let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(shema.name.toLowerCase())
+      for (let i = 0; i < schemas_.length; i++) {
+        let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(schemas_[i].name.toLowerCase())
         if (index > -1) {
-          schemas_[index].tables = jsonClone(schemas.get()[index].tables || [])
+          schemas_[i].tables = jsonClone(schemas.get()[index].tables || [])
+        } else {
+          schemas_[i].tables = []
         }
       }
       setSchemas(connection, schemas_)
@@ -78,6 +80,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     loading.set(false)
   }
 
+  const nodeKeyToTable = (key: string) : Table =>  {
+    return {
+      schema: key.split('.')[0],
+      name: key.split('.')[1],
+      isView: false,
+    } as Table
+  }
 
   const GetTables = async (connName: string, schemaName: string) => {
     loading.set(true)
@@ -186,19 +195,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         command: () => {
           let keys = Object.keys(selectedKeys.get())
           if(keys.length !== 1) return toastError("Must choose only one object")
-          let key = keys[0]
-          if(key.split('.').length !== 2) {return}
-          let schemaTable = {
-            schema: key.split('.')[0],
-            name: key.split('.')[1],
-            isView: false,
-          } as Table
+          if(keys[0].split('.').length !== 2) {return}
+          let schemaTable = nodeKeyToTable(keys[0])
 
           let schemaNodes = connection.get().schemaNodes()
 
           for(let schemaNode of schemaNodes) {
             for(let tableNode of schemaNode.children) {
-              if(tableNode.key === key) {
+              if(tableNode.key === keys[0]) {
                 schemaTable = tableNode.data.data as Table
               }
             }
@@ -212,7 +216,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             },
           }
           let sql = makeYAML(data) + ';'
-          let tab = createTab(key, sql)
+          let tab = createTab(schemaTable.name, sql)
           submitSQL(tab, sql)
         }
       },
@@ -222,20 +226,46 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         command: () => {
           let keys = Object.keys(selectedKeys.get())
           if(keys.length !== 1) return toastError("Must choose only one object")
-          let schema_table = keys[0]
-          if(schema_table.split('.').length !== 2) {return}
+          if(keys[0].split('.').length !== 2) {return}
+          let schemaTable = nodeKeyToTable(keys[0])
 
           let data = {
             analysis: 'field_stat',
             data: {
-              schema: schema_table.split('.')[0],
-              table: schema_table.split('.')[1],
+              schema: schemaTable.schema,
+              table: schemaTable.name,
               fields: [],
             },
           }
           let sql = makeYAML(data) + ';'
-          let tab = createTab(schema_table, sql)
+          let tab = createTab(schemaTable.name, sql)
           submitSQL(tab, sql)
+        }
+      },
+      {
+        label: 'Copy DROP Command',
+        icon: 'pi pi-times',
+        command: () => {
+          let keys = Object.keys(selectedKeys.get())
+          let tables : Table[] = []
+          for(let key of keys) {
+            if(key.split('.').length !== 2) { continue }
+            tables.push(nodeKeyToTable(key))
+          }
+
+          let sql = tables.map(t => `DROP TABLE ${t.schema}.${t.name}`).join(';\n')
+          copyToClipboard(sql)
+        }
+      },
+      {
+         separator:true
+      },
+      {
+        label: 'Refresh All',
+        icon: 'pi pi-refresh',
+        style: {color: 'orange'},
+        command: () => {
+          GetSchemata(connection.name.get(), true)
         }
       },
       // {
@@ -283,11 +313,15 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             }
           }
         }}
-        onSelectionChange={e => {
-          selectedKeys.set(e.value)
-        }}
+        onSelectionChange={e => selectedKeys.set(e.value)}
         contextMenuSelectionKey={selectedNodeKey}
-        onContextMenuSelectionChange={event => setSelectedNodeKey(event.value)}
+        onContextMenuSelectionChange={event => {
+          let contextKey = `${event.value}`
+          let keys = Object.keys(selectedKeys.get())
+          if(keys.length > 1 && keys.includes(contextKey)) return
+          selectedKeys.set({[contextKey]: true})
+          setSelectedNodeKey(contextKey)
+        }}
         onContextMenu={event => cm.current?.show(event.originalEvent as any)}
         nodeTemplate={nodeTemplate}
         contentStyle={{
@@ -309,6 +343,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             style={{color: 'orange', fontSize: '0.9em', paddingLeft: '5px'}}
             className="pi pi-refresh"
             onClick={() => GetSchemas(connection.name.get())}
+            onDoubleClick={() => GetSchemata(connection.name.get())}
           />
         </a>
       </h4>

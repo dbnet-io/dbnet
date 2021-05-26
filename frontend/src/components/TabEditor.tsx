@@ -8,6 +8,9 @@ import "ace-builds/src-noconflict/mode-pgsql";
 import "ace-builds/src-noconflict/theme-textmate";
 import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
+import ace from "react-ace";
+import { sum } from "lodash";
+import { getTabState } from "./TabNames";
 
 
 export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
@@ -26,16 +29,32 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
     }
   }, []) // eslint-disable-line
 
+  React.useEffect(() => {
+    let editor = props.aceEditor.current.editor as Ace.Editor
+    let points = tab.editor.highlight.get()
+    if(sum(points) > 0) {
+      let rng = new Range(points[0], points[1], points[2], points[3])
+      editor.session.addMarker(rng, "editor-highlight", 'text')
+    } else {
+      for(let marker of Object.values(editor.session.getMarkers())) {
+        if(marker.clazz === "tab-names") editor.session.removeMarker(marker.id)
+      }
+    }
+  }, [tab.editor.highlight.get()]) // eslint-disable-line
+
   const getDefinition = () => {
-    let word = props.aceEditor.current.editor.getSelectedText()
+    let editor = props.aceEditor.current.editor as Ace.Editor
+    let word = editor.getSelectedText()
     if (word === '') { word = tab.editor.get().getWord() }
     if (word.trim() !== '') { loadMetaTable(word) }
   }
 
   const executeText = () => {
-    let sql = props.aceEditor.current.editor.getSelectedText()
-    if (sql === '') { sql = tab.editor.get().getBlock() }
-    if (sql.trim() !== '') { submitSQL(props.tab, sql) }
+    let editor = props.aceEditor.current.editor as Ace.Editor
+    let sql = editor.getSelectedText()
+    let parentTab = getTabState(tab.id.get() || '')
+    if (sql === '') { sql = parentTab.editor.get().getBlock() }
+    if (sql.trim() !== '') { submitSQL(parentTab, sql) }
   }
 
 

@@ -78,7 +78,8 @@ export const TopMenuBar: React.FC<Props> = (props) => {
             return {
               label: c,
               command: () => { 
-                globalStore.loadSession(c).then(() => GetSchemata())
+                globalStore.loadSession(c).then(() => GetSchemata(c))
+                localStorage.setItem("_connection_name", c)
               },
             }
           }),
@@ -125,7 +126,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       let all : ObjectString = {}
       try {
         for (let schema of schemas.get()) {
-          if (!schema.tables) { continue }
+          if (!schema.tables || !Array.isArray(schema.tables)) { continue }
           for (let table of schema.tables) {
             all[`${table.schema}.${table.name}`.toLowerCase()] = ''
           }

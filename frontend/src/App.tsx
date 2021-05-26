@@ -49,7 +49,7 @@ export const App = () => {
     if(last_conn) store.connection.name.set(last_conn)
 
     // init load session
-    globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata())
+    globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata(store.connection.name.get()))
   }, [])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////

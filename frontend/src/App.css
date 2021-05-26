@@ -161,3 +161,9 @@ font-size: 9px !important;
 #sub-tabs > ul > li > span > a > i.pi.pi-spinner {
   color: blue;
 }
+
+.editor-highlight {
+  position:absolute;
+  background:rgba(100,200,100,0.5);
+  z-index:20
+}

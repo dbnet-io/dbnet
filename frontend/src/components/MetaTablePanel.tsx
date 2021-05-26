@@ -295,7 +295,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               analysis: 'field_stat',
               data: {
                 schema: objectPanel.table.get().schema(),
-                table: objectPanel.table.name.get(),
+                table: objectPanel.table.get().table(),
                 fields: selected.get().map(v => v.column_name),
               },
             }
@@ -315,7 +315,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               analysis: 'field_stat_deep',
               data: {
                 schema: objectPanel.table.get().schema(),
-                table: objectPanel.table.name.get(),
+                table: objectPanel.table.get().table(),
                 fields: selected.get().map(v => v.column_name),
               },
             }
@@ -433,7 +433,7 @@ const FormCountOverTime = () => {
       analysis: 'distro_field_date_wide',
       data: {
         schema: objectPanel.table.get().schema(),
-        table: objectPanel.table.name.get(),
+        table: objectPanel.table.get().table(),
         // fields: selected.get().map(v => v.column_name),
         // date_field: date_field.get()
       },

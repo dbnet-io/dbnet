@@ -48,7 +48,7 @@ type Request struct {
 
 func init() {
 
-	Connections, _ = LoadProfile(HomeDir + "/profile.yaml")
+	loadConnections()
 
 	// for key, val := range g.KVArrToMap(os.Environ()...) {
 	// 	if !strings.Contains(val, ":/") {
@@ -60,6 +60,11 @@ func init() {
 	// 	}
 	// 	Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
 	// }
+}
+
+func loadConnections() (err error) {
+	Connections, err = LoadProfile(HomeDir + "/profile.yaml")
+	return err
 }
 
 // LoadProfile loads the profile from the `profile.yaml` file in the home dir

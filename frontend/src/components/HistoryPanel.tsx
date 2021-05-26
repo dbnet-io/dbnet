@@ -3,7 +3,7 @@ import { ListBox } from 'primereact/listbox';
 import { accessStore, getParentTabName, Query, QueryStatus, useHS, useVariable } from "../store/state";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
-import { copyToClipboard, new_ts_id, relative_duration, toastError } from "../utilities/methods";
+import { copyToClipboard, get_duration, new_ts_id, relative_duration, toastError } from "../utilities/methods";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import _ from "lodash";
@@ -21,12 +21,15 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const options = useVariable<Query[]>([])
   const loading = useHS(false)
   const filter = useHS(store.historyPanel.filter)
+  const connnection = store.connection
+  const tabId = store.queryPanel.selectedTabId
+  const tabLoading = useHS(getTabState(tabId.get()).loading)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
     if(filter.get() === '') getLatest()
     else debounceSearch(filter.get())
-  }, [filter.get()])// eslint-disable-line
+  }, [filter.get(), tabLoading.get(), connnection.name.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const getLatest = async () => {
@@ -84,11 +87,11 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <Tooltip target={`#${id}`} style={{fontSize: '12px', minWidth: '250px'}}>
           <span><b>Time:</b> {formatTime(query.time)}</span><br/>
           <span><b>Status:</b> {query.status}</span><br/>
-          <span><b>Duration:</b> {query.duration}</span><br/>
+          <span><b>Duration:</b> {get_duration(Math.round(query.duration*100)/100)}</span><br/>
           {
             query.err ? 
             <>
-              <span><b>Error:</b> {query.err}</span><br/>
+              <span><b>Error:</b> {shorten(query.err, 200)}</span><br/>
             </>
             :
             null
@@ -103,7 +106,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           onDoubleClick={(e) => {}}
         >
           {/* {formatTime(query.time)} | {shorten(query.text, 50)} */}
-          {formatTime(query.time)} <b>{relative_duration(new Date(query.time))}</b>
+          {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
           <span 
             style={{
               paddingLeft:'10px',
@@ -117,7 +120,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
 
   return (
     <div>
-      <div className="p-col-12" style={{paddingBottom:'10px'}}>
+      <div className="p-col-12" style={{paddingTop: '7px', paddingBottom:'10px'}}>
         <div className="p-inputgroup">
           <InputText
             id="history-filter"
@@ -146,15 +149,15 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         style={{width: '100%'}}
         listStyle={{
           minHeight:'150px', 
-          maxHeight: `${window.innerHeight - 400}px`,
+          maxHeight: `${(window.innerHeight - 175)/3*2}px`,
           fontSize: '12px',
         }}
       />
-      <div>
+      <div style={{paddingTop: '7px'}}>
         <InputTextarea
           style={{
             fontSize:'11px', fontFamily:'monospace',
-            maxHeight: `${window.innerHeight - 510}px`,
+            maxHeight: `${(window.innerHeight - 175)/3*1}px`,
           }}
           value={selectedQuery.get().text} 
           autoResize 
@@ -162,7 +165,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <span
           style={{
             position: 'absolute',
-            marginLeft: '-70px',
+            marginLeft: '-80px',
           }}
         >
           <Button
@@ -176,7 +179,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <span
           style={{
             position: 'absolute',
-            marginLeft: '-40px',
+            marginLeft: '-50px',
           }}
         >
           <Button

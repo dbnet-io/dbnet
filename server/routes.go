@@ -19,6 +19,8 @@ func GetConnections(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get connection request")
 	}
 
+	loadConnections()
+
 	conns := []string{}
 	for k := range Connections {
 		conns = append(conns, k)
@@ -47,7 +49,7 @@ func GetSchemata(c echo.Context) (err error) {
 		}
 
 		err := load()
-		if len(schemaTables) == 0 {
+		if len(schemaTables) == 0 || req.Procedure == "refresh" {
 			err = LoadSchemata(req.Conn)
 			if err != nil {
 				return iop.Dataset{}, g.Error(err, "could not get schemata")

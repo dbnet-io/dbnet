@@ -17,16 +17,30 @@ export const history = createBrowserHistory()
 export class Editor {
   text: string
   selection: number[] // startRow, startCol, endRow, endCol
+  highlight: number[] // startRow, startCol, endRow, endCol
   undoManager: any
 
   constructor(data: ObjectAny = {}) {
     this.text = data.text || ''
     this.selection = data.selection || [0,0,0,0]
+    this.highlight = data.highlight || [0,0,0,0]
     this.undoManager = data.undoManager || {}
   }
 
   lines = () => {
     return this.text.split('\n')
+  }
+
+  getBlockPoints = (block: string) => {
+    let points = undefined
+    let pos = this.text.indexOf(block)
+    if(pos === -1) return points 
+
+    let upperBlock = this.text.slice(0, pos)
+    let upperBlockLines = upperBlock.split('\n')
+    let blockLines = block.split('\n')
+    points = [upperBlockLines.length-1, 0,upperBlockLines.length-1 + blockLines.length,0]
+    return points
   }
 
   getBlock = () => {
@@ -124,6 +138,7 @@ export class Tab {
   limit: number
   parent: string | undefined
   selectedChild: string
+  hidden: boolean
   
   rowView: RowView
   showSql: boolean
@@ -139,6 +154,7 @@ export class Tab {
     this.filter = data.filter || ''
     this.limit = data.filter || 100
     this.loading = data.loading || false
+    this.hidden = data.hidden || false
     
     this.rowView = data.rowView || {show: false, rows:[], filter: ''}
     this.showSql = data.showSql || true
@@ -326,33 +342,41 @@ export class Connection {
 
   schemaNodes = () => {
     let newNodes : TreeNode[] = []
-    for (let i = 0; i < this.schemas.length; i++) {
-      const schema = this.schemas[i]
-
-      let children : TreeNode[] = []
-      if(schema.tables) {
-        for(let table of schema.tables) {
-          children.push({
-            key: `${schema.name}.${table.name}`,
-            label: table.name,
-            data: {
-              type: 'table',
-              data: table,
-            },
-            children: [],
-          })
+    let schema : Schema = new Schema()
+    try {
+      for (let i = 0; i < this.schemas.length; i++) {
+        schema = this.schemas[i]
+  
+        let children : TreeNode[] = []
+        if(schema?.tables !== undefined) {
+          if(!Array.isArray(schema.tables)) schema.tables = []
+          for(let table of schema.tables) {
+            children.push({
+              key: `${schema.name}.${table.name}`,
+              label: table.name,
+              data: {
+                type: 'table',
+                data: table,
+              },
+              children: [],
+            })
+          }
         }
+  
+        newNodes.push({
+          key: schema.name,
+          label: schema.name,
+          data: {
+            type: 'schema',
+            data: schema,
+          },
+          children: children,
+        })
       }
-
-      newNodes.push({
-        key: schema.name,
-        label: schema.name,
-        data: {
-          type: 'schema',
-          data: schema,
-        },
-        children: children,
-      })
+    } catch (error) {
+      console.log(error)
+      console.log(schema)
+      toastError('Error loading schemas', `${error}`)
     }
     return newNodes
   }
@@ -545,7 +569,7 @@ class QueryPanelState {
     let tabs : Tab[] = []
     let parentTabs : ObjectAny = {}
     for(let tab of this.tabs) { 
-      if(tab.parent) continue
+      if(tab.parent || tab.hidden) continue
       parentTabs[tab.id] = 0 
     }
 
@@ -554,6 +578,7 @@ class QueryPanelState {
       tab_.query.rows = []
       // clean up rogue child tabs
       if(tab_.parent && !(tab_.parent in parentTabs)) continue
+      if(tab_.hidden) continue
       tabs.push(tab_)
     }
 
