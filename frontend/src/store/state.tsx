@@ -266,7 +266,7 @@ export class Query {
     this.status = data.status || ''
     this.headers = data.headers || []
     this.rows = data.rows || []
-    this.pulled = false
+    this.pulled = data.pulled || false
   }
 
   getRowData = (n: number) => {
@@ -522,9 +522,11 @@ class HistoryPanelState {
 class QueryPanelState {
   tabs: Tab[]
   selectedTabId: string
+  availableCaches: string[] // query result caches available from backend
 
   constructor(data: ObjectAny = {}) {
     this.tabs = data.tabs || []
+    this.availableCaches = []
     if(this.tabs.length === 0 ) {
       let t1 = new Tab({name: 'Q1'})
       let c1 = new Tab({name: 'C1', parent: t1.id})
@@ -535,6 +537,7 @@ class QueryPanelState {
       let child_tabs = []
       for (let i = 0; i < this.tabs.length; i++) {
         const tab = this.tabs[i];
+        if(this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
         if(tab.parent) continue
         if(!tab.selectedChild || this.getTabIndexByID(tab.selectedChild)===-1) {
           let child = new Tab({parent: tab.id})
@@ -544,8 +547,11 @@ class QueryPanelState {
       }
       this.tabs = this.tabs.concat(child_tabs)
     }
-
     this.selectedTabId = data.selectedTabId || this.tabs[0].id
+  }
+
+  hasCache = (query: Query) => {
+    return query.pulled && query.headers.length > 0 && query.rows.length === 0
   }
 
   getTabIndexByID = (id: string) => {
@@ -637,8 +643,9 @@ class GlobalStore {
       conn: connName,
     }
     try {
-      let data = await apiGet(MsgType.LoadSession, payload)
-      if(data.error) throw new Error(data.error)
+      let resp = await apiGet(MsgType.LoadSession, payload)
+      if(resp.error) throw new Error(resp.error)
+      let data = resp.data
       let connection = new Connection(data.connection)
       this.connection.name.set(connection.name)
       this.connection.type.set(connection.type)

@@ -16,5 +16,4 @@
 ## Electron
 - https://github.com/electron/electron-packager
 - https://www.electron.build/
-
-
+- `nativefier -n dbnet --counter 'http://localhost:3000/'`

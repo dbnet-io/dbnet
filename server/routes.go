@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"strings"
@@ -272,8 +273,22 @@ func GetHistory(c echo.Context) (err error) {
 	return c.JSON(200, g.M("history", entries))
 }
 
+func GetCachedResult(c echo.Context) (err error) {
+	q := NewQuery(context.Background())
+	if err = c.Bind(q); err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid get result request")
+	}
+	query := &store.Query{ID: q.ID}
+	err = store.Db.First(query).Error
+	if err != nil {
+		return g.ErrJSON(http.StatusNotFound, err, "could not find query %s", q.ID)
+	}
+
+	return c.JSON(200, g.ToMap(query))
+}
+
 func GetSQLRows(c echo.Context) (err error) {
-	q := new(store.Query)
+	q := NewQuery(context.Background())
 	if err = c.Bind(q); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
 	}
@@ -288,18 +303,10 @@ func GetSQLRows(c echo.Context) (err error) {
 	query, ok := conn.Queries[q.ID]
 	mux.Unlock()
 
-	resubmit := func() error {
-		result, err := doSubmitSQL(query)
-		if err != nil {
-			return g.ErrJSON(http.StatusInternalServerError, err, "could not query conn %s", query.Conn)
-		}
-		return c.JSON(200, result)
-	}
-
 	if !ok {
 		query = q
 		g.Debug("could not find query %s. Resubmitting...", query.ID)
-		return resubmit()
+		return PostSubmitQuery(c)
 	} else if !query.Pulled() {
 		if query.Status == store.QueryStatusSubmitted {
 			if q.Wait {
@@ -316,10 +323,10 @@ func GetSQLRows(c echo.Context) (err error) {
 		err = store.Db.Where(`rows is not null`).First(&query).Error
 		if err != nil {
 			g.Debug("could not pull rows for query %s. Resubmitting...", query.ID)
-			return resubmit()
+			return PostSubmitQuery(c)
 		}
 	} else {
-		data, err := FetchRows(query)
+		data, err := query.FetchRows()
 		if err != nil {
 			return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
 		}
@@ -334,7 +341,7 @@ func GetSQLRows(c echo.Context) (err error) {
 }
 
 func PostCancelQuery(c echo.Context) (err error) {
-	query := new(store.Query)
+	query := NewQuery(context.Background())
 	if err = c.Bind(query); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid cancel query request")
 	}
@@ -371,7 +378,7 @@ func PostCancelQuery(c echo.Context) (err error) {
 
 func PostSubmitQuery(c echo.Context) (err error) {
 
-	query := new(store.Query)
+	query := NewQuery(context.Background())
 	if err = c.Bind(query); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
 	}
@@ -380,11 +387,48 @@ func PostSubmitQuery(c echo.Context) (err error) {
 		query.Limit = 100
 	}
 
-	result, err := doSubmitSQL(query)
-	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not query conn %s", query.Conn)
+	if c.Request().Header.Get("DbNet-Continue") != "" {
+		// pick up where left off
+		// get connection
+		conn, err := GetConn(query.Conn)
+		if err != nil {
+			return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", query.Conn)
+		}
+
+		mux.Lock()
+		var ok bool
+		qId := query.ID
+		query, ok = conn.Queries[query.ID]
+		mux.Unlock()
+		if !ok {
+			return g.ErrJSON(http.StatusInternalServerError, g.Error("could not find query %s to continue", qId))
+		}
+	} else {
+		// submit
+		err = doSubmitSQL(query)
+		if err != nil {
+			return g.ErrJSON(http.StatusInternalServerError, err, "could not query conn %s", query.Conn)
+		}
 	}
-	return c.JSON(200, result)
+
+	ticker := time.NewTicker(90 * time.Second)
+	defer ticker.Stop()
+
+	result := g.ToMap(query)
+	status := 200
+	if query.Wait {
+		select {
+		case <-query.Done:
+			result, err = query.ProcessResult()
+			if err != nil {
+				return g.ErrJSON(http.StatusInternalServerError, err, "could not process query")
+			}
+		case <-ticker.C:
+			status = 202 // when status is 202, follow request with header "DbNet-Continue"
+		}
+	}
+
+	return c.JSON(status, result)
 }
 
 // GetLoadSession loads session from store

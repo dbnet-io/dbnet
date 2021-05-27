@@ -29,8 +29,8 @@ export const cancelSQL = async (tab: State<Tab>) => {
   }
 
   try {
-    let data2 = await apiPost(MsgType.CancelSQL, data1)
-    if(data2.error) throw new Error(data2.error)
+    let resp = await apiPost(MsgType.CancelSQL, data1)
+    if (resp.error) throw new Error(resp.error)
   } catch (error) {
     console.log(error)
     toastError(error)
@@ -39,13 +39,13 @@ export const cancelSQL = async (tab: State<Tab>) => {
 
 
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
-  if(!sql) sql = tab.editor.text.get() // get current block
+  if (!sql) sql = tab.editor.text.get() // get current block
 
   const connection = accessStore().connection
   const queryPanel = accessStore().queryPanel
 
   // create child tab
-  if(!childTab) childTab = createTabChild(tab.get())
+  if (!childTab) childTab = createTabChild(tab.get())
   tab.selectedChild.set(childTab.id)
 
 
@@ -59,7 +59,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     wait: true,
   }
 
-  if(data1.text.endsWith(';')) {
+  if (data1.text.endsWith(';')) {
     data1.text = data1.text.slice(0, -1).trim()
   }
 
@@ -68,7 +68,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
 
   // mark text
   let points = parentTab.editor.get().getBlockPoints(sql)
-  if(points) parentTab.editor.highlight.set(points)
+  if (points) parentTab.editor.highlight.set(points)
 
   tab_.query.time.set(new Date().getTime())
   tab_.lastTableSelection.set([0, 0, 0, 0])
@@ -83,19 +83,28 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   parentTab.loading.set(true)
 
   try {
-    let data2 = await apiPost(MsgType.SubmitSQL, data1)
-    if(data2.error) throw new Error(data2.error)
-    let query = new Query(data2)
-    tab_.set(
-      t => {
-        t.query = query
-        t.query.pulled = true
-        t.query.duration = Math.round(query.duration*100)/100
-        t.rowView.rows = query.getRowData(0)
-        t.loading = false
-        return t
+    let done = false
+    let headers = {}
+    while (!done) {
+      let resp = await apiPost(MsgType.SubmitSQL, data1, headers)
+      if (resp.error) throw new Error(resp.error)
+      if (resp.status === 202) {
+        headers = {"DbNet-Continue": "true"}
+        continue
       }
-    )
+      done = true
+      let query = new Query(resp.data)
+      tab_.set(
+        t => {
+          t.query = query
+          t.query.pulled = true
+          t.query.duration = Math.round(query.duration * 100) / 100
+          t.rowView.rows = query.getRowData(0)
+          t.loading = false
+          return t
+        }
+      )
+    }
   } catch (error) {
     console.log(error)
     toastError(error)
@@ -103,19 +112,19 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
   tab_.loading.set(false)
   parentTab.loading.set(false)
-  parentTab.editor.highlight.set([0,0,0,0])
+  parentTab.editor.highlight.set([0, 0, 0, 0])
   globalStore.saveSession()
 
-  
+
   // to refresh
   if (queryPanel.get().currTab().id === parentTab.id.get()) {
     queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get()))
   } else {
     // notify if out of focus
-    if(tab_.query.err.get()) toastError(`Query "${parentTab.name.get()}" failed`)
+    if (tab_.query.err.get()) toastError(`Query "${parentTab.name.get()}" failed`)
     else toastInfo(`Query "${parentTab.name.get()}" completed`)
   }
-  
+
   if (!document.hasFocus()) {
     showNotification(`Query "${parentTab.name.get()}" ${tab_.query.err.get() ? 'errored' : 'completed'}!`)
   }
@@ -125,7 +134,8 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
   const tab = props.tab;
   const filter = useHS(tab.filter);
   const limit = useHS(tab.limit);
-  const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()):'')
+  const cancelling = useHS(false);
+  const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   const sqlOp = React.useRef<any>(null);
 
   return (
@@ -134,26 +144,29 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
         <div className="work-buttons p-inputgroup" style={{ fontFamily: 'monospace' }}>
           {
             tab.loading.get() ?
-            <Button
-              icon="pi pi-times"
-              tooltip="Kill query"
-              tooltipOptions={{ position: 'top' }}
-              className="p-button-sm p-button-danger"
-              onClick={(e) => {
-                cancelSQL(tab)
-              }} />
-            :
-            <Button
-              icon="pi pi-play"
-              tooltip="Execute query"
-              tooltipOptions={{ position: 'top' }}
-              className="p-button-sm p-button-primary"
-              onClick={(e) => {
-                let sql = (props.aceEditor.current.editor as Ace.Editor).getSelectedText()
-                let parentTab = getTabState(tab.parent.get() || '')
-                if(sql === '') { sql = parentTab.editor.get().getBlock() }
-                if(sql.trim() !== '') { submitSQL(parentTab, sql) }
-              }} />
+              <Button
+                icon="pi pi-times"
+                tooltip="Kill query"
+                tooltipOptions={{ position: 'top' }}
+                className="p-button-sm p-button-danger"
+                loading={cancelling.get()}
+                onClick={async (e) => {
+                  cancelling.set(true)
+                  await cancelSQL(tab)
+                  cancelling.set(false)
+                }} />
+              :
+              <Button
+                icon="pi pi-play"
+                tooltip="Execute query"
+                tooltipOptions={{ position: 'top' }}
+                className="p-button-sm p-button-primary"
+                onClick={(e) => {
+                  let sql = (props.aceEditor.current.editor as Ace.Editor).getSelectedText()
+                  let parentTab = getTabState(tab.parent.get() || '')
+                  if (sql === '') { sql = parentTab.editor.get().getBlock() }
+                  if (sql.trim() !== '') { submitSQL(parentTab, sql) }
+                }} />
           }
 
 
@@ -168,24 +181,24 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
               submitSQL(parentTab, childTab.query.text.get(), childTab.get())
             }}
           />
-          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{width: '450px'}} className="overlaypanel-demo">
-              <InputTextarea
-                style={{width: '100%', fontFamily:'monospace', fontSize: '11px'}}
-                rows={20}
-                value={tab.query.text.get()}
+          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{ width: '450px' }} className="overlaypanel-demo">
+            <InputTextarea
+              style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px' }}
+              rows={20}
+              value={tab.query.text.get()}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                marginLeft: '-50px',
+              }}
+            >
+              <Button
+                icon="pi pi-copy"
+                className="p-button-rounded p-button-text p-button-info"
+                onClick={() => copyToClipboard(tab.query.text.get())}
               />
-              <span
-                style={{
-                  position: 'absolute',
-                  marginLeft: '-50px',
-                }}
-              >
-                <Button
-                  icon="pi pi-copy"
-                  className="p-button-rounded p-button-text p-button-info"
-                  onClick={() => copyToClipboard(tab.query.text.get())}
-                />
-              </span>
+            </span>
           </OverlayPanel>
 
           <Button
@@ -198,9 +211,9 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
 
           <Dropdown
             id='limit-input'
-            value={ limit.get() }
-            options={ [100, 250, 500, 1000, 2500, 5000] }
-            onChange={(e) => limit.set(e.value) }
+            value={limit.get()}
+            options={[100, 250, 500, 1000, 2500, 5000]}
+            onChange={(e) => limit.set(e.value)}
             placeholder="Limit..."
             maxLength={50}
           />
@@ -217,9 +230,9 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltip="Row Viewer"
             className={
               tab.rowView.show.get() ?
-              "p-button-sm p-button-secondary"
-              :
-              "p-button-sm p-button-outlined p-button-secondary"
+                "p-button-sm p-button-secondary"
+                :
+                "p-button-sm p-button-outlined p-button-secondary"
             }
             tooltipOptions={{ position: 'top' }}
             onClick={() => { tab.rowView.show.set(v => !v) }}
@@ -229,13 +242,13 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             label="Text"
             className={
               tab.showText.get() ?
-              "p-button-sm p-button-secondary"
-              :
-              "p-button-sm p-button-outlined p-button-secondary"
+                "p-button-sm p-button-secondary"
+                :
+                "p-button-sm p-button-outlined p-button-secondary"
             }
             tooltip="Show as text"
             tooltipOptions={{ position: 'top' }}
-            onClick={() => {tab.showText.set(v => !v)}}
+            onClick={() => { tab.showText.set(v => !v) }}
           />
 
           <InputText
@@ -244,7 +257,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             placeholder="Filter rows..."
             value={localFilter.get()}
             style={{ fontFamily: 'monospace' }}
-            onKeyDown={(e) => { if(e.key === 'Escape') { localFilter.set(''); filter.set('') } }}
+            onKeyDown={(e) => { if (e.key === 'Escape') { localFilter.set(''); filter.set('') } }}
             onChange={(e) => {
               let newVal = (e.target as HTMLInputElement).value
               localFilter.set(newVal);
@@ -256,7 +269,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             className="p-button-sm p-button-outlined p-button-secondary"
             tooltip="Copy headers"
             tooltipOptions={{ position: 'top' }}
-            onClick={()=>{copyToClipboard(tab.query.headers.get().join('\n'))}}
+            onClick={() => { copyToClipboard(tab.query.headers.get().join('\n')) }}
           />
 
           <Button
@@ -264,23 +277,24 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             className="p-button-sm p-button-outlined p-button-secondary"
             tooltip="Copy data"
             tooltipOptions={{ position: 'top' }}
-            onClick={()=>{
+            onClick={() => {
               let data = []
               const sep = '\t'
 
               data.push(tab.query.headers.get().join(sep))
               for (let row of tab.query.rows.get()) {
                 let newRow = []
-                for (let val of row){
-                  let newVal = val+''
-                  if(newVal.includes(sep) || newVal.includes('\n') || newVal.includes('"')) {
-                    val = `"${newVal.replaceAll('"','""')}"`
+                for (let val of row) {
+                  let newVal = val + ''
+                  if (newVal.includes(sep) || newVal.includes('\n') || newVal.includes('"')) {
+                    val = `"${newVal.replaceAll('"', '""')}"`
                   }
                   newRow.push(val)
                 }
                 data.push(newRow.join(sep))
               }
-              copyToClipboard(data.join('\n'))}
+              copyToClipboard(data.join('\n'))
+            }
             }
           />
 

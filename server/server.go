@@ -29,20 +29,21 @@ type RouteName string
 
 const (
 	// RouteWs is the websocket route
-	RouteIndex          RouteName = "/"
-	RouteWs             RouteName = "/ws"
-	RouteSubmitSQL      RouteName = "/submit-sql"
-	RouteCancelSQL      RouteName = "/cancel-sql"
-	RouteGetConnections RouteName = "/get-connections"
-	RouteGetSchemata    RouteName = "/get-schemata"
-	RouteGetSchemas     RouteName = "/get-schemas"
-	RouteGetTables      RouteName = "/get-tables"
-	RouteGetColumns     RouteName = "/get-columns"
-	RouteGetAnalysisSQL RouteName = "/get-analysis-sql"
-	RouteGetHistory     RouteName = "/get-history"
-	RouteGetSQLRows     RouteName = "/get-sql-rows"
-	RouteLoadSession    RouteName = "/load-session"
-	RouteSaveSession    RouteName = "/save-session"
+	RouteIndex           RouteName = "/"
+	RouteWs              RouteName = "/ws"
+	RouteSubmitSQL       RouteName = "/submit-sql"
+	RouteCancelSQL       RouteName = "/cancel-sql"
+	RouteGetConnections  RouteName = "/get-connections"
+	RouteGetSchemata     RouteName = "/get-schemata"
+	RouteGetSchemas      RouteName = "/get-schemas"
+	RouteGetTables       RouteName = "/get-tables"
+	RouteGetColumns      RouteName = "/get-columns"
+	RouteGetAnalysisSQL  RouteName = "/get-analysis-sql"
+	RouteGetHistory      RouteName = "/get-history"
+	RouteGetSQLRows      RouteName = "/get-sql-rows"
+	RouteGetCachedResult RouteName = "/get-cached-result"
+	RouteLoadSession     RouteName = "/load-session"
+	RouteSaveSession     RouteName = "/save-session"
 )
 
 func (r RouteName) String() string {
@@ -79,6 +80,7 @@ func NewServer() *Server {
 	e.GET(RouteGetAnalysisSQL.String(), GetAnalysisSQL)
 	e.GET(RouteGetHistory.String(), GetHistory)
 	e.GET(RouteGetSQLRows.String(), GetSQLRows)
+	e.GET(RouteGetCachedResult.String(), GetCachedResult)
 	e.GET(RouteLoadSession.String(), GetLoadSession)
 
 	e.POST(RouteSubmitSQL.String(), PostSubmitQuery)

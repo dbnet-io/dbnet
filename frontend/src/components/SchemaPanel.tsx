@@ -20,10 +20,10 @@ export const GetSchemata = async (connName: string, refresh=false) => {
 
   globalStore.schemaPanel.loading.set(true)
   try {
-    let data = await apiGet(MsgType.GetSchemata, { conn: connName, procedure: refresh ? 'refresh' : null })
-    if (data.error) throw new Error(data.error)
+    let resp = await apiGet(MsgType.GetSchemata, { conn: connName, procedure: refresh ? 'refresh' : null })
+    if (resp.error) throw new Error(resp.error)
     globalStore.schemaPanel.loading.set(false)
-    let rows = data_req_to_records(data)
+    let rows = data_req_to_records(resp.data)
     let schemas: { [key: string]: Schema; } = {}
     for (let row of rows) {
       row.schema_name = row.schema_name.toLowerCase()
@@ -61,9 +61,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const GetSchemas = async (connName: string) => {
     loading.set(true)
     try {
-      let data2 = await apiGet(MsgType.GetSchemas, { conn: connName })
-      if (data2.error) throw new Error(data2.error)
-      let rows = data_req_to_records(data2)
+      let resp = await apiGet(MsgType.GetSchemas, { conn: connName })
+      if (resp.error) throw new Error(resp.error)
+      let rows = data_req_to_records(resp.data)
       let schemas_: Schema[] = rows.map(r => { return { name: r.schema_name.toLowerCase(), tables: [] } })
       for (let i = 0; i < schemas_.length; i++) {
         let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(schemas_[i].name.toLowerCase())
@@ -96,9 +96,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         conn: connName,
         schema: schemaName,
       }
-      let data2 = await apiGet(MsgType.GetTables, data1)
-      if (data2.error) throw new Error(data2.error)
-      let rows = data_req_to_records(data2)
+      let resp = await apiGet(MsgType.GetTables, data1)
+      if (resp.error) throw new Error(resp.error)
+      let rows = data_req_to_records(resp.data)
       let tables: Table[] = rows.map(r => { return { schema: schemaName, name: r.name.toLowerCase(), isView: r.is_view } })
       let index = schemas.get().map(s => s.name.toLowerCase()).indexOf(schemaName)
       if (index > -1) {
@@ -247,13 +247,15 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         icon: 'pi pi-times',
         command: () => {
           let keys = Object.keys(selectedKeys.get())
+          let schemas : string[] = []
           let tables : Table[] = []
           for(let key of keys) {
-            if(key.split('.').length !== 2) { continue }
-            tables.push(nodeKeyToTable(key))
+            if(key.split('.').length === 1) { schemas.push(key) }
+            if(key.split('.').length === 2) { tables.push(nodeKeyToTable(key)) }
           }
-
-          let sql = tables.map(t => `DROP TABLE ${t.schema}.${t.name}`).join(';\n')
+          
+          let sql = schemas.map(s => `DROP SCHEMA ${s}`).join(';\n')+';'
+          if(tables.length > 0) sql = tables.map(t => `DROP TABLE ${t.schema}.${t.name}`).join(';\n')+';'
           copyToClipboard(sql)
         }
       },

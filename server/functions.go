@@ -120,63 +120,11 @@ func LoadProfile(path string) (conns map[string]*Connection, err error) {
 }
 
 // NewQuery creates a Query object
-func NewQuery(ctx context.Context, text string) *store.Query {
-	return &store.Query{
-		Text:    text,
-		Context: g.NewContext(ctx),
-	}
-}
-
-// FetchRows returns a dataset based on a number of rows
-func FetchRows(q *store.Query) (data iop.Dataset, err error) {
-	data = iop.NewDataset(q.Columns)
-
-	nextFunc := func(it *iop.Iterator) bool {
-		if q.Limit > 0 && it.Counter >= cast.ToUint64(q.Limit) {
-			q.Status = store.QueryStatusFetched
-			return false
-		}
-
-		next := q.Result.Next()
-		if next {
-			// add row
-			it.Row, err = q.Result.SliceScan()
-			if err != nil {
-				it.Context.CaptureErr(g.Error(err, "failed to scan"))
-			} else {
-				return true
-			}
-		}
-
-		// if any error occurs during iteration
-		if q.Result.Err() != nil || it.Context.Err() != nil {
-			q.Context.Cancel()
-			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration"))
-		}
-
-		q.Status = store.QueryStatusCompleted
-		return false
-	}
-
-	ds := iop.NewDatastreamIt(q.Context.Ctx, q.Columns, nextFunc)
-	ds.NoTrace = true
-	ds.Inferred = true
-
-	err = ds.Start()
-	if err != nil {
-		q.Context.Cancel()
-		err = g.Error(err, "could start datastream")
-		return
-	}
-
-	data, err = ds.Collect(q.Limit)
-	if err != nil {
-		q.Context.Cancel()
-		err = g.Error(err, "could not collect data")
-		return
-	}
-
-	return
+func NewQuery(ctx context.Context) *store.Query {
+	q := new(store.Query)
+	q.Context = g.NewContext(ctx)
+	q.Done = make(chan struct{})
+	return q
 }
 
 // ReqFunction is the request function type
@@ -282,11 +230,7 @@ func LoadSchemata(connName string) (err error) {
 // 2. put DS in mem when client pulls more rows?
 // 3. handle multiple statements ?
 // 4. how to get addional rows?
-func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) {
-
-	if query.Limit == 0 {
-		query.Limit = 100
-	}
+func doSubmitSQL(query *store.Query) (err error) {
 
 	// get connection
 	c, err := GetConn(query.Conn)
@@ -295,81 +239,15 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 		return
 	}
 
-	// see if analysis req
-	query.Text = strings.TrimSuffix(query.Text, ";")
-	if strings.HasPrefix(query.Text, "/*@") && strings.HasSuffix(query.Text, "@*/") {
-		// is data request in yaml or json
-		// /*@{"analysis":"field_count", "data": {...}} @*/
-		// /*@{"metadata":"ddl_table", "data": {...}} @*/
-		type analysisReq struct {
-			Analysis string                 `json:"analysis" yaml:"analysis"`
-			Metadata string                 `json:"metadata" yaml:"metadata"`
-			Data     map[string]interface{} `json:"data" yaml:"data"`
-		}
-
-		req := analysisReq{}
-		body := strings.TrimSuffix(strings.TrimPrefix(query.Text, "/*@"), "@*/")
-		err = yaml.Unmarshal([]byte(body), &req)
-		if err != nil {
-			query.Status = store.QueryStatusErrorred
-			query.Err = g.ErrMsg(err)
-			Sync("queries", query)
-			err = g.Error(err, "could not parse yaml/json request")
-			return
-		}
-
-		sql := ""
-		switch {
-		case req.Analysis != "":
-			sql, err = c.DbConn.GetAnalysis(req.Analysis, req.Data)
-		case req.Metadata != "":
-			template, ok := c.DbConn.Template().Metadata[req.Metadata]
-			if !ok {
-				err = g.Error("metadata key '%s' not found", req.Metadata)
-			}
-			sql = g.Rm(template, req.Data)
-		}
-
-		if err != nil {
-			query.Status = store.QueryStatusErrorred
-			query.Err = g.ErrMsg(err)
-			Sync("queries", query)
-			err = g.Error(err, "could not execute query")
-			return
-		}
-
-		query.Text = query.Text + "\n\n" + sql
-	}
-
-	query.Status = store.QueryStatusSubmitted
-	query.Context = g.NewContext(c.DbConn.Context().Ctx)
-	result = map[string]interface{}{}
-
 	mux.Lock()
 	c.Queries[query.ID] = query
 	mux.Unlock()
 
 	Sync("queries", query)
 
-	doSubmit := func() {
-		start := time.Now()
-		query.Result, err = c.DbConn.Db().QueryxContext(query.Context.Ctx, query.Text)
-		if err != nil {
-			query.Status = store.QueryStatusErrorred
-			query.Err = g.ErrMsg(err)
-			query.Duration = time.Since(start).Seconds()
-			Sync("queries", query)
-			err = g.Error(err, "could not execute query")
-			return
-		}
-
-		colTypes, err := query.Result.ColumnTypes()
-		if err != nil {
-			err = g.Error(err, "result.ColumnTypes()")
-			return
-		}
-
-		query.Columns = database.SQLColumns(colTypes, c.DbConn.Template().NativeTypeMap)
+	go func() {
+		g.Debug("submitting %s", query.ID)
+		query.Submit(c.DbConn)
 
 		// expire the query after 10 minutes
 		timer := time.NewTimer(time.Duration(10*60) * time.Second)
@@ -381,32 +259,7 @@ func doSubmitSQL(query *store.Query) (result map[string]interface{}, err error) 
 				mux.Unlock()
 			}
 		}()
-
-		// fetch rows
-		data, err := FetchRows(query)
-		if err != nil {
-			err = g.Error(err, "could not fecth rows")
-			return
-		}
-
-		query.Duration = time.Since(start).Seconds()
-		query.Headers = data.Columns.Names()
-		query.Rows = data.Rows
-
-		result = g.ToMap(query)
-
-		query.TrimRows(100) // only store 100 rows in sqlite
-		Sync("queries", query)
-
-		query.TrimRows(1) // only store 1 row in mem
-	}
-
-	if query.Wait {
-		doSubmit()
-	} else {
-		result = g.ToMap(query)
-		go doSubmit()
-	}
+	}()
 
 	return
 }

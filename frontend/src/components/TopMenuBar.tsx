@@ -68,13 +68,13 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
     // get all connections
     apiGet(MsgType.GetConnections, {}).then(
-      data => {
-        if(data.error) return toastError(data.error)
-        store.app.connections.set(data.conns)
+      resp => {
+        if(resp.error) return toastError(resp.error)
+        store.app.connections.set(resp.data.conns)
         items[0].set({
           label: 'Connections',
           icon: 'pi pi-fw pi-sitemap',
-          items: data.conns.map((c: string) => {
+          items: resp.data.conns.map((c: string) => {
             return {
               label: c,
               command: () => { 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import './TabTable.css'
-import {  Query, QueryStatus, Tab, useVariable } from "../store/state";
-import { State } from "@hookstate/core";
+import {  accessStore, Query, QueryStatus, Tab, useVariable } from "../store/state";
+import { none, State } from "@hookstate/core";
 import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
 import { MsgType } from "../store/websocket";
 import _ from "lodash";
@@ -15,12 +15,43 @@ import { getTabState } from "./TabNames";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
+const store = accessStore()
 
 interface Props {
   tab: State<Tab>
 }
 
-export const fetchRows = async (tab: State<Tab>) => {
+export const pullResult = async (tabState: State<Tab>) => {
+  let tab = getTabState(tabState.id.get())
+
+  let data1 = {
+    id: tab.query.id.get(),
+    limit: tab.limit.get(),
+  }
+  tab.loading.set(true);
+  try {
+    let resp = await apiGet(MsgType.GetCachedResult, data1)
+    if(resp.error) throw new Error(resp.error)
+    let query = new Query(resp.data)
+    let tab = getTabState(query.tab)
+    tab.set(
+      t => {
+        t.query = query
+        t.query.pulled = true
+        t.query.duration = Math.round(query.duration*100)/100
+        t.loading = false
+        return t
+      }
+    )
+  } catch (error) {
+    toastError(error)
+  }
+  tab.loading.set(false)
+}
+
+
+export const fetchRows = async (tabState: State<Tab>) => {
+  let tab = getTabState(tabState.id.get())
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
   let data1 = {
@@ -37,9 +68,9 @@ export const fetchRows = async (tab: State<Tab>) => {
   tab.loading.set(true);
   tab.query.time.set(new Date().getTime())
   try {
-    let data2 = await apiGet(MsgType.GetSQLRows, data1)
-    if(data2.error) throw new Error(data2.error)
-    let query = data2 as Query
+    let resp = await apiGet(MsgType.GetSQLRows, data1)
+    if(resp.error) throw new Error(resp.error)
+    let query = new Query(resp.data)
     let tab = getTabState(query.tab)
     tab.set(
       t => {
@@ -99,8 +130,13 @@ export const TabTable: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   React.useEffect(()=>{
-    // let p = jsonClone<number[]>(tab.lastTableSelection.get())
-    // hot.current.hotInstance.selectCell(p[0], p[1], p[2], p[3])
+    // pull cache result only once
+    let availableCaches = store.queryPanel.availableCaches.get()
+    let index = availableCaches.indexOf(tab.query.id.get())
+    if(index > -1) {
+      pullResult(tab)
+      store.queryPanel.availableCaches[index].set(none)
+    }
   },[])  // eslint-disable-line
 
   React.useEffect(()=>{

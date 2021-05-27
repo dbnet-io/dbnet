@@ -4,15 +4,30 @@ import axios from 'axios' // eslint-disable-line
 export const masterURL = window.location.origin
 // export const masterURL = 'http://localhost:5987'
 
-export const apiPost = async (route: string, payload={}) => {
+export interface Response {
+  // response: globalThis.Response
+  status: number
+  statusText: string
+  data: any
+  error: string
+}
+
+export const apiPost = async (route: string, payload={}, extraHeaders={}) => {
   let url = `${masterURL}/${route}`
+  let headers = Object.assign({ 'Access-Control-Allow-Origin': '*', "Content-Type": "application/json" }, extraHeaders)
   let response = await fetch(url, {
     method: 'post',
-    headers: { 'Access-Control-Allow-Origin': '*', "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify(payload),
   })
   let data = await response.json()
-  return data
+  
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    data: data,
+    error: data.error,
+  } as Response
 }
 
 // export const apiPost = async (route: string, payload={}) => {
@@ -28,11 +43,15 @@ export const apiPost = async (route: string, payload={}) => {
 //   return data
 // }
 
-export const apiGet = async (route: string, payload={}) => {
+export const apiGet = async (route: string, payload={}, extraHeaders={}) => {
   let url = `${masterURL}/${route}?${serialize(payload)}`
-  let response = await fetch(url, {
-    headers: { 'Access-Control-Allow-Origin': '*', "Content-Type": "application/json" },
-  })
+  let headers = Object.assign({ 'Access-Control-Allow-Origin': '*', "Content-Type": "application/json" }, extraHeaders)
+  let response = await fetch(url, { headers })
   let data = await response.json()
-  return data
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    data: data,
+    error: data.error,
+  } as Response
 }

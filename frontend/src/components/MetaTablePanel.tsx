@@ -40,11 +40,11 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
       procedure: refresh ? 'refresh' : null,
     }
     objectPanel.table.loading.set(true);
-    let data2 = await apiGet(MsgType.GetColumns, data1)
-    if(data2.error) throw new Error(data2.error)
+    let resp = await apiGet(MsgType.GetColumns, data1)
+    if(resp.error) throw new Error(resp.error)
     objectPanel.table.set(
       o => {
-        o.rows = data_req_to_records(data2).map((r, i) => Object.assign(r, {
+        o.rows = data_req_to_records(resp.data).map((r, i) => Object.assign(r, {
           id: i+1,
           schema_name: r?.schema_name.toLowerCase(),
           table_name: r?.table_name.toLowerCase(),
@@ -136,10 +136,10 @@ export const submitAnalysisSQL = async (analysis: string, params: ObjectAny, obj
   }
 
   try {
-    let data2 = await apiGet(MsgType.GetAnalysisSql, data1)
-    if(data2.error) throw new Error(data2.error)
-    let sql = data2.sql
-    let tab = createTab(objectView.name, data2.sql)
+    let resp = await apiGet(MsgType.GetAnalysisSql, data1)
+    if(resp.error) throw new Error(resp.error)
+    let sql = resp.data.sql
+    let tab = createTab(objectView.name, resp.data.sql)
     submitSQL(tab, sql)
   } catch (error) {
     toastError(error)

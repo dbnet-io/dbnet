@@ -37,6 +37,7 @@ export enum MsgType {
   GetAnalysisSql = 'get-analysis-sql',
   GetHistory = 'get-history',
   GetSQLRows = 'get-sql-rows',
+  GetCachedResult = 'get-cached-result',
   LoadSession = 'load-session',
   SaveSession = 'save-session',
 }
