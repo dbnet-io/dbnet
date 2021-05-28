@@ -10,17 +10,26 @@ import { Tooltip } from "primereact/tooltip";
 import TreeNode from "primereact/components/treenode/TreeNode";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
+import { Menu } from 'primereact/menu';
+import { Button } from "primereact/button";
+import { MenuItem } from "primereact/components/menuitem/MenuItem";
 
 interface Props { }
 
 const store = accessStore()
 
-export const GetSchemata = async (connName: string, refresh=false) => {
+export const GetSchemata = async (connName: string, dbName: string, refresh=false) => {
 
 
   globalStore.schemaPanel.loading.set(true)
+  let data = {
+    conn: connName,
+    database: dbName,
+    procedure: refresh ? 'refresh' : null
+  }
+
   try {
-    let resp = await apiGet(MsgType.GetSchemata, { conn: connName, procedure: refresh ? 'refresh' : null })
+    let resp = await apiGet(MsgType.GetSchemata, data)
     if (resp.error) throw new Error(resp.error)
     globalStore.schemaPanel.loading.set(false)
     let rows = data_req_to_records(resp.data)
@@ -43,6 +52,22 @@ export const GetSchemata = async (connName: string, refresh=false) => {
   globalStore.schemaPanel.loading.set(false)
 }
 
+export const GetDatabases = async (connName: string) => {
+  try {
+    let resp = await apiGet(MsgType.GetDatabases, { conn: connName })
+    if (resp.error) throw new Error(resp.error)
+    let rows = data_req_to_records(resp.data)
+    if(rows.length > 0) {
+      store.connection.databases.set(rows.map(r => (r.name as string).toUpperCase()))
+      if(store.connection.database.get() === '') store.connection.database.set(rows[0].name)
+    } else {
+      toastError('No Databases found!')
+    }
+  } catch (error) {
+    toastError(error)
+  }
+}
+
 export const SchemaPanel: React.FC<Props> = (props) => {
   const cm = React.useRef<ContextMenu>(null);
   const schemaPanel = useStoreSchemaPanel()
@@ -53,15 +78,36 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
 
+  const databasesMenu = React.useRef<any>(null);
+  const databases = useHS(connection.databases)
+
   ///////////////////////////  EFFECTS  ///////////////////////////
+
+  React.useEffect(()=>{
+
+  },[])
 
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
-  const GetSchemas = async (connName: string) => {
+  const getDatabaseItems = () => {
+    return databases.get().map(name => { 
+      name = name.toUpperCase()
+      return { 
+        label: name,
+        // icon: 'pi pi-times',
+        command: () => {
+          store.connection.database.set(name)
+          GetSchemata(connection.name.get(), connection.database.get())
+        },
+      }
+    })
+  }
+
+  const GetSchemas = async (connName: string, dbName: string) => {
     loading.set(true)
     try {
-      let resp = await apiGet(MsgType.GetSchemas, { conn: connName })
+      let resp = await apiGet(MsgType.GetSchemas, { conn: connName, database: dbName })
       if (resp.error) throw new Error(resp.error)
       let rows = data_req_to_records(resp.data)
       let schemas_: Schema[] = rows.map(r => { return { name: r.schema_name.toLowerCase(), tables: [] } })
@@ -88,12 +134,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     } as Table
   }
 
-  const GetTables = async (connName: string, schemaName: string) => {
+  const GetTables = async (connName: string, dbName: string, schemaName: string) => {
     loading.set(true)
     schemaName = schemaName.toLowerCase()
     try {
       let data1 = {
         conn: connName,
+        database: dbName,
         schema: schemaName,
       }
       let resp = await apiGet(MsgType.GetTables, data1)
@@ -174,7 +221,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           if(keys.length !== 1) return toastError("Must choose only one object")
           let arr = keys[0].split('.')
 
-          GetTables(connection.name.get(), arr[0])
+          GetTables(connection.name.get(), connection.database.get(), arr[0])
         }
       },
       {
@@ -267,7 +314,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         icon: 'pi pi-refresh',
         style: {color: 'orange'},
         command: () => {
-          GetSchemata(connection.name.get(), true)
+          GetSchemata(connection.name.get(), connection.database.get(), true)
         }
       },
       // {
@@ -339,15 +386,36 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     <div id='history-panel'>
 
       <h4 style={{ textAlign: 'center', margin: '9px' }}>
-        Schemas 
+        {connection.database.get().toUpperCase()}
         <a href="#;">
           <i 
             style={{color: 'orange', fontSize: '0.9em', paddingLeft: '5px'}}
             className="pi pi-refresh"
-            onClick={() => GetSchemas(connection.name.get())}
-            onDoubleClick={() => GetSchemata(connection.name.get())}
+            onClick={async () => {
+              await GetDatabases(connection.name.get())
+              await GetSchemas(connection.name.get(), connection.database.get())
+            }}
           />
         </a>
+        <span 
+          id="schema-databases"
+          style={{
+            position: 'absolute',
+            marginLeft: '20px',
+            fontSize: '0.5rem',
+          }}
+        >
+          <Menu model={getDatabaseItems()} popup ref={databasesMenu} id="popup_menu" />
+          <Button 
+            icon="pi pi-bars" 
+            className="p-button-sm p-button-secondary"
+            aria-controls="popup_menu"
+            onClick={(event) => databasesMenu.current.toggle(event)}
+            tooltip="Databases"
+            aria-haspopup
+          />
+          
+        </span>
       </h4>
       {/* <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())} /> */}
       <SchemaTree />

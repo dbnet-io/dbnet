@@ -32,14 +32,17 @@ export class Editor {
   }
 
   getBlockPoints = (block: string) => {
+    block = block.trim()
     let points = undefined
     let pos = this.text.indexOf(block)
     if(pos === -1) return points 
 
     let upperBlock = this.text.slice(0, pos)
     let upperBlockLines = upperBlock.split('\n')
+    // let lastUpperBlockLine = upperBlockLines[upperBlockLines.length - 1]
     let blockLines = block.split('\n')
-    points = [upperBlockLines.length-1, 0,upperBlockLines.length-1 + blockLines.length,0]
+    let lastBlockLine = blockLines[blockLines.length - 1]
+    points = [upperBlockLines.length-1, 0, upperBlockLines.length + blockLines.length-1, lastBlockLine.length-1]
     return points
   }
 
@@ -243,6 +246,7 @@ export enum QueryStatus {
 export class Query {
   id: string
   conn: string
+  database: string
   tab: string
   time: number // epoch milli
   duration: number // in seconds
@@ -256,6 +260,7 @@ export class Query {
 
   constructor(data: ObjectAny = {}) {
     this.conn = data.conn
+    this.database = data.database
     this.tab = data.tab
     this.id = data.id || new_ts_id('query.')
     this.time = data.time || new Date().getTime()
@@ -321,6 +326,8 @@ export class MetaTable {
 export class Connection {
   name: string
   type: ConnType
+  database: string
+  databases: string[]
   data: ObjectString;
   schemas: Schema[]
   history: Query[]
@@ -329,13 +336,17 @@ export class Connection {
     this.name = data.name || ''
     this.type = data.type
     this.data = data.data
+    this.database = data.database || ''
     this.schemas = data.schemas || []
     this.history = data.history || []
+    this.databases = data.databases || []
   }
 
   payload = () => {
     return {
       name: this.name,
+      database: this.database,
+      databases: this.databases,
       type: this.type,
     }
   }
@@ -412,12 +423,22 @@ export class AppState {
   tableWidth: number
   connections: string[]
   selectedMetaTab: string
+  recentOmniSearches:  { [key: string]: number; }
   constructor(data: ObjectAny = {}) {
     this.version = 0.1
     this.tableHeight = 1100
     this.tableWidth = 1100
     this.connections = data.connections || []
-    this.selectedMetaTab = data.selectedMetaTab || 'Schema'
+    this.selectedMetaTab = 'Schema' || data.selectedMetaTab
+    this.recentOmniSearches = data.recentOmniSearches || {}
+  }
+
+  payload = () => {
+    return {
+      connections: this.connections,
+      selectedMetaTab: this.selectedMetaTab,
+      recentOmniSearches: this.recentOmniSearches,
+    }
   }
 }
 
@@ -506,7 +527,7 @@ class ObjectPanelState {
   constructor(data: ObjectAny = {}) {
     this.table = new MetaTable(data.table)
     this.history = data.history || []
-    this.historyI = -1
+    this.historyI = data.historyI || -1
   }
 }
 
@@ -620,6 +641,7 @@ class GlobalStore {
       name: 'default',
       conn: this.connection.get().name,
       data: {
+        app: jsonClone(this.app.get().payload()),
         connection: jsonClone(this.connection.get().payload()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
         schemaPanel: jsonClone(this.schemaPanel.get()),
@@ -646,12 +668,14 @@ class GlobalStore {
       let resp = await apiGet(MsgType.LoadSession, payload)
       if(resp.error) throw new Error(resp.error)
       let data = resp.data
-      let connection = new Connection(data.connection)
-      this.connection.name.set(connection.name)
-      this.connection.type.set(connection.type)
-      this.connection.data.set(connection.data)
-      this.connection.schemas.set(connection.schemas)
-      this.connection.history.set(connection.history)
+      this.app.set(new AppState(data.app))
+      // let connection = new Connection(data.connection)
+      // this.connection.name.set(connection.name)
+      // this.connection.type.set(connection.type)
+      // this.connection.data.set(connection.data)
+      // this.connection.schemas.set(connection.schemas)
+      // this.connection.history.set(connection.history)
+      this.connection.set(new Connection(data.connection))
       this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))

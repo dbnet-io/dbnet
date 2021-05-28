@@ -55,8 +55,8 @@ func InitDB() {
 // Sync syncs to the store
 func Sync(table string, obj interface{}, fields ...string) (err error) {
 	pks := map[string][]string{
-		"schema_tables": {"conn", "schema_name", "table_name"},
-		"table_columns": {"conn", "schema_name", "table_name", "name"},
+		"schema_tables": {"conn", "database", "schema_name", "table_name"},
+		"table_columns": {"conn", "database", "schema_name", "table_name", "name"},
 		"queries":       {"id"},
 		"sessions":      {"conn", "name"},
 	}

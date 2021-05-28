@@ -21,6 +21,7 @@ import (
 var (
 	// Connections is all connections
 	Connections  = map[string]*Connection{}
+	Queries      = map[string]*store.Query{}
 	mux          sync.Mutex
 	defaultLimit = 100
 	// Sync syncs to store
@@ -30,16 +31,15 @@ var (
 
 // Connection is a connection
 type Connection struct {
-	Conn    *connection.Connection
-	DbConn  database.Connection
-	Queries map[string]*store.Query
-	Props   map[string]string // to cache vars
+	Conn  *connection.Connection
+	Props map[string]string // to cache vars
 }
 
 // Request is the typical request struct
 type Request struct {
 	Name      string      `json:"name" query:"name"`
 	Conn      string      `json:"conn" query:"conn"`
+	Database  string      `json:"database" query:"database"`
 	Schema    string      `json:"schema" query:"schema"`
 	Table     string      `json:"table" query:"table"`
 	Procedure string      `json:"procedure" query:"procedure"`
@@ -60,6 +60,15 @@ func init() {
 	// 	}
 	// 	Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
 	// }
+}
+
+// func (c *Connection) Databases() (dbs []string, err error) {
+
+// }
+
+// DefaultDB returns the default database
+func (c *Connection) DefaultDB() string {
+	return c.Conn.Info().Database
 }
 
 func loadConnections() (err error) {
@@ -106,9 +115,8 @@ func LoadProfile(path string) (conns map[string]*Connection, err error) {
 				}
 
 				conns[name] = &Connection{
-					Conn:    &conn,
-					Queries: map[string]*store.Query{},
-					Props:   map[string]string{},
+					Conn:  &conn,
+					Props: map[string]string{},
 				}
 				g.Trace("found in profile: " + name)
 			default:
@@ -128,7 +136,7 @@ func NewQuery(ctx context.Context) *store.Query {
 }
 
 // ReqFunction is the request function type
-type ReqFunction func(c *Connection, req Request) (iop.Dataset, error)
+type ReqFunction func(c database.Connection, req Request) (iop.Dataset, error)
 
 // ProcessRequestFromMsg processes the request with the given function
 func ProcessRequestFromMsg(msg Message, reqFunc ReqFunction) (data iop.Dataset, err error) {
@@ -144,7 +152,7 @@ func ProcessRequestFromMsg(msg Message, reqFunc ReqFunction) (data iop.Dataset, 
 
 // ProcessRequest processes the request with the given function
 func ProcessRequest(req Request, reqFunc ReqFunction) (data iop.Dataset, err error) {
-	c, err := GetConn(req.Conn)
+	c, err := GetConn(req.Conn, req.Database)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", req.Conn)
 		return
@@ -156,15 +164,15 @@ func ProcessRequest(req Request, reqFunc ReqFunction) (data iop.Dataset, err err
 // LoadSchemata should:
 // 1. load all schemas
 // 2. load all objects in each schema
-func LoadSchemata(connName string) (err error) {
+func LoadSchemata(connName, DbName string) (err error) {
 
-	c, err := GetConn(connName)
+	c, err := GetConn(connName, DbName)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", connName)
 		return
 	}
 
-	s, err := c.DbConn.GetSchemas()
+	s, err := c.GetSchemas()
 	if err != nil {
 		err = g.Error(err, "could not get schemas for conn %s", connName)
 		return
@@ -173,7 +181,7 @@ func LoadSchemata(connName string) (err error) {
 	for _, r := range s.Rows {
 		schemaName := cast.ToString(r[0])
 		g.Info("loading schema " + schemaName)
-		schema, err := c.DbConn.GetSchemaObjects(schemaName)
+		schema, err := c.GetSchemaObjects(schemaName)
 		if err != nil {
 			err = g.Error(err, "could not get schema %s", schemaName)
 			break
@@ -187,6 +195,7 @@ func LoadSchemata(connName string) (err error) {
 			totColumns = totColumns + len(table.Columns)
 			schemaTables[i] = store.SchemaTable{
 				Conn:       strings.ToLower(connName),
+				Database:   strings.ToLower(DbName),
 				SchemaName: strings.ToLower(schemaName),
 				TableName:  strings.ToLower(table.Name),
 				IsView:     table.IsView,
@@ -195,7 +204,7 @@ func LoadSchemata(connName string) (err error) {
 		}
 
 		if len(schemaTables) > 0 {
-			Sync("schema_tables", &schemaTables, "conn", "schema_name", "table_name", "is_view")
+			Sync("schema_tables", &schemaTables, "conn", "database", "schema_name", "table_name", "is_view")
 		}
 
 		for _, table := range schema.Tables {
@@ -203,6 +212,7 @@ func LoadSchemata(connName string) (err error) {
 			for i, col := range table.Columns {
 				tableColumns[i] = store.TableColumn{
 					Conn:       strings.ToLower(connName),
+					Database:   strings.ToLower(DbName),
 					SchemaName: strings.ToLower(schemaName),
 					TableName:  strings.ToLower(table.Name),
 					Name:       strings.ToLower(col.Name),
@@ -214,7 +224,7 @@ func LoadSchemata(connName string) (err error) {
 			}
 			Sync(
 				"table_columns", &tableColumns, "conn",
-				"schema_name", "table_name",
+				"database", "schema_name", "table_name",
 				"name", "id", "type", "precision", "scale",
 			)
 		}
@@ -233,21 +243,20 @@ func LoadSchemata(connName string) (err error) {
 func doSubmitSQL(query *store.Query) (err error) {
 
 	// get connection
-	c, err := GetConn(query.Conn)
+	c, err := GetConn(query.Conn, query.Database)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", query.Conn)
 		return
 	}
 
 	mux.Lock()
-	c.Queries[query.ID] = query
+	Queries[query.ID] = query
 	mux.Unlock()
 
 	Sync("queries", query)
 
 	go func() {
-		g.Debug("submitting %s", query.ID)
-		query.Submit(c.DbConn)
+		query.Submit(c)
 
 		// expire the query after 10 minutes
 		timer := time.NewTimer(time.Duration(10*60) * time.Second)
@@ -255,7 +264,7 @@ func doSubmitSQL(query *store.Query) (err error) {
 			select {
 			case <-timer.C:
 				mux.Lock()
-				delete(c.Queries, query.ID)
+				delete(Queries, query.ID)
 				mux.Unlock()
 			}
 		}()
@@ -265,29 +274,45 @@ func doSubmitSQL(query *store.Query) (err error) {
 }
 
 // GetConn gets the connection
-func GetConn(name string) (c *Connection, err error) {
+func GetConn(connName, databaseName string) (conn database.Connection, err error) {
 	mux.Lock()
-	c, ok := Connections[name]
+	c, ok := Connections[connName]
 	mux.Unlock()
 	if !ok {
-		err = g.Error("could not find conn %s", name)
+		err = g.Error("could not find conn %s", connName)
+		return
+	}
+
+	// create new connection with specific database
+	data := g.M()
+	for k, v := range c.Conn.Data {
+		data[k] = v
+	}
+	data["database"] = databaseName
+	delete(data, "url")
+	delete(data, "schema")
+	connObj, err := connection.NewConnectionFromMap(g.M("name", c.Conn.Name, "data", data, "type", c.Conn.Type))
+	if err != nil {
+		err = g.Error(err, "could not load connection %s", c.Conn.Name)
 		return
 	}
 
 	// connect or use pool
 	os.Setenv("DBIO_USE_POOL", "TRUE")
-	props := append(g.MapToKVArr(c.Props), g.MapToKVArr(c.Conn.DataS())...)
-	c.DbConn, err = database.NewConn(c.Conn.URL(), props...)
+
+	// init connection
+	props := append(g.MapToKVArr(c.Props), g.MapToKVArr(connObj.DataS())...)
+	conn, err = database.NewConn(connObj.URL(), props...)
 	if err != nil {
-		err = g.Error(err, "could not initialize database connection '%s' with provided credentials/url.", name)
+		err = g.Error(err, "could not initialize database connection '%s' / '%s' with provided credentials/url.", connName, databaseName)
 		return
 	}
-	err = c.DbConn.Connect()
+	err = conn.Connect()
 	if err != nil {
 		err = g.Error(err, "could not connect with provided credentials/url")
 		return
 	}
-	c.Props = c.DbConn.Props()
+	c.Props = conn.Props()
 
 	return
 }

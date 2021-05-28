@@ -1,4 +1,4 @@
-import React, { RefObject, useRef } from 'react';
+import React, { RefObject, useRef, useLayoutEffect, useState } from 'react';
 import './App.css';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
@@ -19,7 +19,7 @@ import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
-import { GetSchemata } from './components/SchemaPanel';
+import { GetDatabases, GetSchemata } from './components/SchemaPanel';
 
 // this is to extends the window global functions
 declare global {
@@ -41,6 +41,8 @@ export const App = () => {
   const store = accessStore()
   // const ws = useState(globalState.ws)
   ///////////////////////////  HOOKS  ///////////////////////////
+  useWindowSize()
+  
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
@@ -49,7 +51,10 @@ export const App = () => {
     if(last_conn) store.connection.name.set(last_conn)
 
     // init load session
-    globalStore.loadSession(store.connection.name.get()).then(() => GetSchemata(store.connection.name.get()))
+    globalStore.loadSession(store.connection.name.get()).then(async () => {
+      await GetDatabases(store.connection.name.get())
+      await GetSchemata(store.connection.name.get(), store.connection.database.get())
+    })
   }, [])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -58,7 +63,8 @@ export const App = () => {
 
   const onKeyPress = (e: React.KeyboardEvent) => {
     // omni search
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') {
+    // if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === ' ') {
+    if (e.shiftKey && e.key === ' ') {
       let el = document.getElementById('omni-search')
       if (el) {
         (el.children[0] as HTMLElement).focus()
@@ -94,3 +100,15 @@ export const App = () => {
   );
 }
 
+function useWindowSize() {
+  const [size, setSize] = useState([0, 0]);
+  useLayoutEffect(() => {
+    function updateSize() {
+      setSize([window.innerWidth, window.innerHeight]);
+    }
+    window.addEventListener('resize', updateSize);
+    updateSize();
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  return size;
+}

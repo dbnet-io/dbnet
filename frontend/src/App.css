@@ -56,6 +56,18 @@
    max-height: 34px !important;
  }
 
+ #schema-databases > button > span {
+    font-size: 0.69em;
+ }
+
+ #schema-databases > button {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    padding-left: 3px;
+    padding-right: 3px;
+    /* padding: 0px; */
+ }
+
  #query-toolbar {
     /* max-height: 34px !important; */
     font-size: 0.99em;

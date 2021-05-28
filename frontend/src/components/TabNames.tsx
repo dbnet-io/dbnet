@@ -54,8 +54,9 @@ export const createTabChild = (parent: Tab) => {
   // delete existing non-pinned child tabs
   let tabs = queryPanel.tabs.get()
   for (let i = 0; i < tabs.length; i++) {
-    if (tabs[i].parent === parent.id && !tabs[i].pinned && tabs[i].id !== newTab.id) {
+    if (tabs[i].parent === parent.id && !tabs[i].loading && !tabs[i].pinned && tabs[i].id !== newTab.id) {
       queryPanel.tabs[i].set(none)
+      i--
     }
   }
 

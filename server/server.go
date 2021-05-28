@@ -34,6 +34,7 @@ const (
 	RouteSubmitSQL       RouteName = "/submit-sql"
 	RouteCancelSQL       RouteName = "/cancel-sql"
 	RouteGetConnections  RouteName = "/get-connections"
+	RouteGetDatabases    RouteName = "/get-databases"
 	RouteGetSchemata     RouteName = "/get-schemata"
 	RouteGetSchemas      RouteName = "/get-schemas"
 	RouteGetTables       RouteName = "/get-tables"
@@ -73,6 +74,7 @@ func NewServer() *Server {
 
 	e.GET(RouteIndex.String()+"*", contentHandler, contentRewrite)
 	e.GET(RouteGetConnections.String(), GetConnections)
+	e.GET(RouteGetDatabases.String(), GetDatabases)
 	e.GET(RouteGetSchemata.String(), GetSchemata)
 	e.GET(RouteGetSchemas.String(), GetSchemas)
 	e.GET(RouteGetTables.String(), GetTables)

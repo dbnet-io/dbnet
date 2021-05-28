@@ -36,6 +36,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
     let data1 = {
       id: new_ts_id('hist.'),
       conn: store.connection.name.get(),
+      database: store.connection.database.get(),
       procedure: "get_latest",
     }
     try {
@@ -51,6 +52,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
     let data1 = {
       id: new_ts_id('hist.'),
       conn: store.connection.name.get(),
+      database: store.connection.database.get(),
       procedure: "search",
       name: filter,
     }

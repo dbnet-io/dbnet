@@ -11,6 +11,7 @@ import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { ObjectString } from "../utilities/interfaces";
 import { GetSchemata } from "./SchemaPanel";
+import { none } from "@hookstate/core";
 
 
 const store = accessStore()
@@ -62,6 +63,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const items = useHS(itemsDefault)
   const connName = useHS(globalStore.connection.name)
+  const recentSearches = store.app.recentOmniSearches
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -78,7 +80,10 @@ export const TopMenuBar: React.FC<Props> = (props) => {
             return {
               label: c,
               command: () => { 
-                globalStore.loadSession(c).then(() => GetSchemata(c))
+                globalStore.loadSession(c).then(async () => {
+                  await GetDatabases(store.connection.name.get())
+                  await GetSchemata(store.connection.name.get(), store.connection.database.get())
+                })
                 localStorage.setItem("_connection_name", c)
               },
             }
@@ -104,6 +109,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     const allTables = useVariable<string[]>([])
     const searchResults = useVariable<string[]>([])
     const omniSearch = useVariable('')
+    const removedRecent = useHS('') // little hack to prevent item clicking
 
     const schemas = accessStore().connection.schemas
     const selectedMetaTab = accessStore().app.selectedMetaTab
@@ -117,7 +123,32 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     const omniItemTemplate = (item: any) => {
       return (
         <div className="country-item">
-          <div>{item}</div>
+          <div>
+            {item}
+            {
+              item in recentSearches.get() ?
+              <span
+                style={{
+                  position: 'absolute',
+                  bottom: '-3px',
+                }}
+              >
+                <Button
+                  icon="pi pi-times"
+                  style={{zIndex: 99}}
+                  className="p-button-rounded p-button-text p-button-danger p-button-sm"
+                  onClick={(e) => {
+                    removedRecent.set(item)
+                    setTimeout(() => {
+                      recentSearches[item].set(none)
+                      removedRecent.set('')
+                    }, 1000);
+                  }}
+                />
+              </span>
+              : null
+            } 
+          </div>
         </div>
       );
     }
@@ -148,9 +179,18 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         return []
       }
 
+      let recents = recentSearches.get()
+
       let results: string[] = []
+      for(let key of Object.keys(recents)) {
+        if(key.toString().includes(query.toLowerCase())){
+          results.push(key.toString())
+        }
+      }
+
       for (let table of getAllTables()) {
         if (table.toLowerCase().includes(query.toLowerCase())) {
+          if(table.toLowerCase() in recents) continue
           results.push(table)
         }
       }
@@ -168,6 +208,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       onKeyUp={omniKeyPress}
       onChange={(e: any) => { omniSearch.set(e.target.value) }}
       onSelect={(e: any) => {
+        if(e.value === removedRecent.get()) return omniSearch.set('')
         loadMetaTable(e.value)
         selectedMetaTab.set('Object')
         omniSearch.set('')
@@ -175,8 +216,17 @@ export const TopMenuBar: React.FC<Props> = (props) => {
           () => document.getElementById('object-column-filter')?.focus(),
           400
         )
+
+        // save in recent searches
+        setTimeout(() => {
+          recentSearches[e.value.toLowerCase()].set(v => (v||0)+1)
+          if(recentSearches.keys.length > 100) {
+            let key = recentSearches.keys[recentSearches.keys.length-1]
+            recentSearches[key].set(none)
+          }
+        }, 1000);
       }}
-      tooltip="Shift+Ctrl+Space"
+      tooltip="Shift+Space"
       tooltipOptions={{ position: 'bottom' }}
       itemTemplate={omniItemTemplate}
     />
@@ -232,3 +282,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     />
   );
 };
+
+function GetDatabases(arg0: string) {
+  throw new Error("Function not implemented.");
+}

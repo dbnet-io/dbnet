@@ -35,6 +35,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
   try {
     let data1 = {
       conn: store.connection.name.get(),
+      database: store.connection.database.get(),
       schema,
       table,
       procedure: refresh ? 'refresh' : null,
@@ -129,6 +130,7 @@ export const submitAnalysisSQL = async (analysis: string, params: ObjectAny, obj
   const connection = accessStore().connection
   let data1 = {
     conn: connection.name.get(),
+    database: store.connection.database.get(),
     schema: objectView.schema(),
     table: objectView.table(),
     procedure: analysis,
@@ -198,7 +200,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         </span>
       </p>
 
-      <div className="p-inputgroup work-buttons" >
+      <div className="p-inputgroup work-buttons" style={{overflowX:'hidden'}}>
         <Button
           icon="pi pi-caret-left"
           disabled={!(history.length > 1 && historyI.get() > 0)}
@@ -264,7 +266,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
-            let cols = getSelectedColsOrAll()
+            let cols = selected.get().length === 0 ? ['*'] : getSelectedColsOrAll()
             let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectPanel.table.name.get()}\nlimit 5000;`
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)

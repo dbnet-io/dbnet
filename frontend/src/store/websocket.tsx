@@ -30,6 +30,7 @@ export enum MsgType {
   SubmitSQL = 'submit-sql',
   CancelSQL = 'cancel-sql',
   GetConnections = 'get-connections',
+  GetDatabases = 'get-databases',
   GetSchemata = 'get-schemata',
   GetSchemas = 'get-schemas',
   GetTables = 'get-tables',

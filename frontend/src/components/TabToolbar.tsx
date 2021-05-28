@@ -12,7 +12,7 @@ import { apiPost } from "../store/api";
 import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
-import { Ace, Range } from "ace-builds";
+import { Ace } from "ace-builds";
 
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
@@ -24,6 +24,7 @@ export const cancelSQL = async (tab: State<Tab>) => {
   let data1 = {
     id: tab.query.id.get(),
     conn: connection.name.get(),
+    database: connection.database.get(),
     tab: tab.id.get(),
     wait: true,
   }
@@ -52,6 +53,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   let data1 = {
     id: new_ts_id('query.'),
     conn: connection.name.get(),
+    database: connection.database.get(),
     text: sql.trim(),
     time: (new Date()).getTime(),
     tab: childTab.id,

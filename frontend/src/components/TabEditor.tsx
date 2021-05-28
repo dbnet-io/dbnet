@@ -8,7 +8,6 @@ import "ace-builds/src-noconflict/mode-pgsql";
 import "ace-builds/src-noconflict/theme-textmate";
 import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
-import ace from "react-ace";
 import { sum } from "lodash";
 import { getTabState } from "./TabNames";
 
@@ -66,7 +65,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
     },
     {
       name: 'object',
-      bindKey: { win: "Shift-Space", mac: "Shift-Space" },
+      bindKey: { win: "F4", mac: "F4" },
       exec: (editor: Ace.Editor, args?: any) => getDefinition(),
     },
     {

@@ -17,6 +17,7 @@ import (
 // SchemaTable represent a schema table/view
 type SchemaTable struct {
 	Conn       string    `json:"conn" gorm:"primaryKey"`
+	Database   string    `json:"database"  gorm:"primaryKey"`
 	SchemaName string    `json:"schema_name" gorm:"primaryKey"`
 	TableName  string    `json:"table_name" gorm:"primaryKey"`
 	IsView     bool      `json:"is_view"`
@@ -27,6 +28,7 @@ type SchemaTable struct {
 // TableColumn is a table/view column
 type TableColumn struct {
 	Conn        string    `json:"conn" gorm:"primaryKey"`
+	Database    string    `json:"database"  gorm:"primaryKey"`
 	SchemaName  string    `json:"schema_name" gorm:"primaryKey"`
 	TableName   string    `json:"table_name" gorm:"primaryKey"`
 	Name        string    `json:"name" gorm:"primaryKey"`
@@ -78,6 +80,7 @@ func (r Rows) Value() (driver.Value, error) {
 type Query struct {
 	ID        string        `json:"id" query:"id" gorm:"primaryKey"`
 	Conn      string        `json:"conn" query:"conn" gorm:"index"`
+	Database  string        `json:"database" query:"database" gorm:"index"`
 	Tab       string        `json:"tab" query:"tab"`
 	Text      string        `json:"text" query:"text"`
 	Time      int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
@@ -146,6 +149,7 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 
 	Sync("queries", q)
 
+	g.Debug("submitting %s\n%s\n---------------------------------------------------------------------", q.ID, q.Text)
 	q.Result, err = conn.Db().QueryxContext(q.Context.Ctx, q.Text)
 	if err != nil {
 		setError(err)
@@ -211,6 +215,11 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 
 // FetchRows returns a dataset based on a number of rows
 func (q *Query) FetchRows() (data iop.Dataset, err error) {
+	if q.Err != "" {
+		err = g.Error(q.Err)
+		return
+	}
+
 	data = iop.NewDataset(q.Columns)
 
 	nextFunc := func(it *iop.Iterator) bool {
@@ -262,6 +271,10 @@ func (q *Query) FetchRows() (data iop.Dataset, err error) {
 }
 
 func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
+	if q.Err != "" {
+		err = g.Error(q.Err)
+		return
+	}
 
 	// fetch rows
 	data, err := q.FetchRows()

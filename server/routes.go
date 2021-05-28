@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
@@ -31,16 +32,44 @@ func GetConnections(c echo.Context) (err error) {
 	return c.JSON(http.StatusOK, g.M("conns", conns))
 }
 
+func GetDatabases(c echo.Context) (err error) {
+	req := Request{}
+	if err = c.Bind(&req); err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid get databases request")
+	}
+
+	rf := func(c database.Connection, req Request) (data iop.Dataset, err error) {
+		sql, ok := c.Template().Metadata["databases"]
+		if !ok {
+			err = g.Error("no template found for getting databases for %s", c.GetType())
+			return
+		}
+		data, err = c.Query(sql)
+		if err != nil {
+			err = g.Error(err, "could not query databases")
+			return
+		}
+		return
+	}
+
+	data, err := ProcessRequest(req, rf)
+	if err != nil {
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get databases")
+	}
+
+	return c.JSON(http.StatusOK, data.ToJSONMap())
+}
+
 func GetSchemata(c echo.Context) (err error) {
 	req := Request{}
 	if err = c.Bind(&req); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get schemata request")
 	}
 
-	rf := func(c *Connection, req Request) (iop.Dataset, error) {
+	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
 		schemaTables := []store.SchemaTable{}
 		load := func() error {
-			err := store.Db.Where("conn = ?", strings.ToLower(req.Conn)).
+			err := store.Db.Where("conn = ? and database =?", strings.ToLower(req.Conn), strings.ToLower(req.Database)).
 				Order("schema_name, table_name").
 				Find(&schemaTables).Error
 			if err != nil {
@@ -51,7 +80,7 @@ func GetSchemata(c echo.Context) (err error) {
 
 		err := load()
 		if len(schemaTables) == 0 || req.Procedure == "refresh" {
-			err = LoadSchemata(req.Conn)
+			err = LoadSchemata(req.Conn, req.Database)
 			if err != nil {
 				return iop.Dataset{}, g.Error(err, "could not get schemata")
 			}
@@ -87,8 +116,8 @@ func GetSchemas(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get schemata request")
 	}
 
-	rf := func(c *Connection, req Request) (iop.Dataset, error) {
-		return c.DbConn.GetSchemas()
+	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
+		return c.GetSchemas()
 	}
 
 	data, err := ProcessRequest(req, rf)
@@ -105,9 +134,9 @@ func GetTables(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get tables request")
 	}
 
-	rf := func(c *Connection, req Request) (data iop.Dataset, err error) {
+	rf := func(c database.Connection, req Request) (data iop.Dataset, err error) {
 		data = iop.NewDataset(iop.NewColumnsFromFields("name", "is_view"))
-		tablesData, err := c.DbConn.GetTables(req.Schema)
+		tablesData, err := c.GetTables(req.Schema)
 		if err != nil {
 			err = g.Error(err, "could not get tables")
 			return
@@ -116,7 +145,7 @@ func GetTables(c echo.Context) (err error) {
 			data.Append(iop.Row(r[0], false))
 		}
 
-		viewsData, err := c.DbConn.GetViews(req.Schema)
+		viewsData, err := c.GetViews(req.Schema)
 		if err != nil {
 			err = g.Error(err, "could not get views")
 			return
@@ -130,6 +159,7 @@ func GetTables(c echo.Context) (err error) {
 		for i, r := range data.Rows {
 			schemaTables[i] = store.SchemaTable{
 				Conn:       strings.ToLower(req.Conn),
+				Database:   strings.ToLower(req.Database),
 				SchemaName: strings.ToLower(req.Schema),
 				TableName:  strings.ToLower(cast.ToString(r[0])),
 				IsView:     cast.ToBool(r[1]),
@@ -137,7 +167,7 @@ func GetTables(c echo.Context) (err error) {
 		}
 
 		if len(schemaTables) > 0 {
-			Sync("schema_tables", &schemaTables, "conn", "schema_name", "table_name", "is_view")
+			Sync("schema_tables", &schemaTables, "conn", "database", "schema_name", "table_name", "is_view")
 		}
 
 		return data, nil
@@ -158,17 +188,17 @@ func GetColumns(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get tables request")
 	}
 
-	rf := func(c *Connection, req Request) (data iop.Dataset, err error) {
+	rf := func(c database.Connection, req Request) (data iop.Dataset, err error) {
 		tableColumns := []store.TableColumn{}
 		store.Db.
-			Where(`conn = ? and schema_name = ? 
-			and table_name = ?`, strings.ToLower(req.Conn),
+			Where(`conn = ? and database = ? and schema_name = ? 
+			and table_name = ?`, strings.ToLower(req.Conn), strings.ToLower(req.Database),
 				strings.ToLower(req.Schema), strings.ToLower(req.Table)).
 			Order("id").Find(&tableColumns)
 
 		if len(tableColumns) == 0 || req.Procedure == "refresh" {
 			table := g.F("%s.%s", req.Schema, req.Table)
-			data, err = c.DbConn.GetColumnsFull(table)
+			data, err = c.GetColumnsFull(table)
 			if err != nil {
 				err = g.Error(err, "could not get columns")
 				return
@@ -179,6 +209,7 @@ func GetColumns(c echo.Context) (err error) {
 			for i, r := range data.Rows {
 				tableColumns[i] = store.TableColumn{
 					Conn:       strings.ToLower(req.Conn),
+					Database:   strings.ToLower(req.Database),
 					SchemaName: strings.ToLower(req.Schema),
 					TableName:  strings.ToLower(req.Table),
 					Name:       strings.ToLower(cast.ToString(r[2])),
@@ -192,7 +223,7 @@ func GetColumns(c echo.Context) (err error) {
 			if len(tableColumns) > 0 {
 				Sync(
 					"table_columns", &tableColumns, "conn",
-					"schema_name", "table_name",
+					"database", "schema_name", "table_name",
 					"name", "id", "type", "precision", "scale",
 				)
 			} else {
@@ -225,12 +256,12 @@ func GetAnalysisSQL(c echo.Context) (err error) {
 	}
 
 	// get connection
-	conn, err := GetConn(req.Conn)
+	conn, err := GetConn(req.Conn, req.Database)
 	if err != nil {
 		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", req.Conn)
 	}
 
-	template, ok := conn.DbConn.Template().Analysis[req.Procedure]
+	template, ok := conn.Template().Analysis[req.Procedure]
 	if !ok {
 		err = g.Error("did not find Analysis: " + req.Procedure)
 		return g.ErrJSON(http.StatusNotFound, err)
@@ -293,14 +324,8 @@ func GetSQLRows(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
 	}
 
-	// get connection
-	conn, err := GetConn(q.Conn)
-	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", q.Conn)
-	}
-
 	mux.Lock()
-	query, ok := conn.Queries[q.ID]
+	query, ok := Queries[q.ID]
 	mux.Unlock()
 
 	if !ok {
@@ -346,14 +371,8 @@ func PostCancelQuery(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid cancel query request")
 	}
 
-	// get connection
-	conn, err := GetConn(query.Conn)
-	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", query.Conn)
-	}
-
 	mux.Lock()
-	q, ok := conn.Queries[query.ID]
+	q, ok := Queries[query.ID]
 	mux.Unlock()
 	if !ok {
 		err = g.Error("could not find query %s", query.ID)
@@ -370,7 +389,7 @@ func PostCancelQuery(c echo.Context) (err error) {
 	Sync("queries", query, "status")
 
 	mux.Lock()
-	delete(conn.Queries, query.ID)
+	delete(Queries, query.ID)
 	mux.Unlock()
 
 	return c.JSON(http.StatusOK, g.ToMap(query))
@@ -389,16 +408,11 @@ func PostSubmitQuery(c echo.Context) (err error) {
 
 	if c.Request().Header.Get("DbNet-Continue") != "" {
 		// pick up where left off
-		// get connection
-		conn, err := GetConn(query.Conn)
-		if err != nil {
-			return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", query.Conn)
-		}
 
 		mux.Lock()
 		var ok bool
 		qId := query.ID
-		query, ok = conn.Queries[query.ID]
+		query, ok = Queries[query.ID]
 		mux.Unlock()
 		if !ok {
 			return g.ErrJSON(http.StatusInternalServerError, g.Error("could not find query %s to continue", qId))

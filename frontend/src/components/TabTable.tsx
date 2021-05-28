@@ -57,6 +57,7 @@ export const fetchRows = async (tabState: State<Tab>) => {
   let data1 = {
     id: tab.query.id.get(),
     conn: tab.query.conn.get(),
+    database: tab.query.database.get(),
     text: tab.query.text.get(),
     pulled: tab.query.pulled.get(),
     time: (new Date()).getTime(),
