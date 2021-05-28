@@ -10,7 +10,7 @@ import { toastError } from "../utilities/methods";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { ObjectString } from "../utilities/interfaces";
-import { GetSchemata } from "./SchemaPanel";
+import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
 
 
@@ -282,7 +282,3 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     />
   );
 };
-
-function GetDatabases(arg0: string) {
-  throw new Error("Function not implemented.");
-}
