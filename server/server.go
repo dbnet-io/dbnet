@@ -45,6 +45,7 @@ const (
 	RouteGetCachedResult RouteName = "/get-cached-result"
 	RouteLoadSession     RouteName = "/load-session"
 	RouteSaveSession     RouteName = "/save-session"
+	RouteFileOperation   RouteName = "/file-operation"
 )
 
 func (r RouteName) String() string {
@@ -88,6 +89,7 @@ func NewServer() *Server {
 	e.POST(RouteSubmitSQL.String(), PostSubmitQuery)
 	e.POST(RouteCancelSQL.String(), PostCancelQuery)
 	e.POST(RouteSaveSession.String(), PostSaveSession)
+	e.POST(RouteFileOperation.String(), PostFileOperation)
 
 	port := os.Getenv("DBNET_PORT")
 	if port == "" {

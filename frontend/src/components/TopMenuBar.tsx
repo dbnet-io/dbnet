@@ -9,9 +9,10 @@ import { loadMetaTable } from "./MetaTablePanel";
 import { toastError } from "../utilities/methods";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
-import { ObjectString } from "../utilities/interfaces";
+import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
+import _ from "lodash";
 
 
 const store = accessStore()
@@ -72,19 +73,21 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     apiGet(MsgType.GetConnections, {}).then(
       resp => {
         if(resp.error) return toastError(resp.error)
-        store.app.connections.set(resp.data.conns)
+        let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
+        store.app.connections.set(conns)
         items[0].set({
           label: 'Connections',
           icon: 'pi pi-fw pi-sitemap',
-          items: resp.data.conns.map((c: string) => {
+          items: conns.map((c) => {
             return {
-              label: c,
+              label: c.name,
               command: () => { 
-                globalStore.loadSession(c).then(async () => {
+                globalStore.loadSession(c.name).then(async () => {
+                  if(c.database) store.connection.database.set(c.database)
                   await GetDatabases(store.connection.name.get())
                   await GetSchemata(store.connection.name.get(), store.connection.database.get())
                 })
-                localStorage.setItem("_connection_name", c)
+                localStorage.setItem("_connection_name", c.name)
               },
             }
           }),
@@ -174,23 +177,32 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     }, []) // eslint-disable-line
 
     const searchTable = (e: any) => {
-      let query = e.query.trim() as string
-      if (!query.length) {
+      let queryStr = e.query.trim() as string
+      if (!queryStr.length) {
         return []
       }
-
+      
       let recents = recentSearches.get()
-
+      let queries = queryStr.split(' ')
       let results: string[] = []
       for(let key of Object.keys(recents)) {
-        if(key.toString().includes(query.toLowerCase())){
+        let found : boolean[] = queries.map(v => false)
+        for (let i = 0; i < queries.length; i++) {
+          const query = queries[i];
+          found[i] = key.toString().includes(query.toLowerCase())
+        }
+        if(found.every(v => v)){
           results.push(key.toString())
         }
       }
 
       for (let table of getAllTables()) {
-        if (table.toLowerCase().includes(query.toLowerCase())) {
-          if(table.toLowerCase() in recents) continue
+        let found : boolean[] = queries.map(v => false)
+        for (let i = 0; i < queries.length; i++) {
+          const query = queries[i];
+          found[i] = table.toLowerCase().includes(query.toLowerCase())
+        }
+        if(found.every(v => v)){
           results.push(table)
         }
       }

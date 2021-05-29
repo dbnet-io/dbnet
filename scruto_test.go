@@ -24,6 +24,8 @@ var (
 func TestAll(t *testing.T) {
 	go srv.EchoServer.Start(":" + srv.Port)
 	time.Sleep(1 * time.Second)
+	testFileOps(t)
+	return
 	testSubmitSQL(t)
 	testGetConnections(t)
 	testGetSchemas(t)
@@ -292,4 +294,52 @@ func testGetHistory(t *testing.T) {
 		return
 	}
 	assert.Greater(t, len(cast.ToSlice(data["history"])), 1)
+}
+
+func testFileOps(t *testing.T) {
+	body := "12345/no"
+
+	// SAVE
+	m := g.M(
+		"operation", server.OperationWrite,
+		"path", "/tmp/hello.txt",
+		"body", body,
+	)
+	data, err := postRequest(server.RouteFileOperation, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+
+	// LIST
+	m = g.M(
+		"operation", server.OperationList,
+		"path", "/tmp/",
+	)
+	data, err = postRequest(server.RouteFileOperation, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+	items := cast.ToSlice(data["items"])
+	assert.Greater(t, len(items), 0)
+
+	// OPEN
+	m = g.M(
+		"operation", server.OperationRead,
+		"path", "/tmp/hello.txt",
+	)
+	data, err = postRequest(server.RouteFileOperation, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+	assert.EqualValues(t, body, data["body"])
+
+	// DELETE
+	m = g.M(
+		"operation", server.OperationDelete,
+		"path", "/tmp/hello.txt",
+	)
+	data, err = postRequest(server.RouteFileOperation, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
 }

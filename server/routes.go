@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -23,11 +22,14 @@ func GetConnections(c echo.Context) (err error) {
 
 	loadConnections()
 
-	conns := []string{}
-	for k := range Connections {
-		conns = append(conns, k)
+	conns := g.M()
+	for k, conn := range Connections {
+		conns[k] = g.M(
+			"name", conn.Conn.Info().Name,
+			"type", conn.Conn.Info().Type,
+			"database", conn.Conn.Info().Database,
+		)
 	}
-	sort.Strings(conns)
 
 	return c.JSON(http.StatusOK, g.M("conns", conns))
 }
@@ -489,4 +491,34 @@ func PostSaveSession(c echo.Context) (err error) {
 	}
 
 	return c.JSON(200, g.M())
+}
+
+// PostFileOperation operates with the file system
+func PostFileOperation(c echo.Context) (err error) {
+	req := FileRequest{}
+	if err = c.Bind(&req); err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "could not unmarshal file request")
+	}
+
+	data := g.M()
+	switch req.Operation {
+	case OperationList:
+		var items []FileItem
+		items, err = req.List()
+		data["items"] = items
+	case OperationRead:
+		var body string
+		body, err = req.Read()
+		data["body"] = body
+	case OperationWrite:
+		err = req.Write()
+	case OperationDelete:
+		err = req.Delete()
+	}
+	if err != nil {
+		err = g.Error(err, "error performing %s", req.Operation)
+		return g.ErrJSON(http.StatusInternalServerError, err)
+	}
+
+	return c.JSON(200, data)
 }

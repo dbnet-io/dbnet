@@ -150,7 +150,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         itemTemplate={ItemTemplate}
         style={{width: '100%'}}
         listStyle={{
-          minHeight:'150px', 
+          minHeight:`${(window.innerHeight - 175)/3*2}px`, 
           maxHeight: `${(window.innerHeight - 175)/3*2}px`,
           fontSize: '12px',
         }}
@@ -159,6 +159,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <InputTextarea
           style={{
             fontSize:'11px', fontFamily:'monospace',
+            minHeight: `${(window.innerHeight - 175)/3*1}px`,
             maxHeight: `${(window.innerHeight - 175)/3*1}px`,
           }}
           value={selectedQuery.get().text} 

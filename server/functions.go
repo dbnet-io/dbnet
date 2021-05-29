@@ -288,7 +288,9 @@ func GetConn(connName, databaseName string) (conn database.Connection, err error
 	for k, v := range c.Conn.Data {
 		data[k] = v
 	}
-	data["database"] = databaseName
+	if databaseName != "" {
+		data["database"] = strings.ToLower(databaseName)
+	}
 	delete(data, "url")
 	delete(data, "schema")
 	connObj, err := connection.NewConnectionFromMap(g.M("name", c.Conn.Name, "data", data, "type", c.Conn.Type))

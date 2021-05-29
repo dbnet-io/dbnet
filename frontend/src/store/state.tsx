@@ -421,7 +421,7 @@ export class AppState {
   version: number
   tableHeight: number
   tableWidth: number
-  connections: string[]
+  connections: ObjectAny[]
   selectedMetaTab: string
   recentOmniSearches:  { [key: string]: number; }
   constructor(data: ObjectAny = {}) {
