@@ -5,6 +5,7 @@ import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { MetaTablePanel } from "../components/MetaTablePanel";
 import { useState } from "@hookstate/core";
+import { ProjectPanel } from "../components/ProjectPanel";
 
 
 interface Props {}
@@ -12,7 +13,7 @@ interface Props {}
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const tabOptions = useState<string[]>(['Schema', 'Object', 'History'])
+  const tabOptions = useState<string[]>(['Project', 'Schema', 'Object', 'History'])
   const tabValue = useStoreApp().selectedMetaTab
   // const tabValue = useStore().selectedMetaTab
 
@@ -35,6 +36,10 @@ export const LeftPane: React.FC<Props> = (props) => {
           style={{width: '100%'}}
         />
       </div>
+          { 
+            tabValue.get() === "Project" ?
+            <ProjectPanel/> : null
+          }
           { 
             tabValue.get() === "Schema" ?
             <SchemaPanel/> : null

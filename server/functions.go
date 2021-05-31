@@ -21,6 +21,7 @@ import (
 var (
 	// Connections is all connections
 	Connections  = map[string]*Connection{}
+	DbtServers   = map[string]*DbtServer{}
 	Queries      = map[string]*store.Query{}
 	mux          sync.Mutex
 	defaultLimit = 100
@@ -46,60 +47,58 @@ type Request struct {
 	Data      interface{} `json:"data" query:"data"`
 }
 
-func init() {
-
-	loadConnections()
-
-	// for key, val := range g.KVArrToMap(os.Environ()...) {
-	// 	if !strings.Contains(val, ":/") {
-	// 		continue
-	// 	}
-	// 	conn, err := connection.NewConnectionFromURL(key, val)
-	// 	if err != nil {
-	// 		continue
-	// 	}
-	// 	Connections[key] = &Connection{Conn: &conn, Queries: map[string]*store.Query{}, Props: map[string]string{}}
-	// }
-}
-
-// func (c *Connection) Databases() (dbs []string, err error) {
-
-// }
-
 // DefaultDB returns the default database
 func (c *Connection) DefaultDB() string {
 	return c.Conn.Info().Database
 }
 
-func loadConnections() (err error) {
-	Connections, err = LoadProfile(HomeDir + "/profile.yaml")
-	return err
+func LoadConnections() (err error) {
+	eG := g.ErrorGroup{}
+	HomeDir = os.Getenv("DBNET_DIR")
+
+	Connections, err = ReadConnections()
+	eG.Capture(err)
+
+	DbtConnections, err := ReadDbtConnections()
+	eG.Capture(err)
+
+	for k, conn := range DbtConnections {
+		Connections[k] = conn
+	}
+
+	if eG.Err() != nil {
+		return eG.Err()
+	}
+
+	return
 }
 
-// LoadProfile loads the profile from the `profile.yaml` file in the home dir
-func LoadProfile(path string) (conns map[string]*Connection, err error) {
+// ReadConnections loads the connections
+func ReadConnections() (conns map[string]*Connection, err error) {
 	conns = map[string]*Connection{}
+	path := HomeDir + "/.dbnet.yaml"
+
 	profile := map[string]map[string]interface{}{}
 	file, err := os.Open(path)
 	if err != nil {
-		err = g.Error(err, "error reading profile")
+		err = g.Error(err, "error reading from yaml")
 		return
 	}
 
 	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		err = g.Error(err, "error reading profile bytes")
+		err = g.Error(err, "error reading bytes from yaml")
 		return
 	}
 
 	err = yaml.Unmarshal(bytes, profile)
 	if err != nil {
-		err = g.Error(err, "error parsing profile string")
+		err = g.Error(err, "error parsing yaml string")
 		return
 	}
 
-	if dbs, ok := profile["databases"]; ok {
-		for name, v := range dbs {
+	if connections, ok := profile["connections"]; ok {
+		for name, v := range connections {
 			switch v.(type) {
 			case map[string]interface{}:
 				data := v.(map[string]interface{})
@@ -118,12 +117,73 @@ func LoadProfile(path string) (conns map[string]*Connection, err error) {
 					Conn:  &conn,
 					Props: map[string]string{},
 				}
-				g.Trace("found in profile: " + name)
+				g.Trace("found connection from YAML: " + name)
 			default:
 				g.Warn("did not handle %s", name)
 			}
 		}
 	}
+	return
+}
+
+func ReadDbtConnections() (conns map[string]*Connection, err error) {
+	conns = map[string]*Connection{}
+
+	profileDir := strings.TrimSuffix(os.Getenv("DBT_PROFILES_DIR"), "/")
+	if profileDir == "" {
+		profileDir = g.UserHomeDir() + "/.dbt"
+	}
+	path := profileDir + "/profiles.yml"
+	if !g.PathExists(path) {
+		return
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		err = g.Error(err, "error reading from yaml: %s", path)
+		return
+	}
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		err = g.Error(err, "error reading bytes from yaml: %s", path)
+		return
+	}
+
+	type ProfileConn struct {
+		Target  string           `json:"target" yaml:"target"`
+		Outputs map[string]g.Map `json:"outputs" yaml:"outputs"`
+	}
+
+	dbtProfile := map[string]ProfileConn{}
+	err = yaml.Unmarshal(bytes, &dbtProfile)
+	if err != nil {
+		err = g.Error(err, "error parsing yaml string")
+		return
+	}
+
+	for pName, pc := range dbtProfile {
+		for target, data := range pc.Outputs {
+			connName := strings.ToUpper(pName + "/" + target)
+			data["dbt"] = true
+
+			conn, err := connection.NewConnectionFromMap(
+				g.M("name", connName, "data", data, "type", data["type"]),
+			)
+			if err != nil {
+				g.Warn("could not load dbt connection %s", connName)
+				g.LogError(err)
+				continue
+			}
+
+			conns[connName] = &Connection{
+				Conn:  &conn,
+				Props: map[string]string{},
+			}
+			g.Trace("found connection from dbt profiles YAMML: " + connName)
+		}
+	}
+
 	return
 }
 

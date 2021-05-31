@@ -142,6 +142,9 @@ export class Tab {
   parent: string | undefined
   selectedChild: string
   hidden: boolean
+  file: FileItem | undefined
+  connection: string
+  database: string
   
   rowView: RowView
   showSql: boolean
@@ -167,6 +170,9 @@ export class Tab {
     this.lastTableSelection = data.lastTableSelection || [0,0,0,0]
     this.parent = data.parent
     this.selectedChild = data.selectedChild
+    this.file = data.file
+    this.connection = data.connection
+    this.database = data.database
 
     let parent_name = getParentTabName(this.parent || '')
     this.id = data.id || new_ts_id(`tab-${this.name || parent_name}.`)
@@ -421,6 +427,7 @@ export class AppState {
   version: number
   tableHeight: number
   tableWidth: number
+  homeDir: string
   connections: ObjectAny[]
   selectedMetaTab: string
   recentOmniSearches:  { [key: string]: number; }
@@ -428,7 +435,8 @@ export class AppState {
     this.version = 0.1
     this.tableHeight = 1100
     this.tableWidth = 1100
-    this.connections = data.connections || []
+    this.connections = []
+    this.homeDir = ''
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
     this.recentOmniSearches = data.recentOmniSearches || {}
   }
@@ -502,6 +510,56 @@ export function useVariable<S>(initialState: S | (() => S)): Variable<S> {
     set: setValue,
     put: putValue,
   }
+}
+
+export interface FileItem {
+  name?: string
+  path: string
+  isDir?: boolean
+  modTs?: number
+  body?: string
+}
+
+export interface DbtProject {
+  'name': string
+  'version': string
+  'config-version': number
+  'profile': string
+  'source-paths': string[]
+  'analysis-paths': string[]
+  'test-paths': string[]
+  'data-paths': string[]
+  'macro-paths': string[]
+  'snapshot-paths': string[]
+  'target-path': string
+  'clean-targets': string[]
+  'vars': ObjectAny
+  'models': ObjectAny
+}
+
+class ProjectPanelState {
+  rootPath: string
+  selectedItem: FileItem
+  fileNodes: TreeNode[]
+  expandedNodes: ObjectAny
+  selectedNodes: ObjectAny
+  loading: boolean
+  dbtProject?: DbtProject
+  dbtProfile?: string
+  dbtTarget: string
+
+  constructor(data: ObjectAny = {}) {
+    this.rootPath = data.rootPath || ''
+    this.selectedItem = data.selectedItem || {}
+    this.fileNodes = data.fileNodes || []
+    this.loading = data.loading || false
+    this.expandedNodes = data.expandedNodes || {}
+    this.selectedNodes = data.selectedNodes || {}
+    this.dbtProject = data.dbtProject
+    this.dbtProfile = data.dbtProfile
+    this.dbtTarget = data.dbtTarget || 'dev'
+  }
+
 }
 
 class SchemaPanelState {
@@ -620,6 +678,7 @@ class GlobalStore {
   app: State<AppState>
   connection: State<Connection>
   queryPanel: State<QueryPanelState>
+  projectPanel: State<ProjectPanelState>
   schemaPanel: State<SchemaPanelState>
   objectPanel: State<ObjectPanelState>
   historyPanel: State<HistoryPanelState>
@@ -628,6 +687,7 @@ class GlobalStore {
   constructor(data: ObjectAny = {}) {
     this.app = createState(new AppState(data.app))
     this.connection = createState(new Connection(data.connection))
+    this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
     this.queryPanel = createState(new QueryPanelState(data.queryPanel))
@@ -643,6 +703,7 @@ class GlobalStore {
       data: {
         app: jsonClone(this.app.get().payload()),
         connection: jsonClone(this.connection.get().payload()),
+        projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
         schemaPanel: jsonClone(this.schemaPanel.get()),
         objectPanel: jsonClone(this.objectPanel.get()),
@@ -668,15 +729,12 @@ class GlobalStore {
       let resp = await apiGet(MsgType.LoadSession, payload)
       if(resp.error) throw new Error(resp.error)
       let data = resp.data
-      this.app.set(new AppState(data.app))
-      // let connection = new Connection(data.connection)
-      // this.connection.name.set(connection.name)
-      // this.connection.type.set(connection.type)
-      // this.connection.data.set(connection.data)
-      // this.connection.schemas.set(connection.schemas)
-      // this.connection.history.set(connection.history)
+      let app = new AppState(data.app)
+      this.app.selectedMetaTab.set(app.selectedMetaTab)
+      this.app.recentOmniSearches.set(app.recentOmniSearches)
       this.connection.set(new Connection(data.connection))
       this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      this.projectPanel.set(new ProjectPanelState(data.projectPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))
       this.historyPanel.set(new HistoryPanelState(data.historyPanel))
@@ -720,6 +778,7 @@ export const accessStore = () => {
   
   const app = wrap<AppState>(globalStore.app)
   const connection = wrap<Connection>(globalStore.connection)
+  const projectPanel = wrap<ProjectPanelState>(globalStore.projectPanel)
   const schemaPanel = wrap<SchemaPanelState>(globalStore.schemaPanel)
   const objectPanel = wrap<ObjectPanelState>(globalStore.objectPanel)
   const queryPanel = wrap<QueryPanelState>(globalStore.queryPanel)
@@ -729,6 +788,7 @@ export const accessStore = () => {
   return ({
     get app() { return app },
     get connection() { return connection },
+    get projectPanel() { return projectPanel },
     get schemaPanel() { return schemaPanel },
     get objectPanel() { return objectPanel },
     get queryPanel() { return queryPanel },

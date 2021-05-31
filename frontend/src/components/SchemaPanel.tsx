@@ -82,23 +82,23 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const databases = useHS(connection.databases)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
-
-  React.useEffect(()=>{
-
-  },[])
-
-
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const getDatabaseItems = () => {
-    return databases.get().map(name => { 
+    return databases.get().map((name) : MenuItem => { 
       name = name.toUpperCase()
       return { 
         label: name,
         // icon: 'pi pi-times',
-        command: () => {
+        command: async () => {
           store.connection.database.set(name)
-          GetSchemata(connection.name.get(), connection.database.get())
+          await GetSchemata(connection.name.get(), connection.database.get())
+          await globalStore.saveSession()
+        },
+        template: (item, options) => {
+          return <a href="#" role="menuitem" className="p-menuitem-link" aria-haspopup="false">
+            <span className="p-menuitem-text" style={{fontSize: '0.7rem'}}>{item.label}</span>
+          </a>
         },
       }
     })

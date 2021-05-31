@@ -179,3 +179,11 @@ font-size: 9px !important;
   background:rgba(100,200,100,0.5);
   z-index:20
 }
+
+#work-pane {
+  z-index: 5;
+}
+
+#top-menu-bar > ul > li > ul {
+  z-index: 10;
+}

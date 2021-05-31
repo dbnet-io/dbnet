@@ -11,15 +11,19 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import { WsQueue } from './store/websocket';
-import { accessStore, globalStore } from './store/state';
-import { jsonClone } from './utilities/methods';
+import { MsgType, WsQueue } from './store/websocket';
+import { accessStore, globalStore, useHS } from './store/state';
+import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
+import { Dialog } from 'primereact/dialog';
+import { ListBox } from 'primereact/listbox';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { GetDatabases, GetSchemata } from './components/SchemaPanel';
+import { apiGet } from './store/api';
+import { Button } from 'primereact/button';
 
 // this is to extends the window global functions
 declare global {
@@ -39,25 +43,48 @@ export const App = () => {
   window.callbacks = {}
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
   const store = accessStore()
-  // const ws = useState(globalState.ws)
+  const chooseConnection = useHS(false)
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
   
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
-    // last connection
-    let last_conn = localStorage.getItem("_connection_name")
-    if(last_conn) store.connection.name.set(last_conn)
-
-    // init load session
-    globalStore.loadSession(store.connection.name.get()).then(async () => {
-      await GetDatabases(store.connection.name.get())
-      await GetSchemata(store.connection.name.get(), store.connection.database.get())
-    })
+    Init()
   }, [])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
+
+  const Init = async () => {
+
+    // get all connections
+    let resp = await apiGet(MsgType.GetConnections, {})
+    if(resp.error) return toastError(resp.error)
+    let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
+    store.app.connections.set(conns)
+    if(conns.length === 0) {
+      // need to create connections
+      toastInfo('Did not find any connections.')
+      return
+    }
+
+    // last connection
+    let last_conn = localStorage.getItem("_connection_name")
+    let found = store.app.connections.get().map(c => (c.name as string).toLowerCase()).includes(last_conn?.toLowerCase()||'')
+    if(last_conn && found) store.connection.name.set(last_conn)
+    else {
+      // if none detected/found, prompt to choose
+      chooseConnection.set(true)
+      return
+    }
+
+    // init load session
+    await globalStore.loadSession(store.connection.name.get())
+
+    await GetDatabases(store.connection.name.get())
+    await GetSchemata(store.connection.name.get(), store.connection.database.get())
+  }
+  
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
   const [debounceRefresh] = React.useState(() => _.debounce(() => refresh(), 400));
 
@@ -73,6 +100,55 @@ export const App = () => {
   }
 
   ///////////////////////////  JSX  ///////////////////////////
+  const ConnectionChooser = () => {
+    const connSelected = useHS('')
+    const dbtConns = () : string[] => store.app.connections.get().filter(c => c.dbt).map(c => c.name)
+    const footer = () => {
+      return <div style={{textAlign: 'center'}}>
+          <Button label="OK" icon="pi pi-check" onClick={() => {
+            localStorage.setItem("_connection_name", connSelected.get())
+            chooseConnection.set(false)
+            Init()
+          }} 
+          className="p-button-text" />
+      </div>
+    }
+
+    const itemTemplate = (option: any) => {
+      return <>
+        {option}
+        {
+          dbtConns().includes(option) ?
+          <span style={{
+            color:'green', fontSize:'0.6rem',
+            paddingLeft: '10px', marginBottom: '5px',
+          }}
+          >
+            <b>dbt</b>
+          </span>
+          :
+          null
+        }
+      </>
+    }
+
+    return  (
+      <Dialog
+        header="Choose a connection" visible={chooseConnection.get()}
+        footer={footer()} 
+        onHide={() => chooseConnection.set(false)}
+      >
+        <ListBox 
+          value={connSelected.get()}
+          options={store.app.connections.get().map(c => c.name)} 
+          onChange={(e) => connSelected.set(e.value)} 
+          listStyle={{fontFamily:'monospace'}}
+          itemTemplate={itemTemplate}
+          style={{width: '15rem'}} 
+        />
+      </Dialog>
+    )
+  }
 
   return (
     <div
@@ -84,6 +160,7 @@ export const App = () => {
       <Toast ref={toast} />
       <PreviewPanel />
       <RowViewPanel />
+      <ConnectionChooser />
       <div style={{ paddingBottom: '7px' }}>
         <TopMenuBar />
       </div>

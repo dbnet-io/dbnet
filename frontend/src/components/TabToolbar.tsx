@@ -14,6 +14,8 @@ import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Ace } from "ace-builds";
 
+const store = accessStore()
+
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
 )
@@ -42,8 +44,9 @@ export const cancelSQL = async (tab: State<Tab>) => {
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if (!sql) sql = tab.editor.text.get() // get current block
 
-  const connection = accessStore().connection
-  const queryPanel = accessStore().queryPanel
+  const connection = tab.connection.get() || store.connection.name.get()
+  const database = tab.database.get() || store.connection.database.get()
+  const queryPanel = store.queryPanel
 
   // create child tab
   if (!childTab) childTab = createTabChild(tab.get())
@@ -52,8 +55,8 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
 
   let data1 = {
     id: new_ts_id('query.'),
-    conn: connection.name.get(),
-    database: connection.database.get(),
+    conn: connection,
+    database: database,
     text: sql.trim(),
     time: (new Date()).getTime(),
     tab: childTab.id,

@@ -4,11 +4,14 @@ import { SelectButton } from "primereact/selectbutton";
 import { none } from "@hookstate/core";
 import { jsonClone } from "../utilities/methods";
 
-const queryPanel = accessStore().queryPanel
+const store = accessStore()
+const queryPanel = store.queryPanel
 
 export const createTab = (name: string = '', sql = '') => {
-  let name_arr = name.split('.')
-  name = name_arr[name_arr.length-1]
+  if(!name.toLowerCase().endsWith('.sql')) {
+    let name_arr = name.split('.')
+    name = name_arr[name_arr.length-1]
+  }
   let index = queryPanel.get().getTabIndexByName(name)
   if (index > -1) {
     // tab already exists, append sql to bottom, or focus on existing
@@ -33,7 +36,12 @@ export const createTab = (name: string = '', sql = '') => {
     return tab
   }
 
-  let newTab = new Tab({ name, editor: {text: sql} });
+  let newTab = new Tab({ 
+    name, 
+    editor: {text: sql},
+    connection: store.connection.name.get(),
+    database: store.connection.database.get(),
+  });
   let childTab = createTabChild(newTab)
   newTab.selectedChild = childTab.id
   queryPanel.tabs.merge([newTab])
@@ -45,6 +53,8 @@ export const createTabChild = (parent: Tab) => {
   let newTab = new Tab({ 
     parent: parent.id, 
     limit: parent.limit,
+    connection: parent.connection,
+    database: parent.database,
   });
 
   // add new child tab

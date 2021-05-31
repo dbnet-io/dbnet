@@ -10,10 +10,11 @@ import (
 
 func init() {
 	if os.Getenv("DBNET_DIR") == "" {
-		os.Setenv("DBNET_DIR", g.UserHomeDir()+"/.dbnet")
+		os.Setenv("DBNET_DIR", g.UserHomeDir()+"/dbnet")
 		os.MkdirAll(os.Getenv("DBNET_DIR"), 0755)
 	}
 
+	g.LogError(server.LoadConnections())
 	store.InitDB()
 }
 

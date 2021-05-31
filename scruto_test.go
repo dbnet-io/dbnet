@@ -22,10 +22,12 @@ var (
 )
 
 func TestAll(t *testing.T) {
-	go srv.EchoServer.Start(":" + srv.Port)
+	defer srv.Cleanup()
+	go srv.Start()
 	time.Sleep(1 * time.Second)
-	testFileOps(t)
+	testDbtServer(t)
 	return
+	testFileOps(t)
 	testSubmitSQL(t)
 	testGetConnections(t)
 	testGetSchemas(t)
@@ -44,7 +46,7 @@ func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 ma
 	headers := map[string]string{"Content-Type": "application/json"}
 	url := g.F("http://localhost:%s%s", srv.Port, route.String())
 	g.P(url)
-	_, respBytes, err := net.ClientDo("POST", url, strings.NewReader(g.Marshal(data1)), headers, 5)
+	_, respBytes, err := net.ClientDo("POST", url, strings.NewReader(g.Marshal(data1)), headers)
 	if err != nil {
 		err = g.Error(err)
 		return
@@ -192,7 +194,7 @@ func testGetConnections(t *testing.T) {
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	conns := data["conns"].([]interface{})
+	conns := cast.ToStringMap(data["conns"])
 	assert.Greater(t, len(conns), 1)
 }
 
@@ -244,7 +246,7 @@ func testGetColumns(t *testing.T, tableName string) {
 func testSaveSession(t *testing.T) {
 	m := g.M(
 		"id", g.NewTsID(),
-		"conn", "PG_BIONIC",
+		"conn", "PG_BIONIC_TEST",
 		"name", "default",
 		"data", g.M(
 			"test", "ing",
@@ -257,7 +259,7 @@ func testSaveSession(t *testing.T) {
 func testLoadSession(t *testing.T) {
 	m := g.M(
 		"id", g.NewTsID(),
-		"conn", "PG_BIONIC",
+		"conn", "PG_BIONIC_TEST",
 		"name", "default",
 	)
 	data, err := getRequest(server.RouteLoadSession, m)
@@ -297,13 +299,15 @@ func testGetHistory(t *testing.T) {
 }
 
 func testFileOps(t *testing.T) {
-	body := "12345/no"
+	body := "12345\no"
 
 	// SAVE
 	m := g.M(
 		"operation", server.OperationWrite,
-		"path", "/tmp/hello.txt",
-		"body", body,
+		"file", g.M(
+			"path", "/tmp/hello.txt",
+			"body", body,
+		),
 	)
 	data, err := postRequest(server.RouteFileOperation, m)
 	if !g.AssertNoError(t, err) {
@@ -313,7 +317,9 @@ func testFileOps(t *testing.T) {
 	// LIST
 	m = g.M(
 		"operation", server.OperationList,
-		"path", "/tmp/",
+		"file", g.M(
+			"path", "/tmp/",
+		),
 	)
 	data, err = postRequest(server.RouteFileOperation, m)
 	if !g.AssertNoError(t, err) {
@@ -325,21 +331,49 @@ func testFileOps(t *testing.T) {
 	// OPEN
 	m = g.M(
 		"operation", server.OperationRead,
-		"path", "/tmp/hello.txt",
+		"file", g.M(
+			"path", "/tmp/hello.txt",
+		),
 	)
 	data, err = postRequest(server.RouteFileOperation, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-	assert.EqualValues(t, body, data["body"])
+	file := cast.ToStringMap(data["file"])
+	assert.EqualValues(t, body, file["body"])
 
 	// DELETE
 	m = g.M(
 		"operation", server.OperationDelete,
-		"path", "/tmp/hello.txt",
+		"file", g.M(
+			"path", "/tmp/hello.txt",
+		),
 	)
 	data, err = postRequest(server.RouteFileOperation, m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
+}
+
+func testDbtServer(t *testing.T) {
+	id := g.NewTsID()
+	m := g.M(
+		"data", g.M(
+			"profile", "test",
+			"projDir", "/__/tmp/TestDbt",
+			"request", g.M(
+				"id", id,
+				"method", "status",
+				"jsonrpc", "2.0",
+			),
+		),
+	)
+	data, err := postRequest(server.RouteSubmitDbt, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+
+	result := cast.ToStringMap(data["result"])
+	assert.EqualValues(t, id, data["id"])
+	assert.NotEmpty(t, result["pid"])
 }

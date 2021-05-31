@@ -8,7 +8,7 @@ import * as React from "react";
 import { accessStore, globalStore, MetaTable, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
-import { copyToClipboard, data_req_to_records, split_schema_table, toastError } from "../utilities/methods";
+import { copyToClipboard, data_req_to_records, split_schema_table, toastError, toastInfo } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
@@ -75,6 +75,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
     toastError(error)
   }
   objectPanel.table.loading.set(false)
+  // objectPanel.table.show.set(true)
   globalStore.saveSession()
 }
 
@@ -384,29 +385,31 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         />
       </div>
 
-      <div>
-      </div>
-
-      <DataTable
-        value={objectPanel.table.get().rows}
-        loading={objectPanel.table.loading.get()}
-        rowHover={true}
-        scrollable={true}
-        scrollHeight={`${window.innerHeight - 270}px`}
-        resizableColumns={true}
-        className="p-datatable-sm p-datatable-gridlines"
-        style={{fontSize:'10px'}}
-        selection={selected.get()}
-        onSelectionChange={e => selected.set(e.value)} 
-        dataKey="column_name"
-        globalFilter={filter.get()}
+      <div
+        // onMouseEnter={() => toastInfo('hello')}  
       >
-        <Column selectionMode="multiple" headerStyle={{width: '3em'}}></Column>
-        <Column field="id" header="#" headerStyle={{width: '3em', textAlign: 'center'}} bodyStyle={{textAlign:"center"}}/>
-        <Column field="column_name" header="Name"/>
-        <Column field="data_type" header="Type"/>
-        {/* <Column field="length" header="Length"/> */}
-      </DataTable>
+
+        <DataTable
+          value={objectPanel.table.get().rows}
+          loading={objectPanel.table.loading.get()}
+          rowHover={true}
+          scrollable={true}
+          scrollHeight={`${window.innerHeight - 270}px`}
+          resizableColumns={true}
+          className="p-datatable-sm p-datatable-gridlines"
+          style={{fontSize:'10px'}}
+          selection={selected.get()}
+          onSelectionChange={e => selected.set(e.value)} 
+          dataKey="column_name"
+          globalFilter={filter.get()}
+        >
+          <Column selectionMode="multiple" headerStyle={{width: '3em'}}></Column>
+          <Column field="id" header="#" headerStyle={{width: '3em', textAlign: 'center'}} bodyStyle={{textAlign:"center"}}/>
+          <Column field="column_name" header="Name"/>
+          <Column field="data_type" header="Type"/>
+          {/* <Column field="length" header="Length"/> */}
+        </DataTable>
+      </div>
 
       <OverlayPanel ref={op} showCloseIcon id="overlay_panel" style={{width: '150px'}} onHide={() => { showForms.CountOverTime.set(false)}}>
 

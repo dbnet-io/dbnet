@@ -62,51 +62,59 @@ const itemsDefault: MenuItem[] = [
 
 export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const items = useHS(itemsDefault)
-  const connName = useHS(globalStore.connection.name)
+  const connName = useHS(store.connection.name)
+  const connections = useHS(store.app.connections)
   const recentSearches = store.app.recentOmniSearches
 
   ///////////////////////////  EFFECTS  ///////////////////////////
-  React.useEffect(() => {
 
-    // get all connections
-    apiGet(MsgType.GetConnections, {}).then(
-      resp => {
-        if(resp.error) return toastError(resp.error)
-        let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
-        store.app.connections.set(conns)
-        items[0].set({
-          label: 'Connections',
-          icon: 'pi pi-fw pi-sitemap',
-          items: conns.map((c) => {
-            return {
-              label: c.name,
-              command: () => { 
-                globalStore.loadSession(c.name).then(async () => {
-                  if(c.database) store.connection.database.set(c.database)
-                  await GetDatabases(store.connection.name.get())
-                  await GetSchemata(store.connection.name.get(), store.connection.database.get())
-                })
-                localStorage.setItem("_connection_name", c.name)
-              },
-            }
-          }),
-        })
-      }
-    ).catch(
-      error => toastError(error)
-    )
-  }, []) // eslint-disable-line
   ///////////////////////////  FUNCTIONS  ///////////////////////////
+
+  const makeItems = () => {
+    let items = [{
+      label: 'Connections',
+      icon: 'pi pi-fw pi-sitemap',
+      items: connections.get().map((c) : MenuItem => {
+        return {
+          label: c.name,
+          command: () => { 
+            globalStore.loadSession(c.name).then(async () => {
+              if(c.database) store.connection.database.set(c.database)
+              await GetDatabases(store.connection.name.get())
+              await GetSchemata(store.connection.name.get(), store.connection.database.get())
+            })
+            localStorage.setItem("_connection_name", c.name)
+          },
+          template: (item, options) => {
+            return <a href="#" role="menuitem" className="p-menuitem-link" aria-haspopup="false">
+              <span className="p-menuitem-text" style={{fontSize: '0.8rem'}}>{item.label}</span>
+              {
+                c.dbt ?
+                <span style={{paddingLeft: '7px', color: 'green'}}>
+                  <b>dbt</b>
+                </span>
+                :
+                null
+              }
+            </a>
+          },
+        }
+      }),
+    }]
+    return items
+  }
   ///////////////////////////  JSX  ///////////////////////////
 
-  const start = () => <img
-    alt="logo"
-    src={'assets/logo-brand.png'}
-    height="30"
-    className="p-mr-2"
-    style={{ paddingLeft: "20px" }}
-  ></img>
+  const start = () => <div className="p-inputgroup">
+    <img
+      alt="logo"
+      src={'assets/logo-brand.png'}
+      height="30"
+      className="p-mr-2"
+      style={{ paddingLeft: "20px" }}
+    />
+    <OmniBox />
+    </div>
 
   const OmniBox = () => {
     const allTables = useVariable<string[]>([])
@@ -128,7 +136,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         <div className="country-item">
           <div>
             {item}
-            {
+            {/* {
               item in recentSearches.get() ?
               <span
                 style={{
@@ -150,7 +158,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
                 />
               </span>
               : null
-            } 
+            }  */}
           </div>
         </div>
       );
@@ -200,7 +208,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         let found : boolean[] = queries.map(v => false)
         for (let i = 0; i < queries.length; i++) {
           const query = queries[i];
-          found[i] = table.toLowerCase().includes(query.toLowerCase())
+          found[i] = table.toLowerCase().includes(query.toLowerCase()) && !(table.toLowerCase() in recents)
         }
         if(found.every(v => v)){
           results.push(table)
@@ -254,9 +262,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   }
 
   const end = () => <div style={{ paddingRight: "0px" }} className="p-inputgroup">
-    <h3 style={{paddingRight: '8px'}}>{connName.get()}</h3>
+    <h3 style={{paddingRight: '8px', fontFamily: 'monospace'}}>{connName.get()}</h3>
 
-    <OmniBox />
+    {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
 
     <Button
@@ -284,11 +292,12 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       }
     </span> */}
   </div>
-
+  
   return (
     <Menubar
-      style={{ fontSize: '0.8rem', padding: '0' }}
-      model={items.get()}
+      id="top-menu-bar"
+      style={{ fontSize: '0.8rem', padding: '0', zIndex: 77 }}
+      model={makeItems()}
       start={start}
       end={end}
     />

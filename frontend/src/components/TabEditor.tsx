@@ -10,6 +10,7 @@ import { submitSQL } from "./TabToolbar";
 import { loadMetaTable } from "./MetaTablePanel";
 import { sum } from "lodash";
 import { getTabState } from "./TabNames";
+import { Button } from "primereact/button";
 
 
 export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
@@ -159,5 +160,22 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
         tabSize: 2,
         fontSize: "11px"
       }} />
+      
+      <span
+        hidden
+        style={{
+          position: 'absolute',
+          marginLeft: '50px',
+          marginTop: '-150px',
+          zIndex: 999,
+        }}
+      >
+        <Button
+          icon="pi pi-play"
+          className="p-button-rounded p-button-text p-button-success"
+          tooltip="Execute SQL"
+          tooltipOptions={{position: 'top'}}
+        />
+      </span>
   </div>;
 }

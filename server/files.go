@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/flarco/g"
 )
@@ -17,27 +18,30 @@ const (
 	OperationDelete Operation = "delete"
 )
 
-// FileRequest is the typical request struct for file operations
-type FileRequest struct {
-	Operation Operation `json:"operation" query:"operation"`
-	Path      string    `json:"path" query:"path"`
-	Body      string    `json:"body" query:"body"`
-}
-
+// FileItem represents a file
 type FileItem struct {
 	Name  string `json:"name" query:"name"`
 	Path  string `json:"path" query:"path"`
-	IsDir bool   `json:"is_dir" query:"is_dir"`
+	IsDir bool   `json:"isDir" query:"isDir"`
+	ModTs int64  `json:"modTs" query:"modTs"`
+	Body  string `json:"body" query:"body"`
+}
+
+// FileRequest is the typical request struct for file operations
+type FileRequest struct {
+	Operation Operation `json:"operation" query:"operation"`
+	File      FileItem  `json:"file" query:"file"`
+	Overwrite bool      `json:"overwrite" query:"overwrite"`
 }
 
 // Read opens the file
-func (f *FileRequest) Read() (body string, err error) {
-	if f.Path == "" {
+func (f *FileRequest) Read() (file FileItem, err error) {
+	if f.File.Path == "" {
 		err = g.Error("no path specified for open")
 		return
 	}
 
-	path := f.Path
+	path := f.File.Path
 	if g.PathExists(path) {
 		var bytes []byte
 		bytes, err = ioutil.ReadFile(path)
@@ -45,7 +49,11 @@ func (f *FileRequest) Read() (body string, err error) {
 			err = g.Error(err, "unable to read file: %s", path)
 			return
 		}
-		body = string(bytes)
+		s, _ := os.Stat(f.File.Path)
+		file.Name = s.Name()
+		file.Path = path
+		file.Body = string(bytes)
+		file.ModTs = s.ModTime().Unix()
 	} else {
 		err = g.Error("path %s does not exists", path)
 	}
@@ -54,63 +62,72 @@ func (f *FileRequest) Read() (body string, err error) {
 
 // Delete deletes the file
 func (f *FileRequest) Delete() (err error) {
-	if f.Path == "" {
+	if f.File.Path == "" {
 		err = g.Error("no path specified for deleting")
 		return
 	}
 
-	if g.PathExists(f.Path) {
-		err = os.Remove(f.Path)
+	if g.PathExists(f.File.Path) {
+		err = os.Remove(f.File.Path)
 		if err != nil {
-			err = g.Error(err, "unable to delete file: %s", f.Path)
+			err = g.Error(err, "unable to delete file: %s", f.File.Path)
 			return
 		}
 	} else {
-		err = g.Error("path %s does not exists", f.Path)
+		err = g.Error("path %s does not exists", f.File.Path)
 	}
 	return
 }
 
 // Write saves the file
 func (f *FileRequest) Write() (err error) {
-	if f.Path == "" {
+	if f.File.Path == "" {
 		err = g.Error("no path specified for saving")
 		return
 	}
+	if g.PathExists(f.File.Path) {
+		s, _ := os.Stat(f.File.Path)
+		if f.File.ModTs < s.ModTime().Unix() && !f.Overwrite {
+			return g.Error("File was modified by another process. Overwrite?")
+		}
+	}
 
-	err = ioutil.WriteFile(f.Path, []byte(f.Body), 0755)
+	err = ioutil.WriteFile(f.File.Path, []byte(f.File.Body), 0755)
 	if err != nil {
-		err = g.Error(err, "unable to save file %s", f.Path)
+		err = g.Error(err, "unable to save file %s", f.File.Path)
 	}
 	return
 }
 
 // List lists files in a folder
 func (f *FileRequest) List() (items []FileItem, err error) {
-	if f.Path == "" {
+	if f.File.Path == "" {
 		err = g.Error("no path specified for listing")
 		return
 	}
 
-	if g.PathExists(f.Path) {
+	f.File.Path = strings.TrimSuffix(f.File.Path, "/")
+	if g.PathExists(f.File.Path) {
 		var entries []fs.DirEntry
-		entries, err = os.ReadDir(f.Path)
+		entries, err = os.ReadDir(f.File.Path)
 		if err != nil {
-			err = g.Error(err, "unable to read directory %s", f.Path)
+			err = g.Error(err, "unable to read directory %s", f.File.Path)
 			return
 		}
 
 		for _, entry := range entries {
+			path := g.F("%s/%s", f.File.Path, entry.Name())
 			info, _ := entry.Info()
 			item := FileItem{
 				Name:  entry.Name(),
-				Path:  info.Name(),
+				ModTs: info.ModTime().Unix(),
+				Path:  path,
 				IsDir: entry.IsDir(),
 			}
 			items = append(items, item)
 		}
 	} else {
-		err = g.Error("path %s does not exists", f.Path)
+		err = g.Error("path %s does not exists", f.File.Path)
 	}
 	return
 }

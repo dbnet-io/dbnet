@@ -29,6 +29,7 @@ export enum MsgType {
   Error = 'error',
   SubmitSQL = 'submit-sql',
   CancelSQL = 'cancel-sql',
+  GetSettings = 'get-settings',
   GetConnections = 'get-connections',
   GetDatabases = 'get-databases',
   GetSchemata = 'get-schemata',
@@ -41,6 +42,7 @@ export enum MsgType {
   GetCachedResult = 'get-cached-result',
   LoadSession = 'load-session',
   SaveSession = 'save-session',
+  FileOperation = 'file-operation',
 }
 
 export class Message {

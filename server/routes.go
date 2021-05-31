@@ -14,13 +14,21 @@ import (
 	"github.com/spf13/cast"
 )
 
+func GetSettings(c echo.Context) (err error) {
+	m := g.M(
+		"homeDir", HomeDir,
+	)
+
+	return c.JSON(http.StatusOK, m)
+}
+
 func GetConnections(c echo.Context) (err error) {
 	req := Request{}
 	if err = c.Bind(&req); err != nil {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get connection request")
 	}
 
-	loadConnections()
+	LoadConnections()
 
 	conns := g.M()
 	for k, conn := range Connections {
@@ -28,6 +36,7 @@ func GetConnections(c echo.Context) (err error) {
 			"name", conn.Conn.Info().Name,
 			"type", conn.Conn.Info().Type,
 			"database", conn.Conn.Info().Database,
+			"dbt", conn.Conn.Data["dbt"],
 		)
 	}
 
@@ -507,9 +516,9 @@ func PostFileOperation(c echo.Context) (err error) {
 		items, err = req.List()
 		data["items"] = items
 	case OperationRead:
-		var body string
-		body, err = req.Read()
-		data["body"] = body
+		var file FileItem
+		file, err = req.Read()
+		data["file"] = file
 	case OperationWrite:
 		err = req.Write()
 	case OperationDelete:
@@ -521,4 +530,47 @@ func PostFileOperation(c echo.Context) (err error) {
 	}
 
 	return c.JSON(200, data)
+}
+
+// PostSubmitDbt submits an RPC commands to a dbt server
+// https://docs.getdbt.com/reference/commands/rpc
+func PostSubmitDbt(c echo.Context) (err error) {
+	req := Request{}
+	if err = c.Bind(&req); err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid get submit DBT request")
+	}
+
+	m := g.M()
+	err = g.Unmarshal(g.Marshal(req.Data), &m)
+	if err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
+	}
+
+	profile := cast.ToString(m["profile"])
+	projDir := cast.ToString(m["projDir"])
+
+	key := strings.ToLower(g.F("%s|%s", profile, projDir))
+	s, ok := DbtServers[key]
+	if !ok {
+		s = NewDbtServer(projDir, profile)
+		err = s.Launch()
+		if err != nil {
+			err = g.Error(err, "could not launch dbt server")
+			return g.ErrJSON(http.StatusInternalServerError, err)
+		}
+	}
+
+	dbtReq := dbtRequest{}
+	err = g.Unmarshal(g.Marshal(m["request"]), &dbtReq)
+	if err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
+	}
+
+	dbtResp, err := s.Submit(dbtReq)
+	if err != nil {
+		err = g.Error(err, "error performing RPC request: %s", req.Procedure)
+		return g.ErrJSON(http.StatusInternalServerError, err)
+	}
+
+	return c.JSON(200, dbtResp)
 }

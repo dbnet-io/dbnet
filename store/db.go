@@ -24,12 +24,12 @@ var (
 func InitDB() {
 	var err error
 
-	dbURL := g.F("file:%s/storage.db", os.Getenv("DBNET_DIR"))
+	dbURL := g.F("file:%s/.storage.db", os.Getenv("DBNET_DIR"))
 	conn, err := database.NewConn(dbURL)
-	g.LogFatal(err, "Could not initialize database connection")
+	g.LogFatal(err, "Could not initialize sqlite connection: %s", dbURL)
 
 	Db, err = conn.GetGormConn(&gorm.Config{})
-	g.LogFatal(err, "Could not connect to database")
+	g.LogFatal(err, "Could not connect to sqlite database: %s", dbURL)
 
 	allTables := []interface{}{
 		&SchemaTable{},
