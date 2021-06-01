@@ -3,7 +3,6 @@ package server
 import (
 	"embed"
 	"net/http"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"strings"
@@ -40,6 +39,7 @@ const (
 	RouteSubmitSQL       RouteName = "/submit-sql"
 	RouteSubmitDbt       RouteName = "/submit-dbt"
 	RouteCancelSQL       RouteName = "/cancel-sql"
+	RouteExtractLoad     RouteName = "/extract-load"
 	RouteGetSettings     RouteName = "/get-settings"
 	RouteGetConnections  RouteName = "/get-connections"
 	RouteGetDatabases    RouteName = "/get-databases"
@@ -96,6 +96,7 @@ func NewServer() *Server {
 	e.GET(RouteLoadSession.String(), GetLoadSession)
 
 	e.POST(RouteSubmitSQL.String(), PostSubmitQuery)
+	e.POST(RouteExtractLoad.String(), PostSubmitExtractLoadJob)
 	e.POST(RouteSubmitDbt.String(), PostSubmitDbt)
 	e.POST(RouteCancelSQL.String(), PostCancelQuery)
 	e.POST(RouteSaveSession.String(), PostSaveSession)
@@ -181,7 +182,10 @@ func NewDbtServer(projDir, profile string) *DbtServer {
 		mux.Unlock()
 	})
 
+	mux.Lock()
 	DbtServers[s.Key()] = s
+	mux.Unlock()
+
 	s.TouchTs()
 	return s
 }
@@ -207,19 +211,6 @@ type dbtResponse struct {
 	ID      string `json:"id"`
 	JsonRPC string `json:"jsonrpc"`
 	Result  g.Map  `json:"result"`
-}
-
-// Submit submits a request to RPC
-func (s *DbtServer) SubmitOld(req dbtRequest) (dbtResp dbtResponse, err error) {
-	client, _ := rpc.Dial("tcp", g.F("%s:%d", s.Host, s.Port))
-	defer client.Close()
-
-	err = client.Call(req.Method, &req, &dbtResp)
-	if err != nil {
-		err = g.Error(err, "error submitting RPC request")
-	}
-
-	return
 }
 
 // Submit submits a request to RPC
@@ -291,8 +282,26 @@ func (s *DbtServer) Launch() (err error) {
 		go s.Proc.Start()
 		g.Debug(s.Proc.CmdStr())
 		g.Info("started dbt rpc server @ %s:%d", s.Host, s.Port)
-		time.Sleep(6 * time.Second)
+		for i := 1; i <= 5; i++ {
+			req := dbtRequest{
+				ID:      cast.ToString(i),
+				JsonRPC: "2.0",
+				Method:  "status",
+			}
+			_, err := s.Submit(req)
+			if err == nil {
+				break
+			} else {
+				time.Sleep(time.Duration(i) * time.Second)
+			}
+		}
 	}
 
 	return
+}
+
+// Refresh refreshes files list
+func (s *DbtServer) Refresh() {
+	err := syscall.Kill(s.Proc.Cmd.Process.Pid, syscall.SIGHUP)
+	g.LogError(err)
 }

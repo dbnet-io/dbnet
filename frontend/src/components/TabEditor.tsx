@@ -101,7 +101,11 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
 
 
   return <div
-    style={{ paddingTop: `${tabNamesHeight.get()}px`, display: tab.showSql.get() ? '' : 'none' }}
+    style={{ 
+      paddingTop: `${tabNamesHeight.get()}px`, 
+      display: tab.showSql.get() ? '' : 'none',
+      width: '100%',
+     }}
     onContextMenu={(e: any) => (cm as any).current.show(e)}
   >
 

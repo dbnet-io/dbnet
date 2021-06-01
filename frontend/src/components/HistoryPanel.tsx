@@ -121,8 +121,8 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   }
 
   return (
-    <div>
-      <div className="p-col-12" style={{paddingTop: '7px', paddingBottom:'10px'}}>
+    <div className="p-grid p-fluid">
+      <div className="p-col-12 p-md-12" style={{paddingTop: '10px', paddingBottom:'0px'}}>
         <div className="p-inputgroup">
           <InputText
             id="history-filter"
@@ -136,31 +136,32 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           <Button icon={loading.get() ?"pi pi-spin pi-spinner": "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => doSearch(filter.get())}/>
         </div>
       </div>
-
-      <ListBox
-        id="history-list"
-        value={selectedQuery.get()}
-        options={ options.get() }
-        onChange={(e) => {
-          if(!e.value) { return }
-          selectedQuery.set(e.value)
-        }}
-        metaKeySelection={true}
-        optionLabel="name"
-        itemTemplate={ItemTemplate}
-        style={{width: '100%'}}
-        listStyle={{
-          minHeight:`${(window.innerHeight - 175)/3*2}px`, 
-          maxHeight: `${(window.innerHeight - 175)/3*2}px`,
-          fontSize: '12px',
-        }}
-      />
-      <div style={{paddingTop: '7px'}}>
+      <div className="p-col-12 p-md-12" >
+        <ListBox
+          id="history-list"
+          value={selectedQuery.get()}
+          options={ options.get() }
+          onChange={(e) => {
+            if(!e.value) { return }
+            selectedQuery.set(e.value)
+          }}
+          metaKeySelection={true}
+          optionLabel="name"
+          itemTemplate={ItemTemplate}
+          style={{width: '100%'}}
+          listStyle={{
+            minHeight:`${(window.innerHeight - 195)/3*2}px`, 
+            maxHeight: `${(window.innerHeight - 195)/3*2}px`,
+            fontSize: '12px',
+          }}
+        />
+      </div>
+      <div className="p-col-12 p-md-12" style={{paddingTop: '7px'}}>
         <InputTextarea
           style={{
             fontSize:'11px', fontFamily:'monospace',
-            minHeight: `${(window.innerHeight - 175)/3*1}px`,
-            maxHeight: `${(window.innerHeight - 175)/3*1}px`,
+            minHeight: `${(window.innerHeight - 195)/3*1}px`,
+            maxHeight: `${(window.innerHeight - 195)/3*1}px`,
           }}
           value={selectedQuery.get().text} 
           autoResize 
@@ -168,7 +169,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <span
           style={{
             position: 'absolute',
-            marginLeft: '-80px',
+            marginLeft: '-70px',
           }}
         >
           <Button
@@ -182,7 +183,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <span
           style={{
             position: 'absolute',
-            marginLeft: '-50px',
+            marginLeft: '-40px',
           }}
         >
           <Button

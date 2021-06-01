@@ -3,6 +3,7 @@ import './App.css';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import 'primereact/resources/primereact.min.css';
+import 'primeflex/primeflex.min.css';
 // import 'primereact/resources/themes/saga-blue/theme.css';
 import 'primereact/resources/themes/saga-green/theme.css';
 // import 'primereact/resources/themes/bootstrap4-dark-purple/theme.css';
@@ -24,6 +25,7 @@ import { RowViewPanel } from './components/RowViewPanel';
 import { GetDatabases, GetSchemata } from './components/SchemaPanel';
 import { apiGet } from './store/api';
 import { Button } from 'primereact/button';
+import { JobPanel } from './components/JobPanel';
 
 // this is to extends the window global functions
 declare global {
@@ -158,21 +160,24 @@ export const App = () => {
       onKeyDown={onKeyPress}
     >
       <Toast ref={toast} />
+      <JobPanel />
       <PreviewPanel />
       <RowViewPanel />
       <ConnectionChooser />
       <div style={{ paddingBottom: '7px' }}>
         <TopMenuBar />
       </div>
-      <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} className="p-mb-5" stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
+      <div>
+      <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
+        <SplitterPanel className="p-d-flex">
           <LeftPane />
         </SplitterPanel>
-        <SplitterPanel className="p-d-flex p-ai-center p-jc-center">
+        <SplitterPanel className="p-d-flex">
           <RightPane />
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>
+      </div>
     </div>
   );
 }

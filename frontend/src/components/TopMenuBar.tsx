@@ -71,36 +71,55 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const makeItems = () => {
-    let items = [{
-      label: 'Connections',
-      icon: 'pi pi-fw pi-sitemap',
-      items: connections.get().map((c) : MenuItem => {
-        return {
-          label: c.name,
-          command: () => { 
-            globalStore.loadSession(c.name).then(async () => {
-              if(c.database) store.connection.database.set(c.database)
-              await GetDatabases(store.connection.name.get())
-              await GetSchemata(store.connection.name.get(), store.connection.database.get())
-            })
-            localStorage.setItem("_connection_name", c.name)
-          },
-          template: (item, options) => {
-            return <a href="#" role="menuitem" className="p-menuitem-link" aria-haspopup="false">
-              <span className="p-menuitem-text" style={{fontSize: '0.8rem'}}>{item.label}</span>
-              {
-                c.dbt ?
-                <span style={{paddingLeft: '7px', color: 'green'}}>
-                  <b>dbt</b>
-                </span>
-                :
-                null
-              }
-            </a>
-          },
-        }
-      }),
-    }]
+    const loadConn = (c: ObjectAny) => { 
+      globalStore.loadSession(c.name).then(async () => {
+        if(c.database) store.connection.database.set(c.database)
+        await GetDatabases(store.connection.name.get())
+        await GetSchemata(store.connection.name.get(), store.connection.database.get())
+      })
+      localStorage.setItem("_connection_name", c.name)
+    }
+
+    let connItems : MenuItem[] = connections.get().map((c) : MenuItem => {
+      return {
+        label: c.name,
+        command: () => { loadConn(c) },
+        template: (item, options) => {
+          return <a 
+              href="#" 
+              role="menuitem" 
+              className="p-menuitem-link"
+              aria-haspopup="false"
+              onClick={()=> loadConn(c)}
+            >
+            <span className="p-menuitem-text" style={{fontSize: '0.8rem', fontFamily: 'monospace'}}>{item.label}</span>
+            {
+              c.dbt ?
+              <span style={{paddingLeft: '7px', color: 'green'}}>
+                <b>dbt</b>
+              </span>
+              :
+              null
+            }
+          </a>
+        },
+      }
+    })
+
+    let items : MenuItem[] = [
+      {
+        label: 'Connections',
+        icon: 'pi pi-fw pi-sitemap',
+        items: connItems,
+      },
+      {
+        label: 'Extract / Load',
+        icon: 'pi pi-fw pi-cloud-upload',
+        command: () => {
+          store.jobPanel.show.set(true)
+        },
+      },
+    ]
     return items
   }
   ///////////////////////////  JSX  ///////////////////////////

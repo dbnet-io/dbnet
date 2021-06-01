@@ -6,11 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flarco/dbio"
+	"github.com/flarco/dbio/connection"
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
+	"github.com/slingdata-io/sling/core/elt"
 	"github.com/spf13/cast"
 )
 
@@ -267,7 +270,7 @@ func GetAnalysisSQL(c echo.Context) (err error) {
 	}
 
 	// get connection
-	conn, err := GetConn(req.Conn, req.Database)
+	conn, err := GetConnInstance(req.Conn, req.Database)
 	if err != nil {
 		return g.ErrJSON(http.StatusInternalServerError, err, "could not get conn %s", req.Conn)
 	}
@@ -537,7 +540,7 @@ func PostFileOperation(c echo.Context) (err error) {
 func PostSubmitDbt(c echo.Context) (err error) {
 	req := Request{}
 	if err = c.Bind(&req); err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid get submit DBT request")
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
 	}
 
 	m := g.M()
@@ -550,7 +553,10 @@ func PostSubmitDbt(c echo.Context) (err error) {
 	projDir := cast.ToString(m["projDir"])
 
 	key := strings.ToLower(g.F("%s|%s", profile, projDir))
+
+	mux.Lock()
 	s, ok := DbtServers[key]
+	mux.Unlock()
 	if !ok {
 		s = NewDbtServer(projDir, profile)
 		err = s.Launch()
@@ -558,6 +564,9 @@ func PostSubmitDbt(c echo.Context) (err error) {
 			err = g.Error(err, "could not launch dbt server")
 			return g.ErrJSON(http.StatusInternalServerError, err)
 		}
+	} else {
+		s.Refresh()
+		time.Sleep(1 * time.Second)
 	}
 
 	dbtReq := dbtRequest{}
@@ -573,4 +582,101 @@ func PostSubmitDbt(c echo.Context) (err error) {
 	}
 
 	return c.JSON(200, dbtResp)
+}
+
+type JobRequestConn struct {
+	Type     dbio.Type `json:"type"`
+	Name     string    `json:"name"`
+	Database string    `json:"database"`
+}
+
+type JobRequest struct {
+	ID     string         `json:"id"`
+	Source JobRequestConn `json:"source"`
+	Target JobRequestConn `json:"target"`
+	Config g.Map          `json:"config"`
+}
+
+// idNumber return the id as a number
+func (jr *JobRequest) idNumber() int {
+	var result strings.Builder
+	for i := 0; i < len(jr.ID); i++ {
+		b := jr.ID[i]
+		if '0' <= b && b <= '9' {
+			result.WriteByte(b)
+		}
+	}
+	return cast.ToInt(result.String())
+}
+
+// PostSubmitExtractLoadJob submits an extract / load job
+func PostSubmitExtractLoadJob(c echo.Context) (err error) {
+	req := JobRequest{}
+	if err = c.Bind(&req); err != nil {
+		return g.ErrJSON(http.StatusBadRequest, err, "invalid extract / load job request")
+	}
+
+	var job *store.Job
+	if c.Request().Header.Get("DbNet-Continue") != "" {
+		// pick up where left off
+		mux.Lock()
+		var ok bool
+		job, ok = Jobs[req.ID]
+		mux.Unlock()
+		if !ok {
+			return g.ErrJSON(http.StatusInternalServerError, g.Error("could not find job %s to continue", req.ID))
+		}
+	} else {
+		// get conn creds
+		var srcConn, tgtConn connection.Connection
+		if req.Source.Type.IsDb() {
+			srcConn, err = GetConnObject(req.Source.Name, req.Source.Database)
+			if err != nil {
+				return g.ErrJSON(http.StatusBadRequest, err, "invalid source conn")
+			}
+		}
+
+		if req.Target.Type.IsDb() {
+			tgtConn, err = GetConnObject(req.Target.Name, req.Target.Database)
+			if err != nil {
+				return g.ErrJSON(http.StatusBadRequest, err, "invalid target conn")
+			}
+		}
+
+		// make config
+		cfg, err := elt.NewConfig(g.Marshal(req.Config))
+		if err != nil {
+			return g.ErrJSON(http.StatusBadRequest, err, "invalid extract / load job configuration")
+		}
+
+		// set conn creds
+		if req.Source.Type.IsDb() {
+			cfg.Source.Data = srcConn.Data
+			cfg.SrcConn = srcConn
+		}
+		if req.Target.Type.IsDb() {
+			cfg.Target.Data = tgtConn.Data
+			cfg.TgtConn = tgtConn
+		}
+
+		// submit
+		job, err = submitJob(req, cfg)
+		if err != nil {
+			return g.ErrJSON(http.StatusInternalServerError, err, "error starting extract / load task")
+		}
+	}
+
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	select {
+	case <-job.Done:
+		if err = job.Task.Err; err != nil {
+			return c.JSON(500, job.MakeResult())
+		}
+	case <-ticker.C:
+		// when status is 202, follow request with header "DbNet-Continue"
+		return c.JSON(202, job.MakeResult())
+	}
+	return c.JSON(200, job.MakeResult())
 }

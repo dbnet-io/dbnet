@@ -33,7 +33,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(()=>{
-    rootPath.set('/__/tmp/PollyDbt')
+    // rootPath.set('/__/tmp/PollyDbt')
     Init()
   }, [])
 
@@ -55,7 +55,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
 
 
   const Init = async () => {
-    if(projectPanel.rootPath.get() === '') {
+    if(rootPath.get() === '') {
       rootPath.set(await getHomeDir())
     }
     if(fileNodes.get().length > 0 && dbtProfile.get()) return
@@ -64,6 +64,10 @@ export const ProjectPanel: React.FC<Props> = (props) => {
 
   const refreshRoot = async () => {
     fileNodes.set(await makeNodes(rootPath.get()))
+    if(fileNodes.length === 0 && rootPath.get() !== '') {
+      rootPath.set(await getHomeDir())
+      fileNodes.set(await makeNodes(rootPath.get()))
+    } 
 
     // look for dbt project & load it
     dbtProject.set(undefined)
@@ -269,7 +273,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
         // onExpand={(e)=>{console.log(e)}}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 210}px`,
+          height: `${window.innerHeight - 230}px`,
           fontSize: '0.8rem',
           padding: 0,
         }}
@@ -278,8 +282,8 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   }
 
   return (
-    <div style={{textAlign:'center'}}>
-      <div style={{paddingTop: '7px', paddingBottom: '7px'}}>
+    <div className="p-grid p-fluid" style={{textAlign:'center'}}>
+      <div className="p-col-12 p-md-12" style={{paddingTop: '7px', paddingBottom: '7px'}}>
         <b>{rootPath.get()}</b>
         <span style={{paddingLeft: '10px'}}>
           <a href="#;">
@@ -302,7 +306,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       <ProfileChooser/>
       {
         dbtProject.get()?
-        <div style={{color: 'green', fontSize: '0.7rem', paddingBottom: '7px'}}>
+        <div className="p-col-12 p-md-12" style={{color: 'green', fontSize: '0.7rem', paddingBottom: '7px'}}>
           <b>dbt project —  
             <span style={{color: 'teal', paddingLeft:'3px'}}>
               { dbtConn() }
@@ -327,7 +331,9 @@ export const ProjectPanel: React.FC<Props> = (props) => {
           <br/>
         </>
         :
-        <FolderTree />
+        <div className="p-col-12 p-md-12">
+          <FolderTree />
+        </div>
       }
     </div>
   );

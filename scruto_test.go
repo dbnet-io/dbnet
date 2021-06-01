@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/flarco/dbio"
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
 	"github.com/flarco/scruto/server"
@@ -26,7 +27,6 @@ func TestAll(t *testing.T) {
 	go srv.Start()
 	time.Sleep(1 * time.Second)
 	testDbtServer(t)
-	return
 	testFileOps(t)
 	testSubmitSQL(t)
 	testGetConnections(t)
@@ -36,6 +36,7 @@ func TestAll(t *testing.T) {
 	testSaveSession(t)
 	testLoadSession(t)
 	testGetHistory(t)
+	testJob(t)
 }
 
 func handleMsg(msg net.Message) net.Message {
@@ -49,8 +50,10 @@ func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 ma
 	_, respBytes, err := net.ClientDo("POST", url, strings.NewReader(g.Marshal(data1)), headers)
 	if err != nil {
 		err = g.Error(err)
+		g.Unmarshal(string(respBytes), &data2)
 		return
 	}
+
 	err = g.Unmarshal(string(respBytes), &data2)
 	if err != nil {
 		err = g.Error(err)
@@ -376,4 +379,42 @@ func testDbtServer(t *testing.T) {
 	result := cast.ToStringMap(data["result"])
 	assert.EqualValues(t, id, data["id"])
 	assert.NotEmpty(t, result["pid"])
+}
+
+func testJob(t *testing.T) {
+	id := g.NewTsID()
+	srcFileName := "file://test/test1.1.csv"
+	config := g.M(
+		"source", g.M(
+			"stream", srcFileName,
+		),
+		"target", g.M(
+			"conn", "PG_BIONIC",
+			"object", "public.test1",
+			"mode", "drop",
+		),
+	)
+
+	m := g.M(
+		"id", id,
+		"source", g.M(
+			"type", dbio.TypeFileLocal,
+			"name", srcFileName,
+			"database", "",
+		),
+		"target", g.M(
+			"type", dbio.TypeDbPostgres,
+			"name", "PG_BIONIC",
+			"database", "DB1",
+		),
+		"config", config,
+	)
+	data, err := postRequest(server.RouteExtractLoad, m)
+	if !g.AssertNoError(t, err) {
+		return
+	}
+
+	assert.EqualValues(t, id, data["id"])
+	assert.EqualValues(t, "success", data["status"])
+	assert.Empty(t, data["error"])
 }

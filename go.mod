@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/labstack/echo/v4 v4.2.2
+	github.com/slingdata-io/sling v0.78.0
 	github.com/spf13/cast v1.3.1
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/yaml.v2 v2.3.0
@@ -18,3 +19,5 @@ require (
 replace github.com/flarco/g => ../g
 
 replace github.com/flarco/dbio => ../dbio
+
+replace github.com/slingdata-io/sling => ../sling

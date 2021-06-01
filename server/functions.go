@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/slingdata-io/sling/core/elt"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 
@@ -23,6 +24,7 @@ var (
 	Connections  = map[string]*Connection{}
 	DbtServers   = map[string]*DbtServer{}
 	Queries      = map[string]*store.Query{}
+	Jobs         = map[string]*store.Job{}
 	mux          sync.Mutex
 	defaultLimit = 100
 	// Sync syncs to store
@@ -212,7 +214,7 @@ func ProcessRequestFromMsg(msg Message, reqFunc ReqFunction) (data iop.Dataset, 
 
 // ProcessRequest processes the request with the given function
 func ProcessRequest(req Request, reqFunc ReqFunction) (data iop.Dataset, err error) {
-	c, err := GetConn(req.Conn, req.Database)
+	c, err := GetConnInstance(req.Conn, req.Database)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", req.Conn)
 		return
@@ -226,7 +228,7 @@ func ProcessRequest(req Request, reqFunc ReqFunction) (data iop.Dataset, err err
 // 2. load all objects in each schema
 func LoadSchemata(connName, DbName string) (err error) {
 
-	c, err := GetConn(connName, DbName)
+	c, err := GetConnInstance(connName, DbName)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", connName)
 		return
@@ -303,7 +305,7 @@ func LoadSchemata(connName, DbName string) (err error) {
 func doSubmitSQL(query *store.Query) (err error) {
 
 	// get connection
-	c, err := GetConn(query.Conn, query.Database)
+	c, err := GetConnInstance(query.Conn, query.Database)
 	if err != nil {
 		err = g.Error(err, "could not get conn %s", query.Conn)
 		return
@@ -333,8 +335,8 @@ func doSubmitSQL(query *store.Query) (err error) {
 	return
 }
 
-// GetConn gets the connection
-func GetConn(connName, databaseName string) (conn database.Connection, err error) {
+// GetConnInstance gets the connection object
+func GetConnObject(connName, databaseName string) (connObj connection.Connection, err error) {
 	mux.Lock()
 	c, ok := Connections[connName]
 	mux.Unlock()
@@ -353,9 +355,23 @@ func GetConn(connName, databaseName string) (conn database.Connection, err error
 	}
 	delete(data, "url")
 	delete(data, "schema")
-	connObj, err := connection.NewConnectionFromMap(g.M("name", c.Conn.Name, "data", data, "type", c.Conn.Type))
+	connObj, err = connection.NewConnectionFromMap(g.M("name", c.Conn.Name, "data", data, "type", c.Conn.Type))
 	if err != nil {
 		err = g.Error(err, "could not load connection %s", c.Conn.Name)
+		return
+	}
+	return
+}
+
+// GetConnInstance gets the connection instance
+func GetConnInstance(connName, databaseName string) (conn database.Connection, err error) {
+	mux.Lock()
+	c := Connections[connName]
+	mux.Unlock()
+
+	connObj, err := GetConnObject(connName, databaseName)
+	if err != nil {
+		err = g.Error(err, "could not load connection %s", connName)
 		return
 	}
 
@@ -375,6 +391,63 @@ func GetConn(connName, databaseName string) (conn database.Connection, err error
 		return
 	}
 	c.Props = conn.Props()
+
+	return
+}
+
+// NewJob creates a Job object
+func NewJob(ctx context.Context) *store.Job {
+	j := store.Job{
+		Context: g.NewContext(ctx),
+		Request: g.M(),
+		Result:  g.M(),
+		Done:    make(chan struct{}),
+	}
+	return &j
+}
+
+func submitJob(req JobRequest, cfg elt.Config) (job *store.Job, err error) {
+
+	task := elt.NewTask(req.idNumber(), cfg)
+	if task.Err != nil {
+		err = g.Error(task.Err, "error creating extract / load task")
+		return
+	}
+
+	job = NewJob(context.Background())
+	job.ID = req.ID
+	job.Type = string(task.Type)
+	job.Task = &task
+	job.Status = job.Task.Status
+	g.Unmarshal(g.Marshal(req), &job.Request)
+	job.Time = time.Now().Unix()
+
+	mux.Lock()
+	Jobs[job.ID] = job
+	mux.Unlock()
+
+	Sync("jobs", job)
+
+	go func() {
+		defer Sync("jobs", job)
+		defer func() { job.Done <- struct{}{} }()
+		job.Task.Execute()
+		job.Status = job.Task.Status
+		job.Err = g.ErrMsg(job.Task.Err)
+		job.Duration = (float64(time.Now().UnixNano()/1000000) - float64(job.Time)) / 1000
+		job.Result = job.MakeResult()
+
+		// delete from map
+		timer := time.NewTimer(10 * time.Second)
+		go func() {
+			select {
+			case <-timer.C:
+				mux.Lock()
+				delete(Jobs, job.ID)
+				mux.Unlock()
+			}
+		}()
+	}()
 
 	return
 }

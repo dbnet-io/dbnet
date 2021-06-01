@@ -186,10 +186,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   return (
-    <>
-      {/* <Search search={props.objectView.search}/> */}
-      {/* <h3>{ objectView.name.get() }</h3>  */}
-      <p>
+    <div id='object-panel' className="p-grid p-fluid" style={{textAlign:'center'}}>
+      <div className="p-col-12 p-md-12">
         <span
           style={{fontFamily: 'monospace', fontSize: '13px', backgroundColor: 'white', color:'blue'}}
           onDoubleClick={() => { copyToClipboard(objectPanel.table.name.get()) }}
@@ -199,9 +197,9 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
           </a>
         </span>
-      </p>
+      </div>
 
-      <div className="p-inputgroup work-buttons" style={{overflowX:'hidden'}}>
+      <div className="p-col-12 p-md-12 p-inputgroup work-buttons" style={{overflowX:'hidden'}}>
         <Button
           icon="pi pi-caret-left"
           disabled={!(history.length > 1 && historyI.get() > 0)}
@@ -250,7 +248,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         />
       </div>
 
-      <div id="analysis-buttons" className="p-inputgroup work-buttons" style={{paddingTop:'3px', paddingBottom:'3px'}}>
+      <div id="analysis-buttons" className="p-col-12 p-md-12  p-inputgroup work-buttons" style={{paddingTop:'3px', paddingBottom:'3px'}}>
         <Button
           icon="pi pi-copy"
           tooltip="Copy fields names"
@@ -386,6 +384,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       </div>
 
       <div
+        className="p-col-12 p-md-12"
+        style={{height: `${window.innerHeight - 240}px`}}
         // onMouseEnter={() => toastInfo('hello')}  
       >
 
@@ -394,7 +394,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           loading={objectPanel.table.loading.get()}
           rowHover={true}
           scrollable={true}
-          scrollHeight={`${window.innerHeight - 270}px`}
+          scrollHeight={`${window.innerHeight - 280}px`}
           resizableColumns={true}
           className="p-datatable-sm p-datatable-gridlines"
           style={{fontSize:'10px'}}
@@ -425,7 +425,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         
 
       </OverlayPanel>
-    </>
+    </div>
   )
 };
 

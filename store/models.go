@@ -10,6 +10,7 @@ import (
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
+	"github.com/slingdata-io/sling/core/elt"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v2"
 )
@@ -96,6 +97,24 @@ type Query struct {
 	Wait      bool          `json:"wait" query:"wait" gorm:"-"`
 	UpdatedDt time.Time     `json:"-" gorm:"autoUpdateTime"`
 	Done      chan struct{} `json:"-" gorm:"-"`
+}
+
+// Job represents a job
+type Job struct {
+	ID        string         `json:"id" gorm:"primaryKey"`
+	Type      string         `json:"type" gorm:"index:idx_job_type"`
+	Request   g.Map          `json:"request" gorm:"type:json default '{}'"`
+	Time      int64          `json:"time" gorm:"index:idx_job_time"`
+	Duration  float64        `json:"duration"`
+	Status    elt.ExecStatus `json:"status"`
+	Err       string         `json:"err"`
+	Result    g.Map          `json:"result" gorm:"type:json default '{}'"`
+	UpdatedDt time.Time      `json:"updated_dt" gorm:"autoUpdateTime"`
+
+	Context g.Context     `json:"-" gorm:"-"`
+	Task    *elt.Task     `json:"-" gorm:"-"`
+	Wait    bool          `json:"wait" gorm:"-"`
+	Done    chan struct{} `json:"-" gorm:"-"`
 }
 
 // Session represents a connection session
@@ -295,4 +314,37 @@ func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 	q.TrimRows(1) // only store 1 row in mem
 
 	return
+}
+
+func (j *Job) MakeResult() (result map[string]interface{}) {
+	task := j.Task
+	return g.M(
+		"id", j.Request["id"],
+		"type", task.Type,
+		"status", task.Status,
+		"error", g.ErrMsg(task.Err),
+		"rows", task.GetCount(),
+		"rate", task.GetRate(10),
+		"progress", task.Progress,
+		"progress_hist", task.ProgressHist,
+		"start_time", j.Time,
+		"duration", (float64(time.Now().UnixNano()/1000000)-float64(j.Time))/1000,
+		"bytes", task.Bytes,
+		"config", g.M(
+			"source", elt.Source{
+				Conn:    task.Cfg.Source.Conn,
+				Stream:  task.Cfg.Source.Stream,
+				Limit:   task.Cfg.Source.Limit,
+				Options: task.Cfg.Source.Options,
+			},
+			"target", elt.Target{
+				Conn:       task.Cfg.Target.Conn,
+				Object:     task.Cfg.Target.Object,
+				Mode:       task.Cfg.Target.Mode,
+				Options:    task.Cfg.Target.Options,
+				PrimaryKey: task.Cfg.Target.PrimaryKey,
+				UpdateKey:  task.Cfg.Target.UpdateKey,
+			},
+		),
+	)
 }

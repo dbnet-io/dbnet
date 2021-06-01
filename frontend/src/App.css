@@ -187,3 +187,7 @@ font-size: 9px !important;
 #top-menu-bar > ul > li > ul {
   z-index: 10;
 }
+
+.no-padding {
+  padding: 0px !important;
+}

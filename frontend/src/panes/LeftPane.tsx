@@ -25,7 +25,7 @@ export const LeftPane: React.FC<Props> = (props) => {
 
   return (
     <div className="p-grid p-fluid" style={{padding:'8px', border:'3px'}}>
-      <div className="p-col-12 p-md-4">
+      <div className="p-col-12 p-md-12" style={{maxHeight:'52px'}}>
         <SelectButton
           value={tabValue.get()}
           options={tabOptions.get()}
@@ -36,6 +36,7 @@ export const LeftPane: React.FC<Props> = (props) => {
           style={{width: '100%'}}
         />
       </div>
+      <div className="p-col-12 p-md-12" style={{paddingTop: '0px'}}>
           { 
             tabValue.get() === "Project" ?
             <ProjectPanel/> : null
@@ -54,6 +55,7 @@ export const LeftPane: React.FC<Props> = (props) => {
             tabValue.get() === 'History' ?
             <HistoryPanel/> : null
           }
+      </div>
 
     </div>
   );

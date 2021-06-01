@@ -85,21 +85,18 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const getDatabaseItems = () => {
+    const loadDatabase = async (name: string) => {
+      store.connection.database.set(name)
+      await GetSchemata(connection.name.get(), connection.database.get())
+      await globalStore.saveSession()
+    }
+
     return databases.get().map((name) : MenuItem => { 
       name = name.toUpperCase()
       return { 
         label: name,
         // icon: 'pi pi-times',
-        command: async () => {
-          store.connection.database.set(name)
-          await GetSchemata(connection.name.get(), connection.database.get())
-          await globalStore.saveSession()
-        },
-        template: (item, options) => {
-          return <a href="#" role="menuitem" className="p-menuitem-link" aria-haspopup="false">
-            <span className="p-menuitem-text" style={{fontSize: '0.7rem'}}>{item.label}</span>
-          </a>
-        },
+        command: async () => loadDatabase(name),
       }
     })
   }
@@ -374,7 +371,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onContextMenu={event => cm.current?.show(event.originalEvent as any)}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 200}px`,
+          height: `${window.innerHeight - 230}px`,
           fontSize: '0.8rem',
           padding: 0,
         }}
@@ -383,42 +380,45 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   return (
-    <div id='history-panel'>
-
-      <h4 style={{ textAlign: 'center', margin: '9px' }}>
-        {connection.database.get().toUpperCase()}
-        <a href="#;">
-          <i 
-            style={{color: 'orange', fontSize: '0.9em', paddingLeft: '5px'}}
-            className="pi pi-refresh"
-            onClick={async () => {
-              await GetDatabases(connection.name.get())
-              await GetSchemas(connection.name.get(), connection.database.get())
+    <div id='history-panel' className="p-grid p-fluid" style={{textAlign:'center'}}>
+      <div className="p-col-12 p-md-12">
+        <h4 style={{ textAlign: 'center', margin: '-5px' }}>
+          {connection.database.get().toUpperCase()}
+          <a href="#;">
+            <i 
+              style={{color: 'orange', fontSize: '0.9em', paddingLeft: '5px'}}
+              className="pi pi-refresh"
+              onClick={async () => {
+                await GetDatabases(connection.name.get())
+                await GetSchemas(connection.name.get(), connection.database.get())
+              }}
+            />
+          </a>
+          <span 
+            id="schema-databases"
+            style={{
+              position: 'absolute',
+              marginLeft: '20px',
+              fontSize: '0.5rem',
             }}
-          />
-        </a>
-        <span 
-          id="schema-databases"
-          style={{
-            position: 'absolute',
-            marginLeft: '20px',
-            fontSize: '0.5rem',
-          }}
-        >
-          <Menu model={getDatabaseItems()} popup ref={databasesMenu} id="popup_menu" />
-          <Button 
-            icon="pi pi-bars" 
-            className="p-button-sm p-button-secondary"
-            aria-controls="popup_menu"
-            onClick={(event) => databasesMenu.current.toggle(event)}
-            tooltip="Databases"
-            aria-haspopup
-          />
-          
-        </span>
-      </h4>
+          >
+            <Menu model={getDatabaseItems()} popup ref={databasesMenu} id="popup_menu" style={{fontSize: '0.7rem'}} />
+            <Button 
+              icon="pi pi-bars" 
+              className="p-button-sm p-button-secondary"
+              aria-controls="popup_menu"
+              onClick={(event) => databasesMenu.current.toggle(event)}
+              tooltip="Databases"
+              aria-haspopup
+            />
+            
+          </span>
+        </h4>
+      </div>
       {/* <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())} /> */}
-      <SchemaTree />
+      <div className="p-col-12 p-md-12">
+        <SchemaTree />
+      </div>
     </div>
   );
 };

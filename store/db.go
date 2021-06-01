@@ -34,6 +34,7 @@ func InitDB() {
 	allTables := []interface{}{
 		&SchemaTable{},
 		&TableColumn{},
+		&Job{},
 		&Query{},
 		&Session{},
 	}
@@ -58,6 +59,7 @@ func Sync(table string, obj interface{}, fields ...string) (err error) {
 		"schema_tables": {"conn", "database", "schema_name", "table_name"},
 		"table_columns": {"conn", "database", "schema_name", "table_name", "name"},
 		"queries":       {"id"},
+		"jobs":          {"id"},
 		"sessions":      {"conn", "name"},
 	}
 
