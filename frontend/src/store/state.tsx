@@ -468,17 +468,19 @@ export interface MetaTableRow {
 
 export class MetaTable {
   name: string
+  database: string
   rows: MetaTableRow[]
-  selected: any
+  selectedColumns: any[]
   search: string
   loading: boolean
   show: boolean
   
   constructor(data: ObjectAny = {}) {
     this.name = data.name
+    this.database = data.database
     this.search = data.search || ''
     this.rows = data.rows || []
-    this.selected = data.selected || null
+    this.selectedColumns = data.selectedColumns || []
     this.loading = data.loading || false
     this.show = data.show || false
   }
@@ -746,12 +748,16 @@ class SchemaPanelState {
 
 class ObjectPanelState {
   table: MetaTable
-  history: string[]
+  history: MetaTable[]
   historyI: number
   constructor(data: ObjectAny = {}) {
     this.table = new MetaTable(data.table)
     this.history = data.history || []
     this.historyI = data.historyI || -1
+    if(this.history) {
+      this.history = this.history.filter(t => t instanceof Object).map(t => new MetaTable(t))
+    }
+    if(!Array.isArray(this.history)) this.history = []
   }
 }
 

@@ -157,7 +157,7 @@ func testGetSQLRows(t *testing.T, m map[string]interface{}) {
 		return
 	}
 	rows := data["rows"].([]interface{})
-	assert.Len(t, rows, 38)
+	assert.Len(t, rows, 138)
 }
 
 func testCancelSQL(t *testing.T) {

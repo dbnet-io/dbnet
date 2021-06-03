@@ -19,6 +19,7 @@ const store = accessStore()
 
 interface Props {
   tab: State<Tab>
+  hotTable: React.MutableRefObject<any>
 }
 
 export const pullResult = async (tabState: State<Tab>) => {
@@ -62,7 +63,8 @@ export const fetchRows = async (tabState: State<Tab>) => {
     pulled: tab.query.pulled.get(),
     time: (new Date()).getTime(),
     tab: tab.id.get(),
-    limit: tab.limit.get(),
+    limit: 5000,
+    result_limit: tab.query.rows.length * 2,
     wait: true,
   }
 
@@ -79,7 +81,7 @@ export const fetchRows = async (tabState: State<Tab>) => {
         t.query.status = query.status
         t.query.pulled = true
         t.query.duration = Math.round(query.duration*100)/100
-        t.query.rows = t.query.rows.concat(query.rows)
+        t.query.rows = query.rows
         t.loading = false
         return t
       }
@@ -146,6 +148,7 @@ export const TabTable: React.FC<Props> = (props) => {
     // let filter = tab.filter.get().trim()
     // if(filter === '') return
     // let filters = filter.split(',')
+    // console.log(props.hotTable.current?.hotInstance)
   },[tab.filter.get()])  // eslint-disable-line
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -206,7 +209,8 @@ export const TabTable: React.FC<Props> = (props) => {
 
   const rows = filterRows()
   let output = <HotTable
-    ref={hot}
+    id="tab-table"
+    ref={props.hotTable}
     data={rows}
     colHeaders={props.tab.query.headers.get()}
     rowHeaders={true}
@@ -243,7 +247,7 @@ export const TabTable: React.FC<Props> = (props) => {
   } else if(props?.tab?.query.text.get().includes('ddl_view') || props?.tab?.query.text.get().includes('ddl_table')) {
     let ddl = ''
     try {
-      ddl = props.tab.query.get().rows[0][0] 
+      ddl = props.tab.query.get().rows.map(r => r[0]).join('\n') 
     } catch (error) {
     }
     output = <InputTextarea

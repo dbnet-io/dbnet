@@ -23,6 +23,7 @@ export const RightPane: React.FC<Props> = (props) => {
     const tab = useHS(getTabState(tabId.get()))
     const childTab = useHS(getTabState(tab.selectedChild.get()))
     const aceEditor = React.useRef(null);
+    const hotTable = React.useRef(null);
 
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
@@ -36,8 +37,8 @@ export const RightPane: React.FC<Props> = (props) => {
           <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px', width: '100%'}}>
             
             <SubTabs tab={tab}/>
-            <TabToolbar aceEditor={aceEditor} tab={childTab}/>
-            <TabTable tab={childTab}/>
+            <TabToolbar aceEditor={aceEditor} hotTable={hotTable} tab={childTab}/>
+            <TabTable tab={childTab} hotTable={hotTable}/>
           </div>
         </SplitterPanel>
       </Splitter>

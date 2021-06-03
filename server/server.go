@@ -12,6 +12,7 @@ import (
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
 	"github.com/flarco/g/process"
+	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cast"
@@ -153,6 +154,7 @@ func (srv *Server) Loop() {
 	for {
 		select {
 		case <-ticker6Hours.C:
+			g.LogError(store.Db.Where("updated_dt < ?", time.Now().Add(-24*3*time.Hour)).Delete(&store.QueryRow{}).Error)
 		}
 	}
 }

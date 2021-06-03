@@ -46,7 +46,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
     let editor = props.aceEditor.current.editor as Ace.Editor
     let word = editor.getSelectedText()
     if (word === '') { word = tab.editor.get().getWord() }
-    if (word.trim() !== '') { loadMetaTable(word) }
+    if (word.trim() !== '') { loadMetaTable(word, tab.database.get()) }
   }
 
   const executeText = () => {
@@ -60,11 +60,6 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
 
   const commands: ICommand[] = [
     {
-      name: 'execute',
-      bindKey: { win: "Ctrl-Enter", mac: "Command-Enter" },
-      exec: (editor: Ace.Editor, args?: any) => executeText(),
-    },
-    {
       name: 'object',
       bindKey: { win: "F4", mac: "F4" },
       exec: (editor: Ace.Editor, args?: any) => getDefinition(),
@@ -77,6 +72,11 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
       },
     },
   ]
+
+  const onKeyPress = (e: React.KeyboardEvent) => {
+    // execute
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') executeText()
+  }
 
 
   const contextItems = [
@@ -107,6 +107,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
       width: '100%',
      }}
     onContextMenu={(e: any) => (cm as any).current.show(e)}
+    onKeyDown={onKeyPress}
   >
 
     <ContextMenu model={contextItems} ref={cm}></ContextMenu>

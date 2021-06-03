@@ -325,6 +325,10 @@ func doSubmitSQL(query *store.Query) (err error) {
 		go func() {
 			select {
 			case <-timer.C:
+				query.Context.Cancel()
+				if query.Result != nil {
+					query.Result.Close()
+				}
 				mux.Lock()
 				delete(Queries, query.ID)
 				mux.Unlock()

@@ -82,10 +82,9 @@ func GetSchemata(c echo.Context) (err error) {
 
 	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
 		schemaTables := []store.SchemaTable{}
+		dbQ := store.Db.Where("conn = ? and database = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database))
 		load := func() error {
-			err := store.Db.Where("conn = ? and database =?", strings.ToLower(req.Conn), strings.ToLower(req.Database)).
-				Order("schema_name, table_name").
-				Find(&schemaTables).Error
+			err := dbQ.Order("schema_name, table_name").Find(&schemaTables).Error
 			if err != nil {
 				return g.Error(err, "could not query schemata")
 			}
@@ -94,6 +93,10 @@ func GetSchemata(c echo.Context) (err error) {
 
 		err := load()
 		if len(schemaTables) == 0 || req.Procedure == "refresh" {
+			// delete old entries
+			err = dbQ.Delete(&store.SchemaTable{}).Error
+			g.LogError(err, "could not delete old schemata for %s/%s", strings.ToLower(req.Conn), strings.ToLower(req.Database))
+
 			err = LoadSchemata(req.Conn, req.Database)
 			if err != nil {
 				return iop.Dataset{}, g.Error(err, "could not get schemata")
@@ -167,6 +170,17 @@ func GetTables(c echo.Context) (err error) {
 		for _, r := range viewsData.Rows {
 			data.Append(iop.Row(r[0], true))
 		}
+
+		// delete old entries
+		err = store.Db.Where(
+			"conn = ? and database = ? and schema_name = ?",
+			strings.ToLower(req.Conn), strings.ToLower(req.Database), strings.ToLower(req.Schema),
+		).Delete(&store.SchemaTable{}).Error
+
+		g.LogError(
+			err, "could not delete old tables for %s/%s/%s",
+			strings.ToLower(req.Conn), strings.ToLower(req.Database), strings.ToLower(req.Schema),
+		)
 
 		// to store
 		schemaTables := make([]store.SchemaTable, len(data.Rows))
@@ -329,6 +343,12 @@ func GetCachedResult(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusNotFound, err, "could not find query %s", q.ID)
 	}
 
+	data, err := query.RetrieveRows(q.ResultLimit)
+	if err != nil {
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
+	}
+	query.Rows = data.Rows
+
 	return c.JSON(200, g.ToMap(query))
 }
 
@@ -365,7 +385,7 @@ func GetSQLRows(c echo.Context) (err error) {
 			return PostSubmitQuery(c)
 		}
 	} else {
-		data, err := query.FetchRows()
+		data, err := query.RetrieveRows(q.ResultLimit)
 		if err != nil {
 			return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
 		}
@@ -417,7 +437,10 @@ func PostSubmitQuery(c echo.Context) (err error) {
 	}
 
 	if query.Limit == 0 {
-		query.Limit = 100
+		query.Limit = 5000
+	}
+	if query.ResultLimit == 0 {
+		query.ResultLimit = 100
 	}
 
 	if c.Request().Header.Get("DbNet-Continue") != "" {
@@ -449,7 +472,7 @@ func PostSubmitQuery(c echo.Context) (err error) {
 		case <-query.Done:
 			result, err = query.ProcessResult()
 			if err != nil {
-				return g.ErrJSON(http.StatusInternalServerError, err, "could not process query")
+				return c.JSON(500, result)
 			}
 		case <-ticker.C:
 			status = 202 // when status is 202, follow request with header "DbNet-Continue"

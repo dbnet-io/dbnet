@@ -3,6 +3,9 @@ import { accessStore, Tab, useHS } from "../store/state";
 import { SelectButton } from "primereact/selectbutton";
 import { none } from "@hookstate/core";
 import { jsonClone } from "../utilities/methods";
+import { Tooltip } from "primereact/tooltip";
+import { ContextMenu } from "primereact/contextmenu";
+import { MenuItem } from "primereact/components/menuitem/MenuItem";
 
 const store = accessStore()
 const queryPanel = store.queryPanel
@@ -40,7 +43,7 @@ export const createTab = (name: string = '', sql = '') => {
     name, 
     editor: {text: sql},
     connection: store.connection.name.get(),
-    database: store.connection.database.get(),
+    database: jsonClone(store.connection.database.get()),
   });
   let childTab = createTabChild(newTab)
   newTab.selectedChild = childTab.id
@@ -83,9 +86,11 @@ interface Props {}
 export const TabNames: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
+  const cm = React.useRef<ContextMenu>(null);
   const tabs = useHS(queryPanel.tabs)
   const tabOptions = tabs.get().filter(t => !t.parent && !t.hidden).map(t => t.name);
   const selectedTabId = useHS(queryPanel.selectedTabId)
+  const contextTabId = useHS('')
 
   ///////////////////////////  EFFECTS  ///////////////////////////
 
@@ -159,16 +164,65 @@ export const TabNames: React.FC<Props> = (props) => {
     let tab = queryPanel.tabs[index]
     let childTab = getTabState(tab.id.get())
     const loading = tab.loading.get() || childTab.loading.get()
+    let id = `tab-${tab.name.get()}`
+
     return <>
+      <Tooltip
+        target={`#${id}`}
+        style={{
+          fontSize: '11px',
+          minWidth: '250px',
+          fontFamily:'monospace',
+        }}
+      >
+        <span>Connection: {tab.connection.get() || store.connection.name.get()}</span>
+        <br/>
+        <span>Database:   {tab.database.get() || store.connection.database.get()}</span>
+      </Tooltip>
       { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
-      <span 
+      <span
+        id={id}
+        data-pr-position="top"
         style={{fontSize: '12px'}}
         onAuxClick={() => deleteTab(jsonClone(tab.id.get()))}
+        onContextMenu={event => {
+          contextTabId.set(jsonClone(tab.id.get()))
+          cm.current?.show(event as any)
+        }}
       >{option}</span >
     </> 
-  };
+  }
 
-  return (
+
+  const menu = () : MenuItem[] => {
+    let contextTab = getTabState(jsonClone(contextTabId.get()))
+    let databaseItems : MenuItem[] = store.connection.databases.get().map(db => {
+      return {
+        label: db,
+        icon: db === contextTab.get()?.database ? 'pi pi-angle-double-right': '',
+        command: () => {
+          contextTab.database.set(db)
+          selectedTabId.set(jsonClone(selectedTabId.get())) // to refresh
+        },
+      } as MenuItem
+    })
+
+    let items : MenuItem[] = [
+      {
+        label: 'Close',
+        icon: 'pi pi-times',
+        command: () => deleteTab(jsonClone(contextTab.id.get()))
+      },
+      {
+        separator: true
+      },
+    ]
+    return items.concat(databaseItems)
+  }
+
+
+  return <>
+    <ContextMenu model={menu()} ref={cm} onHide={() => {}} style={{fontSize:'11px'}}/>
     <SelectButton
       id="tab-names"
       value={getSelectedTabName()}
@@ -177,5 +231,6 @@ export const TabNames: React.FC<Props> = (props) => {
       style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
       // options={justifyOptions}
       itemTemplate={optionTemplate} />
-  );
+    
+  </>
 }

@@ -89,7 +89,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
         <Tooltip target={`#${id}`} style={{fontSize: '12px', minWidth: '250px'}}>
           <span><b>Time:</b> {formatTime(query.time)}</span><br/>
           <span><b>Status:</b> {query.status}</span><br/>
-          <span><b>Duration:</b> {get_duration(Math.round(query.duration*100)/100)}</span><br/>
+          <span><b>Duration:</b> {get_duration(Math.round(query.duration*10)/10)}</span><br/>
           {
             query.err ? 
             <>

@@ -65,6 +65,18 @@ func (h Headers) Value() (driver.Value, error) {
 	return g.JSONValuer(h, "[]")
 }
 
+type Row []interface{}
+
+// Scan scan value into Jsonb, implements sql.Scanner interface
+func (r *Row) Scan(value interface{}) error {
+	return g.JSONScanner(r, value)
+}
+
+// Value return json value, implement driver.Valuer interface
+func (r Row) Value() (driver.Value, error) {
+	return g.JSONValuer(r, "[]")
+}
+
 type Rows [][]interface{}
 
 // Scan scan value into Jsonb, implements sql.Scanner interface
@@ -79,24 +91,32 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Query represents a query
 type Query struct {
-	ID        string        `json:"id" query:"id" gorm:"primaryKey"`
-	Conn      string        `json:"conn" query:"conn" gorm:"index"`
-	Database  string        `json:"database" query:"database" gorm:"index"`
-	Tab       string        `json:"tab" query:"tab"`
-	Text      string        `json:"text" query:"text"`
-	Time      int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
-	Duration  float64       `json:"duration" query:"duration"`
-	Status    QueryStatus   `json:"status" query:"status"`
-	Err       string        `json:"err" query:"err"`
-	Headers   Headers       `json:"headers" query:"headers" gorm:"headers"`
-	Rows      Rows          `json:"rows" query:"rows" gorm:"rows"`
-	Context   g.Context     `json:"-" gorm:"-"`
-	Result    *sqlx.Rows    `json:"-" gorm:"-"`
-	Columns   []iop.Column  `json:"-" gorm:"-"`
-	Limit     int           `json:"limit" query:"limit" gorm:"-"`
-	Wait      bool          `json:"wait" query:"wait" gorm:"-"`
-	UpdatedDt time.Time     `json:"-" gorm:"autoUpdateTime"`
-	Done      chan struct{} `json:"-" gorm:"-"`
+	ID          string        `json:"id" query:"id" gorm:"primaryKey"`
+	Conn        string        `json:"conn" query:"conn" gorm:"index"`
+	Database    string        `json:"database" query:"database" gorm:"index"`
+	Tab         string        `json:"tab" query:"tab"`
+	Text        string        `json:"text" query:"text"`
+	Time        int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
+	Duration    float64       `json:"duration" query:"duration"`
+	Status      QueryStatus   `json:"status" query:"status"`
+	Err         string        `json:"err" query:"err"`
+	Headers     Headers       `json:"headers" query:"headers" gorm:"headers"`
+	Rows        Rows          `json:"rows" query:"rows" gorm:"-"`
+	Context     g.Context     `json:"-" gorm:"-"`
+	Result      *sqlx.Rows    `json:"-" gorm:"-"`
+	Columns     []iop.Column  `json:"-" gorm:"-"`
+	Limit       int           `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
+	ResultLimit int           `json:"result_limit" query:"result_limit" gorm:"-"`
+	Wait        bool          `json:"wait" query:"wait" gorm:"-"`
+	UpdatedDt   time.Time     `json:"-" gorm:"autoUpdateTime"`
+	Done        chan struct{} `json:"-" gorm:"-"`
+}
+
+type QueryRow struct {
+	ID        string    `json:"id" query:"id" gorm:"primaryKey"`
+	Num       int       `json:"num" query:"num" gorm:"primaryKey"`
+	Data      Row       `json:"data" query:"data" gorm:"data"`
+	UpdatedDt time.Time `json:"-" gorm:"autoUpdateTime"`
 }
 
 // Job represents a job
@@ -151,7 +171,10 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 	}
 
 	if q.Limit == 0 {
-		q.Limit = 100
+		q.Limit = 5000
+	}
+	if q.ResultLimit == 0 {
+		q.ResultLimit = 100
 	}
 
 	q.Text = strings.TrimSuffix(q.Text, ";")
@@ -232,18 +255,39 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 	return
 }
 
-// FetchRows returns a dataset based on a number of rows
-func (q *Query) FetchRows() (data iop.Dataset, err error) {
+// RetrieveRows returns a dataset based on a number of rows
+// from the storage
+func (q *Query) RetrieveRows(limit int) (data iop.Dataset, err error) {
+	if limit == 0 {
+		limit = 100
+	}
+
+	qRows := []QueryRow{}
+	err = Db.Where("id = ?", q.ID).Limit(limit).
+		Order("num asc").Find(&qRows).Error
+	if err != nil {
+		err = g.Error(err, "could not find query rows")
+		return
+	}
+
+	data = iop.NewDataset(q.Columns)
+	for _, qRow := range qRows {
+		data.Rows = append(data.Rows, qRow.Data)
+	}
+
+	return
+}
+
+// ResultStream returns the query result as a datastream
+func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
 	if q.Err != "" {
 		err = g.Error(q.Err)
 		return
 	}
 
-	data = iop.NewDataset(q.Columns)
-
 	nextFunc := func(it *iop.Iterator) bool {
 		if q.Limit > 0 && it.Counter >= cast.ToUint64(q.Limit) {
-			q.Status = QueryStatusFetched
+			q.Status = QueryStatusCompleted
 			return false
 		}
 
@@ -268,7 +312,7 @@ func (q *Query) FetchRows() (data iop.Dataset, err error) {
 		return false
 	}
 
-	ds := iop.NewDatastreamIt(q.Context.Ctx, q.Columns, nextFunc)
+	ds = iop.NewDatastreamIt(q.Context.Ctx, q.Columns, nextFunc)
 	ds.NoTrace = true
 	ds.Inferred = true
 
@@ -279,27 +323,74 @@ func (q *Query) FetchRows() (data iop.Dataset, err error) {
 		return
 	}
 
-	data, err = ds.Collect(q.Limit)
-	if err != nil {
-		q.Context.Cancel()
-		err = g.Error(err, "could not collect data")
-		return
+	return
+}
+
+// StoreRows stores the rows in the storage
+func (q *Query) StoreRows(ds *iop.Datastream) (err error) {
+	// store into sqlite
+	count := 0
+	batchSize := 100
+	batchRows := []QueryRow{}
+	for row := range ds.Rows {
+		count++
+		batchRows = append(batchRows, QueryRow{
+			ID:   q.ID,
+			Num:  count,
+			Data: row,
+		})
+		if len(batchRows) >= batchSize {
+			err = Sync("query_rows", &batchRows)
+			g.LogError(err, "could not store query rows")
+			batchRows = []QueryRow{}
+		}
+	}
+
+	if len(batchRows) > 0 {
+		err = Sync("query_rows", &batchRows)
+		g.LogError(err, "could not store query rows")
 	}
 
 	return
 }
 
+// Close closes and cancels the query
+func (q *Query) Close() {
+	q.Context.Cancel()
+	if q.Result != nil {
+		q.Result.Close()
+	}
+}
+
+// ProcessResult fetches all rows in query and stores in sqlite
+// for further retrieval
 func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 	if q.Err != "" {
 		err = g.Error(q.Err)
-		return
+		return g.ToMap(q), err
 	}
 
-	// fetch rows
-	data, err := q.FetchRows()
+	ds, err := q.ResultStream()
 	if err != nil {
-		err = g.Error(err, "could not fecth rows")
-		return
+		err = g.Error(err, "could not fetch result rows")
+		return g.ToMap(q), err
+	}
+
+	err = q.StoreRows(ds)
+	if err != nil {
+		err = g.Error(err, "could not store rows")
+		return g.ToMap(q), err
+	}
+
+	// retrieve rows
+	data, err := q.RetrieveRows(q.ResultLimit)
+	if err != nil {
+		err = g.Error(err, "could not retrieve rows")
+		return g.ToMap(q), err
+	}
+
+	if len(data.Rows) == q.ResultLimit {
+		q.Status = QueryStatusFetched
 	}
 
 	q.Duration = (float64(time.Now().UnixNano()/1000000) - float64(q.Time)) / 1000
@@ -308,7 +399,6 @@ func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 
 	result = g.ToMap(q)
 
-	q.TrimRows(100) // only store 100 rows in sqlite
 	Sync("queries", q)
 
 	q.TrimRows(1) // only store 1 row in mem

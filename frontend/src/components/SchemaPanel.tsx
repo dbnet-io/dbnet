@@ -211,6 +211,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
     const menu = [
       {
+        label: 'Copy Name(s)',
+        icon: 'pi pi-copy',
+        command: () => {
+          let keys = Object.keys(selectedKeys.get())
+          copyToClipboard(keys.join('\n'))
+        }
+      },
+      {
         label: 'Refresh',
         icon: 'pi pi-refresh',
         command: () => {
@@ -380,7 +388,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   return (
-    <div id='history-panel' className="p-grid p-fluid" style={{textAlign:'center'}}>
+    <div id='schema-panel' className="p-grid p-fluid" style={{textAlign:'center'}}>
       <div className="p-col-12 p-md-12">
         <h4 style={{ textAlign: 'center', margin: '-5px' }}>
           {connection.database.get().toUpperCase()}

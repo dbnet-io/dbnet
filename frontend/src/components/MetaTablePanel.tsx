@@ -5,15 +5,18 @@ import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, globalStore, MetaTable, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, MetaTable, Table, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
-import { copyToClipboard, data_req_to_records, split_schema_table, toastError, toastInfo } from "../utilities/methods";
-import { ObjectAny } from "../utilities/interfaces";
+import { copyToClipboard, data_req_to_records, jsonClone, split_schema_table, toastError, toastInfo } from "../utilities/methods";
+import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 import { apiGet } from "../store/api";
 import YAML from 'yaml'
+import { Dropdown } from "primereact/dropdown";
+import { map } from "lodash";
+import { Tooltip } from "primereact/tooltip";
 
 export const makeYAML = (data: ObjectAny) => {
   return '/*@\n' + YAML.stringify(data).trim() + '\n@*/'
@@ -23,7 +26,7 @@ interface Props {}
 
 const store = accessStore()
 
-export const loadMetaTable = async (tableName: string, refresh=false, fromHistory=false) => {
+export const loadMetaTable = async (tableName: string, database='', refresh=false, fromHistory=false) => {
   store.app.selectedMetaTab.set('Object')
 
   const objectPanel = store.objectPanel
@@ -35,7 +38,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
   try {
     let data1 = {
       conn: store.connection.name.get(),
-      database: store.connection.database.get(),
+      database: database || store.connection.database.get(),
       schema,
       table,
       procedure: refresh ? 'refresh' : null,
@@ -53,6 +56,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
           data_type: r?.data_type.toLowerCase(),
         }))
         o.name = tableName
+        o.database = jsonClone(data1.database)
         o.loading = false
         return new MetaTable(o)
       }
@@ -60,6 +64,7 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
     
     // set history stack
     if(!fromHistory) {
+      let table = jsonClone<MetaTable>(objectPanel.table.get())
       if (historyI.get() < history.length-1) {
         let delObj : ObjectAny = {}
         for (let i = historyI.get()+1; i < history.length; i++) {
@@ -67,8 +72,8 @@ export const loadMetaTable = async (tableName: string, refresh=false, fromHistor
         }
         history.merge(delObj) // https://hookstate.js.org/docs/nested-state#partial-updates-and-deletions-1
       }
-      history.merge([tableName])
-      if(history.length > 30) history[0].set(none)
+      history.merge([table])
+      if(history.length > 15) history[0].set(none)
       historyI.set(history.length-1)
     }
   } catch (error) {
@@ -149,32 +154,205 @@ export const submitAnalysisSQL = async (analysis: string, params: ObjectAny, obj
   }
 }
 
+class Form {
+  name: string
+  show: boolean
+  data: ObjectAny
+  
+  constructor(name: string) {
+    this.name = name
+    this.show = false
+    this.data = {}
+  }
+
+
+  submit = async (tabName: string, input: ObjectAny) => {
+    let data = {
+      analysis: this.name,
+      data: input,
+    }
+    let sql = makeYAML(data) + ';'
+    let tab = createTab(tabName, sql)
+    submitSQL(tab, sql)
+  }
+}
+
+const TableDropdown = (props: { value: State<string> }) => {
+  const schemas = store.connection.schemas
+  
+  const getAllTables = () => {
+    let all : ObjectString[] = []
+    try {
+      for (let schema of schemas.get()) {
+        if (!schema.tables || !Array.isArray(schema.tables)) { continue }
+        for (let table of schema.tables) {
+          all.push({"name": `${table.schema}.${table.name}`})
+        }
+      }
+    } catch (error) {
+      console.log(error)
+    }
+    return all
+  }
+
+  return <Dropdown 
+    value={props.value.get()}
+    options={getAllTables()}
+    onChange={(e) => { props.value.set(e.value.name) }}
+    filter showClear filterMatchMode={"contains"}
+    filterBy="name"
+    optionLabel="name"
+    placeholder="Select a Table"
+    editable={true}
+    style={{fontSize: '10px'}}
+  />
+}
+
+const CountOverTime = (props: { form: State<Form> }) => {
+  const objectPanel = store.objectPanel
+  interface Input {
+    connection: string
+    database: string
+    table1: {
+      name: string
+      column: string
+    }
+    table2: {
+      name: string
+      column: string
+    }
+  }
+
+  const submit = () => { // eslint-disable-line
+    let data = {
+      analysis: 'distro_field_date_wide',
+      data: {
+        schema: objectPanel.table.get().schema(),
+        table: objectPanel.table.get().table(),
+        // fields: selected.get().map(v => v.column_name),
+        // date_field: date_field.get()
+      },
+    }
+    let sql = makeYAML(data) + ';'
+    let tab = createTab(objectPanel.table.name.get(), sql)
+    submitSQL(tab, sql)
+  }
+
+  const data = useHS<Input>({} as Input)
+  return <>
+    <div className="p-grid p-fluid">
+      <div className="p-col-12 p-md-12" >
+
+      </div>
+    </div>
+  </>
+}
+
+const CompareColumns = (props: { form: State<Form> }) => {
+  const objectPanel = store.objectPanel
+  const selectedColumns = store.objectPanel.table.selectedColumns  
+  interface Input {
+    t1: string
+    t1_field: string
+    t1_filter: string
+    t2: string
+    t2_field: string
+    t2_filter: string
+    conds: string
+  }
+
+  const input = useHS<Input>({
+    t1: objectPanel.table.name.get(),
+    t1_field: selectedColumns.get().map(c => c.column_name).join(','),
+    t1_filter: '1=1',
+    t2: '',
+    t2_field: '',
+    t2_filter: '1=1',
+    conds: ''
+  } as Input)
+
+  React.useEffect(() => {
+    let error = ''
+    if(!input.t1_field.get().trim()) error = 'Please select columns to compare'
+    if(error) {
+      props.form.show.set(false)
+      return toastError(error)
+    }
+  }, [])
+
+  return <>
+    <div className="p-grid p-fluid">
+      <div className="p-col-12 p-md-12" >
+        <TableDropdown value={input.t2}/>
+      </div>
+      <div className="p-col-12 p-md-12" >
+        <InputText
+          value={input.t2_field.get()}
+          className="p-inputtext-sm"
+          placeholder="col1, col2"
+          type="text"
+          onChange={(e:any) => { input.t2_field.set(e.target.value) }}
+        /> 
+      </div>
+      <div className="p-col-12 p-md-12" >
+        <Button
+          label="Submit"
+          onClick={(e) => { 
+            // validate
+            if(!input.t2.get()?.trim()) return toastError('Need to select a second table')
+            if(!input.t2_field.get()?.trim()) return toastError('Need to input columns')
+            if(input.t1_field.get()?.split(',').length != input.t2_field.get().split(',').length)
+              return toastError('Need to input columns')
+            let cond_arr = []
+            for (let i = 0; i < input.t1_field.get().split(',').length; i++) {
+              const t1_field = input.t1_field.get().split(',')[i];
+              const t2_field = input.t2_field.get().split(',')[i];
+              cond_arr.push(`t1.${t1_field} = t2.${t2_field}`)
+            }
+            input.conds.set(cond_arr.join(' and '))
+            props.form.get().submit(objectPanel.table.name.get(), input.get()) 
+            props.form.show.set(false)
+          }}
+        />
+      </div>
+    </div>
+  </>
+}
+
 export const MetaTablePanel: React.FC<Props> = (props) => {
 
   
   ///////////////////////////  HOOKS  ///////////////////////////
-  const objectPanel = useState(accessStore().objectPanel)
-  const selected = useVariable<any[]>([])
+  const objectPanel = useState(store.objectPanel)
+  const selectedColumns = useVariable<any[]>([])
   const filter = useVariable('');
   const op = React.useRef(null);
   const history = objectPanel.history
   const historyI = objectPanel.historyI
-  const showForms = useHS({
-    CountOverTime: false
+  const forms = useHS({
+    countOverTime: new Form('count_over_time'),
+    compareColumns: new Form('table_join_match'),
   })
-
+  
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
     // reset the selected columns
-    selected.set([])
+    selectedColumns.set([])
   }, [objectPanel.table.name.get()])// eslint-disable-line
 
-  ///////////////////////////  FUNCTIONS  ///////////////////////////
+  React.useEffect(() => {
+    // reset the selected columns
+    store.objectPanel.table.selectedColumns.set(jsonClone(selectedColumns.get()))
+  }, [selectedColumns.get()])// eslint-disable-line
 
+  ///////////////////////////  FUNCTIONS  ///////////////////////////
+  const hideForms = () => {
+    for(let key of forms.keys) { forms[key].show.set(false) }
+  }
 
   const getSelectedColsOrAll = () => {
-    let cols = selected.get().map(v => v.column_name)
+    let cols = selectedColumns.get().map(v => v.column_name)
     if(cols.length === 0) {
       cols = objectPanel.table.get().rows.map(v => v.column_name)
     }
@@ -194,30 +372,79 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         >
           <strong>{objectPanel.table.name.get()}</strong>
           <a href="#;" onClick={() => {copyToClipboard(objectPanel.table.name.get())}}>
-            <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
+            <i className="pi pi-copy" style={{'fontSize': '0.9em', paddingLeft:'5px'}}></i>
+          </a>
+          <a 
+            href="#;"
+            onClick={() => { 
+              store.historyPanel.filter.set(objectPanel.table.name.get())
+              store.app.selectedMetaTab.set('History')
+            }}
+          >
+            <span style={{'fontSize': '1.2em', paddingLeft:'5px'}}>H</span>
           </a>
         </span>
       </div>
 
       <div className="p-col-12 p-md-12 p-inputgroup work-buttons" style={{overflowX:'hidden'}}>
+        <Tooltip
+          target={`#history-panel-back`} 
+          style={{
+            fontSize: '11px',
+            minWidth: '250px',
+            fontFamily:'monospace',
+          }}
+        >
+          {
+            history.get()?.filter((h, i) => i < historyI.get() && i > historyI.get() - 5 ).reverse().map(h => {
+              return <>
+              <span>{h.name}</span>
+              <br />
+              </>
+            })
+          }
+        </Tooltip>
         <Button
+          id='history-panel-back'
           icon="pi pi-caret-left"
           disabled={!(history.length > 1 && historyI.get() > 0)}
           tooltipOptions={{ position: 'right' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             historyI.set(i => i - 1)
-            loadMetaTable(history[historyI.get()].get(), false, true)
+            let table = history[historyI.get()].get()
+            loadMetaTable(table.name, table.database, false, true)
           }} 
         />
+
+
+        <Tooltip
+          target={`#history-panel-forward`} 
+          style={{
+            fontSize: '11px',
+            minWidth: '250px',
+            fontFamily:'monospace',
+          }}
+        >
+          {
+            history.get().filter((h, i) => i > historyI.get() ).slice(0, 5).map(h => {
+              return <>
+              <span>{h.name}</span>
+              <br />
+              </>
+            })
+          }
+        </Tooltip>
         <Button
+          id='history-panel-forward'
           icon="pi pi-caret-right"
           disabled={!(history.length > 1 && historyI.get() < history.length - 1)}
           tooltipOptions={{ position: 'right' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             historyI.set(i => i + 1)
-            loadMetaTable(history[historyI.get()].get(), false, true)
+            let table = history[historyI.get()].get()
+            loadMetaTable(table.name, table.database, false, true)
           }} 
         />
         <Button
@@ -226,7 +453,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            loadMetaTable(objectPanel.table.name.get(), true)
+            loadMetaTable(objectPanel.table.name.get(), objectPanel.table.database.get(), true)
           }} 
         />
 
@@ -265,7 +492,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
-            let cols = selected.get().length === 0 ? ['*'] : getSelectedColsOrAll()
+            let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
             let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${objectPanel.table.name.get()}\nlimit 5000;`
             let tab = createTab(objectPanel.table.name.get(), sql)
             submitSQL(tab, sql)
@@ -277,7 +504,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
-            let colsCnt = selected.get().map(v => v.column_name)
+            let colsCnt = selectedColumns.get().map(v => v.column_name)
                 .map(c => `count(${c}) cnt_${c}`)
             let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
             let sql = `select\n  count(1) cnt${colsCntStr}\nfrom ${objectPanel.table.name.get()}\n;`
@@ -297,7 +524,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.get().table(),
-                fields: selected.get().map(v => v.column_name),
+                fields: selectedColumns.get().map(v => v.column_name),
               },
             }
             let sql = makeYAML(data) + ';'
@@ -317,7 +544,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.get().table(),
-                fields: selected.get().map(v => v.column_name),
+                fields: selectedColumns.get().map(v => v.column_name),
               },
             }
             let sql = makeYAML(data) + ';'
@@ -333,7 +560,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            let cols = selected.get().map(v => v.column_name)
+            let cols = selectedColumns.get().map(v => v.column_name)
             if(cols.length === 0 ) return toastError('need to select columns')
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
             let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${objectPanel.table.name.get()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
@@ -349,7 +576,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            if(selected.get().length !== 1) {
+            if(selectedColumns.get().length !== 1) {
               return toastError('select only one field')
             }
             let data = {
@@ -357,7 +584,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               data: {
                 schema: objectPanel.table.get().schema(),
                 table: objectPanel.table.get().table(),
-                field: selected.get().map(v => v.column_name)[0],
+                field: selectedColumns.get().map(v => v.column_name)[0],
               },
             }
             let sql = makeYAML(data) + ';'
@@ -390,7 +617,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       >
 
         <DataTable
-          value={objectPanel.table.get().rows}
+          value={objectPanel.table.get().rows.filter(r => r !== undefined)}
           loading={objectPanel.table.loading.get()}
           rowHover={true}
           scrollable={true}
@@ -398,57 +625,46 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           resizableColumns={true}
           className="p-datatable-sm p-datatable-gridlines"
           style={{fontSize:'10px'}}
-          selection={selected.get()}
-          onSelectionChange={e => selected.set(e.value)} 
+          selection={selectedColumns.get()}
+          onSelectionChange={e => selectedColumns.set(e.value)} 
           dataKey="column_name"
           globalFilter={filter.get()}
         >
-          <Column selectionMode="multiple" headerStyle={{width: '3em'}}></Column>
-          <Column field="id" header="#" headerStyle={{width: '3em', textAlign: 'center'}} bodyStyle={{textAlign:"center"}}/>
+          <Column selectionMode="multiple" headerStyle={{width: '3em'}} bodyStyle={{width: '3em'}}></Column>
+          <Column field="id" header="#" headerStyle={{width: '3em', textAlign: 'center'}} bodyStyle={{width: '3em', textAlign:"center"}}/>
           <Column field="column_name" header="Name"/>
           <Column field="data_type" header="Type"/>
           {/* <Column field="length" header="Length"/> */}
         </DataTable>
       </div>
 
-      <OverlayPanel ref={op} showCloseIcon id="overlay_panel" style={{width: '150px'}} onHide={() => { showForms.CountOverTime.set(false)}}>
+      <OverlayPanel
+        id="overlay_panel"
+        ref={op}
+        showCloseIcon
+        style={{maxWidth: '350px'}}
+        onHide={() => {  hideForms() }}>
 
         <Button
           icon="pi pi-chart-bar"
           tooltip="Counts over time"
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-rounded p-button-help"
-          onClick={(e) => {showForms.CountOverTime.set(true)}}
+          onClick={(e) => { hideForms(); forms.countOverTime.show.set(true) }}
         />
-        
-        {showForms.CountOverTime.get() ? <FormCountOverTime/> : null}
-        
+
+        <Button
+          icon="pi pi-check-circle"
+          tooltip="Compare Columns"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-rounded p-button-help"
+          onClick={(e) => { hideForms(); forms.compareColumns.show.set(true) }}
+        />
+
+        {forms.countOverTime.show.get() ? <CountOverTime form={forms.countOverTime} /> : null}
+        {forms.compareColumns.show.get() ? <CompareColumns form={forms.compareColumns} /> : null}
 
       </OverlayPanel>
     </div>
   )
 };
-
-const FormCountOverTime = () => {
-
-  const objectPanel = accessStore().objectPanel
-
-  const submit = () => { // eslint-disable-line
-    let data = {
-      analysis: 'distro_field_date_wide',
-      data: {
-        schema: objectPanel.table.get().schema(),
-        table: objectPanel.table.get().table(),
-        // fields: selected.get().map(v => v.column_name),
-        // date_field: date_field.get()
-      },
-    }
-    let sql = makeYAML(data) + ';'
-    let tab = createTab(objectPanel.table.name.get(), sql)
-    submitSQL(tab, sql)
-  }
-
-  return (
-    <p>Seelect date field</p>
-  )
-}

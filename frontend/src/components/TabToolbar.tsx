@@ -5,7 +5,7 @@ import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import _ from "lodash";
-import { copyToClipboard, jsonClone, new_ts_id, showNotification, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, get_duration, jsonClone, new_ts_id, showNotification, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 import { apiPost } from "../store/api";
@@ -43,7 +43,7 @@ export const cancelSQL = async (tab: State<Tab>) => {
 
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if (!sql) sql = tab.editor.text.get() // get current block
-
+  console.log(tab.get())
   const connection = tab.connection.get() || store.connection.name.get()
   const database = tab.database.get() || store.connection.database.get()
   const queryPanel = store.queryPanel
@@ -60,7 +60,8 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     text: sql.trim(),
     time: (new Date()).getTime(),
     tab: childTab.id,
-    limit: childTab.limit,
+    limit: 5000,
+    result_limit: childTab.limit,
     wait: true,
   }
 
@@ -135,13 +136,18 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
 }
 
-export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
+export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>,
+  hotTable: React.MutableRefObject<any>}) {
   const tab = props.tab;
   const filter = useHS(tab.filter);
   const limit = useHS(tab.limit);
   const cancelling = useHS(false);
   const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   const sqlOp = React.useRef<any>(null);
+
+  React.useEffect(()=>{
+    localFilter.set(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
+  }, [tab.id.get()])
 
   return (
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
@@ -274,7 +280,12 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             className="p-button-sm p-button-outlined p-button-secondary"
             tooltip="Copy headers"
             tooltipOptions={{ position: 'top' }}
-            onClick={() => { copyToClipboard(tab.query.headers.get().join('\n')) }}
+            onClick={() => { 
+              // console.log(props.hotTable.current?.hotInstance.selection)
+              let startCol = tab.lastTableSelection.get()[1]
+              let endCol = tab.lastTableSelection.get()[3]
+              copyToClipboard(tab.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n')) 
+            }}
           />
 
           <Button
@@ -311,7 +322,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
           />
 
           <span className="p-inputgroup-addon">{tab.query.rows.length} rows</span>
-          <span className="p-inputgroup-addon">{tab.query.duration.get()} sec</span>
+          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()))} sec</span>
 
           <Button
             icon="pi pi-angle-double-down"

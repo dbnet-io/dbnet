@@ -36,6 +36,7 @@ func InitDB() {
 		&TableColumn{},
 		&Job{},
 		&Query{},
+		&QueryRow{},
 		&Session{},
 	}
 
@@ -59,6 +60,7 @@ func Sync(table string, obj interface{}, fields ...string) (err error) {
 		"schema_tables": {"conn", "database", "schema_name", "table_name"},
 		"table_columns": {"conn", "database", "schema_name", "table_name", "name"},
 		"queries":       {"id"},
+		"query_rows":    {"id", "row_num"},
 		"jobs":          {"id"},
 		"sessions":      {"conn", "name"},
 	}
