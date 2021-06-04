@@ -1,8 +1,8 @@
 import { serialize } from '../utilities/methods';
 import axios from 'axios' // eslint-disable-line
 
-export const masterURL = window.location.origin
-// export const masterURL = 'http://localhost:5987'
+// export const masterURL = window.location.origin
+export const masterURL = 'http://localhost:5987'
 
 export interface Response {
   // response: globalThis.Response
