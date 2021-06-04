@@ -73,6 +73,17 @@ func NewServer() *Server {
 		},
 	}))
 
+	// CORS
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "tauri://localhost"},
+		// AllowCredentials: true,
+		// AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.He`aderAccept},
+		// AllowOriginFunc: func(origin string) (bool, error) {
+		// 	println(origin)
+		// 	return false, nil
+		// },
+	}))
+
 	// embedded files
 	contentHandler := echo.WrapHandler(http.FileServer(http.FS(appFiles)))
 	contentRewrite := middleware.Rewrite(map[string]string{"/*": "/app/$1"})
