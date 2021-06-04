@@ -75,7 +75,7 @@ func NewServer() *Server {
 
 	// CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "tauri://localhost"},
+		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "tauri://localhost", "https://custom-protocol-taurilocalhost"},
 		// AllowCredentials: true,
 		// AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.He`aderAccept},
 		// AllowOriginFunc: func(origin string) (bool, error) {
@@ -315,6 +315,7 @@ func (s *DbtServer) Launch() (err error) {
 
 // Refresh refreshes files list
 func (s *DbtServer) Refresh() {
-	err := syscall.Kill(s.Proc.Cmd.Process.Pid, syscall.SIGHUP)
+	var err error
+	// err = syscall.Kill(s.Proc.Cmd.Process.Pid, syscall.SIGHUP)
 	g.LogError(err)
 }
