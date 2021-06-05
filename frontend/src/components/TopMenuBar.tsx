@@ -10,7 +10,7 @@ import { LogError } from "../utilities/methods";
 import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
-import { TauriLaunchBackend } from "../utilities/tauri";
+import { TauriGetCwd } from "../utilities/tauri";
 
 
 const store = accessStore()
@@ -248,7 +248,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Test"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { TauriLaunchBackend() }}
+      onClick={(e) => { TauriGetCwd() }}
     />
 
     <Button

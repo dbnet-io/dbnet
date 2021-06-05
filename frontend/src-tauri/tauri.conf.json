@@ -10,6 +10,9 @@
     "beforeBuildCommand": ""
   },
   "tauri": {
+    "systemTray": {
+      "iconPath": "icons/icon.png"
+    },
     "bundle": {
       "active": true,
       "targets": "all",

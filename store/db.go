@@ -51,7 +51,7 @@ func InitDB() {
 		g.LogFatal(err, "error AutoMigrating table: "+tableName)
 	}
 
-	g.LogFatal(CleanupTasks(), "error running db cleanup tasks")
+	// go g.LogFatal(CleanupTasks(), "error running db cleanup tasks")
 }
 
 // Sync syncs to the store
