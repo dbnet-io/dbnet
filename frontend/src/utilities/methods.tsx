@@ -2,6 +2,7 @@ import _ from "lodash";
 import { ObjectAny, ObjectString } from "./interfaces";
 import { Toast, ToastMessage } from 'primereact/toast';
 import { FormEvent, RefObject, useEffect, useRef } from "react";
+import * as Sentry from "@sentry/react";
 
 export const alpha  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const alphanumeric  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -166,7 +167,6 @@ export const calc_duration = function(date1: Date, date2: Date, simple=false) {
     let secs = Math.floor((date2.getTime() - date1.getTime())/1000)
     return get_duration(secs, simple)
   } catch(error) {
-    console.error(error)
     return '-'
   }
 }
@@ -230,9 +230,16 @@ export const doToast = (toast: any, msg: ToastMessage) => {
   (toast.current as Toast).show(msg);
 }
 
-export const toastError = (summary: string, detail: any='') => {
+export const LogError = (err: any) => {
+  console.error(new Error(err))
+  Sentry.captureException(new Error(err))
+}
+
+export const toastError = (summary: any, detail: any='') => {
   if(detail.toString().includes('Not logged in')) return
-  console.error(detail)
+  let error = detail ? `${summary}: ${detail}`: summary
+  LogError(new Error(error))
+
   if(detail.response && detail.response.data && detail.response.data.error) {
     detail = detail.response.data.error
   }

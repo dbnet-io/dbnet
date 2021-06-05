@@ -20,13 +20,13 @@ export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   const TabPanel = () => {
-    const tab = useHS(getTabState(tabId.get()))
-    const childTab = useHS(getTabState(tab.selectedChild.get()))
+    const tab = useHS(getTabState(tabId?.get()))
+    const childTab = useHS(getTabState(tab.selectedChild?.get()))
     const aceEditor = React.useRef(null);
     const hotTable = React.useRef(null);
 
     return (
-      <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId.get()))}>
+      <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId?.get()))}>
         <SplitterPanel className="p-d-flex" style={{overflowY: "scroll", height: "200px", minHeight:"110px"}}>
           <div id="work-input" style={{padding: '8px', width: '100%'}}>
             <TabNames/>

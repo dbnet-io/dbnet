@@ -6,58 +6,16 @@ import { accessStore, globalStore, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { toastError } from "../utilities/methods";
-import { apiGet } from "../store/api";
-import { MsgType } from "../store/websocket";
+import { LogError } from "../utilities/methods";
 import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
-import _ from "lodash";
+import { TauriLaunchBackend } from "../utilities/tauri";
 
 
 const store = accessStore()
 
 interface Props { }
-
-const itemsDefault: MenuItem[] = [
-  // {
-  //   label: 'File',
-  //   icon: 'pi pi-fw pi-file',
-  //   items: [
-  //     {
-  //       label: 'New',
-  //       icon: 'pi pi-fw pi-plus',
-  //       items: [
-  //         {
-  //           label: 'Bookmark',
-  //           icon: 'pi pi-fw pi-bookmark'
-  //         },
-  //         {
-  //           label: 'Video',
-  //           icon: 'pi pi-fw pi-video'
-  //         },
-
-  //       ]
-  //     },
-  //     {
-  //       label: 'Delete',
-  //       icon: 'pi pi-fw pi-trash'
-  //     },
-  //     {
-  //       separator: true
-  //     },
-  //     {
-  //       label: 'Export',
-  //       icon: 'pi pi-fw pi-external-link'
-  //     }
-  //   ]
-  // },
-  {
-    label: 'Connections',
-    icon: 'pi pi-fw pi-sitemap',
-    items: []
-  },
-];
 
 
 export const TopMenuBar: React.FC<Props> = (props) => {
@@ -85,8 +43,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         label: c.name,
         command: () => { loadConn(c) },
         template: (item, options) => {
-          return <a 
-              href="#" 
+          return <a // eslint-disable-line
               role="menuitem" 
               className="p-menuitem-link"
               aria-haspopup="false"
@@ -193,7 +150,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
           }
         }
       } catch (error) {
-        console.log(error)
+        LogError(error)
       }
       return Object.keys(all)
     }
@@ -285,6 +242,14 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
+
+    <Button
+      icon="pi pi-info"
+      tooltip="Test"
+      tooltipOptions={{ position: 'bottom' }}
+      className="p-button-sm p-button-outlined p-button-secondary"
+      onClick={(e) => { TauriLaunchBackend() }}
+    />
 
     <Button
       icon="pi pi-desktop"

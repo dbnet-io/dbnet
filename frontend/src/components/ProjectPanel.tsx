@@ -7,7 +7,7 @@ import { Tooltip } from "primereact/tooltip";
 import { Tree } from "primereact/tree";
 import * as React from "react";
 import { apiGet, apiPost } from "../store/api";
-import { accessStore, DbtProject, FileItem, globalStore, useHS } from "../store/state";
+import { accessStore, FileItem, globalStore, useHS } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { jsonClone, toastError } from "../utilities/methods";
 import { createTab } from "./TabNames";
@@ -35,7 +35,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   React.useEffect(()=>{
     // rootPath.set('/__/tmp/PollyDbt')
     Init()
-  }, [])
+  }, []) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const fileOp = (operation: 'list' | 'read' | 'write' | 'delete', file: FileItem, overwrite=false) => {
@@ -146,7 +146,6 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       dbtProject.set(yaml.parse(resp.data.file.body))
       if(!dbtProfile.get()) dbtProfile.set(dbtProject.get()?.profile)
     } catch (error) {
-      console.log(error)
       toastError(error)
     }
     if(!dbtConns().includes(dbtConn())) {
@@ -251,7 +250,6 @@ export const ProjectPanel: React.FC<Props> = (props) => {
                 let tab = createTab(item.name, resp.data.file.body as string)
                 tab.file.set(item)
               } catch (error) {
-                console.log(error)
                 toastError(error)
               }
               loading.set(false)

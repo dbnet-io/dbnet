@@ -1,4 +1,4 @@
-import { State } from "@hookstate/core";
+import { none, State } from "@hookstate/core";
 import { accessStore, Tab, useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
 import { getTabState } from "./TabNames";
@@ -26,6 +26,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
   const headerTemplate = (options: TabPanelHeaderTemplateOptions) => {
     let childTabId = tabOptions()[options.index].id
     let childTab = getTabState(childTabId)
+    let index = queryPanel.get().getTabIndexByID(childTabId)
 
     // we want the double click to pin / unpin
     return <>
@@ -38,6 +39,9 @@ export function SubTabs(props: { tab: State<Tab>; }) {
           e.preventDefault()
           childTab.pinned.set(v => !v) 
           props.tab.selectedChild.set(childTabId)
+        }}
+        onAuxClick={(e) => {
+          queryPanel.tabs[index].set(none)
         }}
       >
         {options.element}

@@ -7,6 +7,8 @@
     "@hookstate/core": "^3.0.3",
     "@hookstate/devtools": "^3.0.0",
     "@hookstate/logger": "^3.0.0",
+    "@sentry/react": "^6.5.1",
+    "@sentry/tracing": "^6.5.1",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
@@ -79,6 +81,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.0.0-beta.2",
+    "@tauri-apps/api": "^1.0.0-beta.1",
     "electron": "^12.0.9",
     "electron-builder": "^22.10.5"
   }

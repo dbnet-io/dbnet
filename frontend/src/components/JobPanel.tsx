@@ -2,12 +2,10 @@ import { State } from "@hookstate/core";
 import { Button } from "primereact/button";
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
 import { Dialog } from "primereact/dialog";
-import { InputText } from "primereact/inputtext";
 import { ListBox } from "primereact/listbox";
 import { Steps } from 'primereact/steps';
 import * as React from "react";
-import { accessStore, Connection, Job, JobRequestConn, useHS } from "../store/state";
-import { ObjectAny } from "../utilities/interfaces";
+import { accessStore, Job, JobRequestConn, useHS } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 
 const store = accessStore()
@@ -83,7 +81,7 @@ export const JobPanel: React.FC<Props> = (props) => {
       <div className="p-clearfix p-as-center" style={{}}>
         <img
           src={'assets/connections/' + data.type + '.png'}
-          height="20px"
+          height="20px"  alt={data.type}
           style={{display:'inline-block', margin: '2px 0 2px 2px'}}
         />
         <span style={{
@@ -145,10 +143,10 @@ export const JobPanel: React.FC<Props> = (props) => {
   }
 
   const StepExecute = (props: { stepsModel: State<MenuItem[]> }) => {
-    const submit = () => {
+    const submit = () => { // eslint-disable-line
       let len = props.stepsModel.length
       for (let i = 0; i < len-1; i++) {
-        const step = props.stepsModel[i];
+        const step = props.stepsModel[i]; // eslint-disable-line
         props.stepsModel[0].disabled.set(true)
       }
       props.stepsModel[len-1].disabled.set(false) // last is progress

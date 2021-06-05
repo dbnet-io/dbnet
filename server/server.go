@@ -12,6 +12,7 @@ import (
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
 	"github.com/flarco/g/process"
+	"github.com/flarco/scruto/sentry"
 	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -67,6 +68,7 @@ func NewServer() *Server {
 	e.HideBanner = true
 	e.Use(middleware.Logger())
 	e.Use(Recover())
+	e.Use(sentry.SentryEcho())
 	e.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 		Generator: func() string {
 			return cast.ToString(time.Now().UnixNano())

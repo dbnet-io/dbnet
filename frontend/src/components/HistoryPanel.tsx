@@ -112,7 +112,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           <span 
             style={{
               paddingLeft:'10px',
-              color: query.status === QueryStatus.Errored || query.status === QueryStatus.Cancelled ? 'red' : query.status === QueryStatus.Fetched ? 'blue' : query.status === QueryStatus.Submitted? 'pink' : 'green',
+              color: query.status === QueryStatus.Errored || query.status === QueryStatus.Cancelled ? 'red' : query.status === QueryStatus.Fetched ? 'blue' : query.status === QueryStatus.Submitted? 'purple' : 'green',
             }}
           ><i>{query.status}</i></span>
         </div>
@@ -128,6 +128,8 @@ export const HistoryPanel: React.FC<Props> = (props) => {
             id="history-filter"
             placeholder="Filters..."
             value={filter.get()}
+            tooltip=" <Space> for AND <Comma> for OR"
+            tooltipOptions={{position: "bottom"}}
             onChange={(e:any) => { 
               filter.set(e.target.value) 
             }}

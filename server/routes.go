@@ -319,9 +319,19 @@ func GetHistory(c echo.Context) (err error) {
 			Where("conn = ?", req.Conn).Find(&entries).Error
 
 	case "search":
-		filter := g.F("%%%s%%", strings.ToLower(req.Name))
+		whereValues := []interface{}{req.Conn}
+		orArr := []string{}
+		for _, orStr := range strings.Split(req.Name, ",") {
+			andWhere := []string{}
+			for _, word := range strings.Split(orStr, " ") {
+				andWhere = append(andWhere, g.F("lower(text) like ?"))
+				whereValues = append(whereValues, g.F("%%%s%%", strings.ToLower(strings.TrimSpace(word))))
+			}
+			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")
+		}
+		whereStr := g.F("conn = ? and (%s)", strings.Join(orArr, " or "))
 		err = store.Db.Order("time desc").Limit(100).
-			Where("conn = ? and lower(text) like ?", req.Conn, filter).Find(&entries).Error
+			Where(whereStr, whereValues...).Find(&entries).Error
 	}
 
 	if err != nil {

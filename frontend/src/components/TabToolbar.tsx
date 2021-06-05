@@ -35,7 +35,6 @@ export const cancelSQL = async (tab: State<Tab>) => {
     let resp = await apiPost(MsgType.CancelSQL, data1)
     if (resp.error) throw new Error(resp.error)
   } catch (error) {
-    console.log(error)
     toastError(error)
   }
 }
@@ -112,7 +111,6 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
       )
     }
   } catch (error) {
-    console.log(error)
     toastError(error)
     tab_.query?.err.set(`${error}`)
   }
@@ -147,7 +145,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
 
   React.useEffect(()=>{
     localFilter.set(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
-  }, [tab.id.get()])
+  }, [tab.id.get()]) // eslint-disable-line
 
   return (
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>

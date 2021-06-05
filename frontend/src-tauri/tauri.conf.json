@@ -13,12 +13,12 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "com.tauri.dev",
+      "identifier": "io.dbnet",
       "icon": [
         "icons/favicon.ico"
       ],
       "resources": [],
-      "externalBin": [],
+      "externalBin": ["../../dbnet"],
       "copyright": "",
       "category": "DeveloperTool",
       "shortDescription": "",
@@ -45,7 +45,7 @@
       "active": false
     },
     "allowlist": {
-      "all": false
+      "all": true
     },
     "windows": [
       {

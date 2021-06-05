@@ -5,17 +5,16 @@ import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, globalStore, MetaTable, Table, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, MetaTable, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
-import { copyToClipboard, data_req_to_records, jsonClone, split_schema_table, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, data_req_to_records, jsonClone, LogError, split_schema_table, toastError } from "../utilities/methods";
 import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { createTab } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 import { apiGet } from "../store/api";
 import YAML from 'yaml'
 import { Dropdown } from "primereact/dropdown";
-import { map } from "lodash";
 import { Tooltip } from "primereact/tooltip";
 
 export const makeYAML = (data: ObjectAny) => {
@@ -190,7 +189,7 @@ const TableDropdown = (props: { value: State<string> }) => {
         }
       }
     } catch (error) {
-      console.log(error)
+      LogError(error)
     }
     return all
   }
@@ -210,7 +209,7 @@ const TableDropdown = (props: { value: State<string> }) => {
 
 const CountOverTime = (props: { form: State<Form> }) => {
   const objectPanel = store.objectPanel
-  interface Input {
+  interface Input { // eslint-disable-line
     connection: string
     database: string
     table1: {
@@ -238,7 +237,6 @@ const CountOverTime = (props: { form: State<Form> }) => {
     submitSQL(tab, sql)
   }
 
-  const data = useHS<Input>({} as Input)
   return <>
     <div className="p-grid p-fluid">
       <div className="p-col-12 p-md-12" >
@@ -278,7 +276,7 @@ const CompareColumns = (props: { form: State<Form> }) => {
       props.form.show.set(false)
       return toastError(error)
     }
-  }, [])
+  }, []) // eslint-disable-line
 
   return <>
     <div className="p-grid p-fluid">
@@ -301,7 +299,7 @@ const CompareColumns = (props: { form: State<Form> }) => {
             // validate
             if(!input.t2.get()?.trim()) return toastError('Need to select a second table')
             if(!input.t2_field.get()?.trim()) return toastError('Need to input columns')
-            if(input.t1_field.get()?.split(',').length != input.t2_field.get().split(',').length)
+            if(input.t1_field.get()?.split(',').length !== input.t2_field.get().split(',').length)
               return toastError('Need to input columns')
             let cond_arr = []
             for (let i = 0; i < input.t1_field.get().split(',').length; i++) {

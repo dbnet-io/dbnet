@@ -2,7 +2,7 @@ import * as React from "react";
 import './TabTable.css'
 import {  accessStore, Query, QueryStatus, Tab, useVariable } from "../store/state";
 import { none, State } from "@hookstate/core";
-import { get_duration, jsonClone, toastError, toastInfo } from "../utilities/methods";
+import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import { MsgType } from "../store/websocket";
 import _ from "lodash";
 
@@ -129,7 +129,6 @@ export const TabTable: React.FC<Props> = (props) => {
   const resultWidth = document.getElementById("result-panel")?.parentElement?.clientWidth
   const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-78
   const tab = props.tab
-  const hot = React.createRef<any>()
 
   ///////////////////////////  HOOKS  ///////////////////////////
   React.useEffect(()=>{
@@ -249,6 +248,7 @@ export const TabTable: React.FC<Props> = (props) => {
     try {
       ddl = props.tab.query.get().rows.map(r => r[0]).join('\n') 
     } catch (error) {
+      LogError(error)
     }
     output = <InputTextarea
       value={ddl}
