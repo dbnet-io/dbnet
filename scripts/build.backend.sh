@@ -9,7 +9,9 @@ rm -rf .git
 # update go.mod
 bash scripts/prep.gomod.sh
 
-GOOS=linux GOARCH=amd64 go build -o dbnet *.go
+GOOS=darwin GOARCH=amd64 go build -o dbnet-x86_64-apple-darwin
+GOOS=linux GOARCH=amd64 go build -o dbnet-x86_64-unknown-linux-gnu
+
 /bin/cp -f dbnet /__/bin/dbnet
 
 rm -rf /dbnet
