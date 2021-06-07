@@ -13,7 +13,6 @@ import (
 	"github.com/flarco/g/net"
 	"github.com/flarco/g/process"
 	"github.com/flarco/scruto/sentry"
-	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cast"
@@ -36,26 +35,24 @@ type RouteName string
 
 const (
 	// RouteWs is the websocket route
-	RouteIndex           RouteName = "/"
-	RouteWs              RouteName = "/ws"
-	RouteSubmitSQL       RouteName = "/submit-sql"
-	RouteSubmitDbt       RouteName = "/submit-dbt"
-	RouteCancelSQL       RouteName = "/cancel-sql"
-	RouteExtractLoad     RouteName = "/extract-load"
-	RouteGetSettings     RouteName = "/get-settings"
-	RouteGetConnections  RouteName = "/get-connections"
-	RouteGetDatabases    RouteName = "/get-databases"
-	RouteGetSchemata     RouteName = "/get-schemata"
-	RouteGetSchemas      RouteName = "/get-schemas"
-	RouteGetTables       RouteName = "/get-tables"
-	RouteGetColumns      RouteName = "/get-columns"
-	RouteGetAnalysisSQL  RouteName = "/get-analysis-sql"
-	RouteGetHistory      RouteName = "/get-history"
-	RouteGetSQLRows      RouteName = "/get-sql-rows"
-	RouteGetCachedResult RouteName = "/get-cached-result"
-	RouteLoadSession     RouteName = "/load-session"
-	RouteSaveSession     RouteName = "/save-session"
-	RouteFileOperation   RouteName = "/file-operation"
+	RouteIndex          RouteName = "/"
+	RouteWs             RouteName = "/ws"
+	RouteSubmitSQL      RouteName = "/submit-sql"
+	RouteSubmitDbt      RouteName = "/submit-dbt"
+	RouteCancelSQL      RouteName = "/cancel-sql"
+	RouteExtractLoad    RouteName = "/extract-load"
+	RouteGetSettings    RouteName = "/get-settings"
+	RouteGetConnections RouteName = "/get-connections"
+	RouteGetDatabases   RouteName = "/get-databases"
+	RouteGetSchemata    RouteName = "/get-schemata"
+	RouteGetSchemas     RouteName = "/get-schemas"
+	RouteGetTables      RouteName = "/get-tables"
+	RouteGetColumns     RouteName = "/get-columns"
+	RouteGetAnalysisSQL RouteName = "/get-analysis-sql"
+	RouteGetHistory     RouteName = "/get-history"
+	RouteLoadSession    RouteName = "/load-session"
+	RouteSaveSession    RouteName = "/save-session"
+	RouteFileOperation  RouteName = "/file-operation"
 )
 
 func (r RouteName) String() string {
@@ -105,8 +102,6 @@ func NewServer() *Server {
 	e.GET(RouteGetColumns.String(), GetColumns)
 	e.GET(RouteGetAnalysisSQL.String(), GetAnalysisSQL)
 	e.GET(RouteGetHistory.String(), GetHistory)
-	e.GET(RouteGetSQLRows.String(), GetSQLRows)
-	e.GET(RouteGetCachedResult.String(), GetCachedResult)
 	e.GET(RouteLoadSession.String(), GetLoadSession)
 
 	e.POST(RouteSubmitSQL.String(), PostSubmitQuery)
@@ -167,7 +162,6 @@ func (srv *Server) Loop() {
 	for {
 		select {
 		case <-ticker6Hours.C:
-			g.LogError(store.Db.Where("updated_dt < ?", time.Now().Add(-24*3*time.Hour)).Delete(&store.QueryRow{}).Error)
 		}
 	}
 }

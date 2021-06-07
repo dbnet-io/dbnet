@@ -53,9 +53,10 @@ export const createTab = (name: string = '', sql = '') => {
 }
 
 export const createTabChild = (parent: Tab) => {
+  let activeChildTab = getTabState(parent.selectedChild)
   let newTab = new Tab({ 
     parent: parent.id, 
-    limit: parent.limit,
+    resultLimit: activeChildTab.resultLimit.get() || parent.resultLimit,
     connection: parent.connection,
     database: parent.database,
   });

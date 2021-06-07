@@ -342,73 +342,6 @@ func GetHistory(c echo.Context) (err error) {
 	return c.JSON(200, g.M("history", entries))
 }
 
-func GetCachedResult(c echo.Context) (err error) {
-	q := NewQuery(context.Background())
-	if err = c.Bind(q); err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid get result request")
-	}
-	query := &store.Query{ID: q.ID}
-	err = store.Db.First(query).Error
-	if err != nil {
-		return g.ErrJSON(http.StatusNotFound, err, "could not find query %s", q.ID)
-	}
-
-	data, err := query.RetrieveRows(q.ResultLimit)
-	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
-	}
-	query.Rows = data.Rows
-
-	return c.JSON(200, g.ToMap(query))
-}
-
-func GetSQLRows(c echo.Context) (err error) {
-	q := NewQuery(context.Background())
-	if err = c.Bind(q); err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid get sql rows request")
-	}
-
-	mux.Lock()
-	query, ok := Queries[q.ID]
-	mux.Unlock()
-
-	if !ok {
-		query = q
-		g.Debug("could not find query %s. Resubmitting...", query.ID)
-		return PostSubmitQuery(c)
-	} else if !query.Pulled() {
-		if query.Status == store.QueryStatusSubmitted {
-			if q.Wait {
-				for {
-					if query.Status != store.QueryStatusSubmitted {
-						break
-					}
-					time.Sleep(1 * time.Second)
-				}
-			} else {
-				return c.JSON(200, g.ToMap(query))
-			}
-		}
-		err = store.Db.Where(`rows is not null`).First(&query).Error
-		if err != nil {
-			g.Debug("could not pull rows for query %s. Resubmitting...", query.ID)
-			return PostSubmitQuery(c)
-		}
-	} else {
-		data, err := query.RetrieveRows(q.ResultLimit)
-		if err != nil {
-			return g.ErrJSON(http.StatusInternalServerError, err, "could not fecth rows")
-		}
-		query.Rows = data.Rows
-	}
-
-	data := g.ToMap(query)
-	query.TrimRows(100) // only store 100 rows in sqlite
-	Sync("queries", query, "status")
-
-	return c.JSON(200, data)
-}
-
 func PostCancelQuery(c echo.Context) (err error) {
 	query := NewQuery(context.Background())
 	if err = c.Bind(query); err != nil {
@@ -423,10 +356,7 @@ func PostCancelQuery(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusInternalServerError, err, "could not find query %s", query.ID)
 	}
 
-	q.Context.Cancel()
-	if q.Result != nil {
-		q.Result.Close()
-	}
+	q.Close(true)
 
 	query.Status = store.QueryStatusCancelled
 	query.Rows = nil
@@ -448,9 +378,6 @@ func PostSubmitQuery(c echo.Context) (err error) {
 
 	if query.Limit == 0 {
 		query.Limit = 5000
-	}
-	if query.ResultLimit == 0 {
-		query.ResultLimit = 100
 	}
 
 	if c.Request().Header.Get("DbNet-Continue") != "" {

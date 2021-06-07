@@ -1,5 +1,5 @@
 import * as React from "react";
-import { accessStore, globalStore, Query, Tab, useHS } from "../store/state";
+import { accessStore, cleanupDexieDb, getDexieDb, globalStore, Query, Tab, useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
@@ -39,6 +39,12 @@ export const cancelSQL = async (tab: State<Tab>) => {
   }
 }
 
+export const refreshResult = async (tab: State<Tab>) => {
+  let childTab = getTabState(tab.id.get())
+  let parentTab = getTabState(tab.parent.get() || '')
+  submitSQL(parentTab, childTab.query.text.get(), childTab.get())
+}
+
 
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if (!sql) sql = tab.editor.text.get() // get current block
@@ -46,11 +52,13 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   const connection = tab.connection.get() || store.connection.name.get()
   const database = tab.database.get() || store.connection.database.get()
   const queryPanel = store.queryPanel
-
+  
   // create child tab
   if (!childTab) childTab = createTabChild(tab.get())
   tab.selectedChild.set(childTab.id)
-
+  
+  // set limit to fetch, and save in cache
+  const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 ? 500 : childTab.resultLimit
 
   let data1 = {
     id: new_ts_id('query.'),
@@ -59,8 +67,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     text: sql.trim(),
     time: (new Date()).getTime(),
     tab: childTab.id,
-    limit: 5000,
-    result_limit: childTab.limit,
+    limit: limit,
     wait: true,
   }
 
@@ -86,7 +93,10 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   tab_.loading.set(true)
   tab_.filter.set('')
   parentTab.loading.set(true)
-
+  
+  // cleanup
+  cleanupDexieDb()
+  
   try {
     let done = false
     let headers = {}
@@ -99,16 +109,20 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
       }
       done = true
       let query = new Query(resp.data)
+      query.pulled = true
+      query.duration = Math.round(query.duration * 100) / 100
+
       tab_.set(
         t => {
           t.query = query
-          t.query.pulled = true
-          t.query.duration = Math.round(query.duration * 100) / 100
           t.rowView.rows = query.getRowData(0)
           t.loading = false
           return t
         }
       )
+
+      // cache results
+      getDexieDb().table('queryCache').put(jsonClone(query))
     }
   } catch (error) {
     toastError(error)
@@ -134,11 +148,10 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
 }
 
-export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>,
-  hotTable: React.MutableRefObject<any>}) {
+export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>, hotTable: React.MutableRefObject<any>}) {
   const tab = props.tab;
   const filter = useHS(tab.filter);
-  const limit = useHS(tab.limit);
+  const resultLimit = useHS(tab.resultLimit);
   const cancelling = useHS(false);
   const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   const sqlOp = React.useRef<any>(null);
@@ -184,11 +197,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltip="Refresh results"
             tooltipOptions={{ position: 'top' }}
             className="p-button-sm p-button-info"
-            onClick={(e) => {
-              let childTab = getTabState(tab.id.get())
-              let parentTab = getTabState(tab.parent.get() || '')
-              submitSQL(parentTab, childTab.query.text.get(), childTab.get())
-            }}
+            onClick={(e) => refreshResult(tab)}
           />
           <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{ width: '450px' }} className="overlaypanel-demo">
             <InputTextarea
@@ -220,9 +229,9 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
 
           <Dropdown
             id='limit-input'
-            value={limit.get()}
+            value={resultLimit.get()}
             options={[100, 250, 500, 1000, 2500, 5000]}
-            onChange={(e) => limit.set(e.value)}
+            onChange={(e) => resultLimit.set(e.value)}
             placeholder="Limit..."
             maxLength={50}
           />
@@ -279,7 +288,8 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltip="Copy headers"
             tooltipOptions={{ position: 'top' }}
             onClick={() => { 
-              // console.log(props.hotTable.current?.hotInstance.selection)
+              // console.log(props.hotTable.current?.hotInstance)
+              // console.log(props.hotTable.current?.hotInstance.countRows())
               let startCol = tab.lastTableSelection.get()[1]
               let endCol = tab.lastTableSelection.get()[3]
               copyToClipboard(tab.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n')) 
@@ -319,8 +329,8 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltipOptions={{ position: 'top' }}
           />
 
-          <span className="p-inputgroup-addon">{tab.query.rows.length} rows</span>
-          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()))} sec</span>
+          <span className="p-inputgroup-addon">{ Math.min(tab.query.rows.length, tab.resultLimit.get()) } rows</span>
+          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()*10)/10).replace('s', ' sec').replace('m', ' min')}</span>
 
           <Button
             icon="pi pi-angle-double-down"

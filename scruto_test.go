@@ -145,19 +145,9 @@ func testSubmitSQL(t *testing.T) {
 	rows := data["rows"].([]interface{})
 	headers := data["headers"].([]interface{})
 
-	assert.Len(t, rows, 100)
+	assert.Len(t, rows, 138)
 	assert.Greater(t, len(headers), 1)
 
-	testGetSQLRows(t, m)
-}
-
-func testGetSQLRows(t *testing.T, m map[string]interface{}) {
-	data, err := getRequest(server.RouteGetSQLRows, m)
-	if !g.AssertNoError(t, err) {
-		return
-	}
-	rows := data["rows"].([]interface{})
-	assert.Len(t, rows, 138)
 }
 
 func testCancelSQL(t *testing.T) {

@@ -14,7 +14,7 @@ import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { MsgType, WsQueue } from './store/websocket';
 import { accessStore, globalStore, useHS } from './store/state';
-import { jsonClone, toastError, toastInfo } from './utilities/methods';
+import { jsonClone, Sleep, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import { Dialog } from 'primereact/dialog';
 import { ListBox } from 'primereact/listbox';
@@ -23,7 +23,7 @@ import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { GetDatabases, GetSchemata } from './components/SchemaPanel';
-import { apiGet } from './store/api';
+import { apiGet, Response } from './store/api';
 import { Button } from 'primereact/button';
 import { JobPanel } from './components/JobPanel';
 
@@ -60,15 +60,28 @@ export const App = () => {
   const Init = async () => {
 
     // get all connections
-    let resp = await apiGet(MsgType.GetConnections, {})
-    if(resp.error) return toastError(resp.error)
-    let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
-    store.app.connections.set(conns)
-    if(conns.length === 0) {
-      // need to create connections
-      toastInfo('Did not find any connections.')
-      return
-    }
+      let resp : Response = {} as Response
+      let tries = 0
+      while(true)  {
+        try {
+          tries++
+          resp = await apiGet(MsgType.GetConnections, {})
+          break
+        } catch (error) {
+          resp.error = error
+          if (tries >= 5) break
+          await Sleep(1000)
+        }
+      }
+      
+      if(resp.error) return toastError(resp.error)
+      let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
+      store.app.connections.set(conns)
+      if(conns.length === 0) {
+        // need to create connections
+        toastInfo('Did not find any connections.')
+        return
+      }
 
     // last connection
     let last_conn = localStorage.getItem("_connection_name")

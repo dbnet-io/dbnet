@@ -1,6 +1,6 @@
 import * as React from "react";
 import './TabTable.css'
-import {  accessStore, Query, QueryStatus, Tab, useVariable } from "../store/state";
+import {  accessStore, getDexieDb, Query, QueryStatus, Tab, useVariable } from "../store/state";
 import { none, State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import { MsgType } from "../store/websocket";
@@ -12,6 +12,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { apiGet } from "../store/api";
 import { getTabState } from "./TabNames";
+import { refreshResult } from "./TabToolbar";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
@@ -25,25 +26,28 @@ interface Props {
 export const pullResult = async (tabState: State<Tab>) => {
   let tab = getTabState(tabState.id.get())
 
-  let data1 = {
-    id: tab.query.id.get(),
-    limit: tab.limit.get(),
-  }
   tab.loading.set(true);
   try {
-    let resp = await apiGet(MsgType.GetCachedResult, data1)
-    if(resp.error) throw new Error(resp.error)
-    let query = new Query(resp.data)
-    let tab = getTabState(query.tab)
-    tab.set(
-      t => {
-        t.query = query
-        t.query.pulled = true
-        t.query.duration = Math.round(query.duration*100)/100
-        t.loading = false
-        return t
-      }
-    )
+    // put in IndexedDb
+    const db = getDexieDb()
+    let cachedQ = await db.table('queryCache')
+        .where('id')
+        .equals(tab.query.id.get())
+        .first()
+    
+    if(cachedQ) {
+      let query = new Query(cachedQ)
+      let tab = getTabState(query.tab)
+      tab.set(
+        t => {
+          t.query = query
+          t.query.pulled = true
+          t.query.duration = Math.round(query.duration*100)/100
+          t.loading = false
+          return t
+        }
+      )
+    }
   } catch (error) {
     toastError(error)
   }
@@ -55,39 +59,17 @@ export const fetchRows = async (tabState: State<Tab>) => {
   let tab = getTabState(tabState.id.get())
   if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
-  let data1 = {
-    id: tab.query.id.get(),
-    conn: tab.query.conn.get(),
-    database: tab.query.database.get(),
-    text: tab.query.text.get(),
-    pulled: tab.query.pulled.get(),
-    time: (new Date()).getTime(),
-    tab: tab.id.get(),
-    limit: 5000,
-    result_limit: tab.query.rows.length * 2,
-    wait: true,
-  }
-
   tab.loading.set(true);
-  tab.query.time.set(new Date().getTime())
-  try {
-    let resp = await apiGet(MsgType.GetSQLRows, data1)
-    if(resp.error) throw new Error(resp.error)
-    let query = new Query(resp.data)
-    let tab = getTabState(query.tab)
-    tab.set(
-      t => {
-        t.query.id = query.id
-        t.query.status = query.status
-        t.query.pulled = true
-        t.query.duration = Math.round(query.duration*100)/100
-        t.query.rows = query.rows
-        t.loading = false
-        return t
-      }
-    )
-  } catch (error) {
-    toastError(error)
+  if(tab.resultLimit.get() >= 5000) {
+    tab.resultLimit.set(5000)
+    toastInfo("Can only fetch a max of 5000 rows for preview. Export to CSV / Excel to view more rows.")
+  } else if(tab.query.rows.length <= tab.resultLimit.get()) { 
+    // submit with higher limit
+    tab.resultLimit.set(v => v * 2)
+    refreshResult(tab)
+    return
+  } else {
+    tab.resultLimit.set(v => v * 2)
   }
   tab.loading.set(false)
 }
@@ -161,7 +143,8 @@ export const TabTable: React.FC<Props> = (props) => {
     let data = jsonClone<any[]>(props.tab.query.rows.get())
     let filters = props.tab.filter.get().toLowerCase().split(' ')
     let data2 : any[] = []
-    for(let row of data) {
+    for (let ri = 0; ri < data.length && ri < tab.resultLimit.get(); ri++) {
+      const row = data[ri];
       let include = filters.map(v => false)
       for(let val of row) {
         for (let i = 0; i < filters.length; i++) {
@@ -252,6 +235,17 @@ export const TabTable: React.FC<Props> = (props) => {
     }
     output = <InputTextarea
       value={ddl}
+      style={{
+        height: tableHeight, width: resultWidth, 
+        color:'blue', fontSize:'12px',
+        fontFamily: 'monospace',
+      }}
+      readOnly
+    />
+  } else if(props?.tab?.query.affected.get() !== -1) {
+    let text = `Total Rows Affected: ${props.tab.query.affected.get()}`
+    output = <InputTextarea
+      value={text}
       style={{
         height: tableHeight, width: resultWidth, 
         color:'blue', fontSize:'12px',

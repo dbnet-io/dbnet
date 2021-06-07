@@ -192,6 +192,7 @@ func ReadDbtConnections() (conns map[string]*Connection, err error) {
 // NewQuery creates a Query object
 func NewQuery(ctx context.Context) *store.Query {
 	q := new(store.Query)
+	q.Affected = -1
 	q.Context = g.NewContext(ctx)
 	q.Done = make(chan struct{})
 	return q
@@ -315,8 +316,6 @@ func doSubmitSQL(query *store.Query) (err error) {
 	Queries[query.ID] = query
 	mux.Unlock()
 
-	Sync("queries", query)
-
 	go func() {
 		query.Submit(c)
 
@@ -325,10 +324,7 @@ func doSubmitSQL(query *store.Query) (err error) {
 		go func() {
 			select {
 			case <-timer.C:
-				query.Context.Cancel()
-				if query.Result != nil {
-					query.Result.Close()
-				}
+				query.Close(false)
 				mux.Lock()
 				delete(Queries, query.ID)
 				mux.Unlock()

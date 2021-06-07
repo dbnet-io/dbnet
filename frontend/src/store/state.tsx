@@ -8,11 +8,26 @@ import { jsonClone, new_ts_id, toastError } from "../utilities/methods";
 import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
 import TreeNode from "primereact/components/treenode/TreeNode";
+import Dexie from 'dexie';
 
 
 export const masterToast = createRef<Toast>()
 
 export const history = createBrowserHistory()
+
+export const getDexieDb = () => {
+  const db = new Dexie('dbnet')
+  db.version(1).stores({
+    queryCache: '&id,time'
+  })
+  return db
+}
+
+export const cleanupDexieDb = async () => {
+  let marker = (new Date()).getTime() - 7 * 24 * 60 * 60 * 1000
+  const db = getDexieDb()
+  db.table('queryCache').where('time').below(marker).delete();
+}
 
 export class Editor {
   text: string
@@ -139,6 +154,7 @@ export class Tab {
   loading: boolean
   filter: string
   limit: number
+  resultLimit: number
   parent: string | undefined
   selectedChild: string
   hidden: boolean
@@ -158,7 +174,8 @@ export class Tab {
     this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
-    this.limit = data.filter || 100
+    this.resultLimit = data.resultLimit || 100
+    this.limit = data.limit || this.resultLimit
     this.loading = data.loading || false
     this.hidden = data.hidden || false
     
@@ -262,6 +279,7 @@ export class Query {
   err: string
   headers: string[]
   rows: any[]
+  affected: number
   pulled: boolean // whether the rows are pulled (when reloading a session)
 
   constructor(data: ObjectAny = {}) {
@@ -278,6 +296,7 @@ export class Query {
     this.headers = data.headers || []
     this.rows = data.rows || []
     this.pulled = data.pulled || false
+    this.affected = data.affected || -1
   }
 
   getRowData = (n: number) => {

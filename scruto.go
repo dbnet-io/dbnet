@@ -6,6 +6,7 @@ import (
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/server"
 	"github.com/flarco/scruto/store"
+	"github.com/skratchdot/open-golang/open"
 )
 
 func init() {
@@ -22,4 +23,8 @@ func main() {
 	go store.Loop()
 	srv := server.NewServer()
 	srv.Start()
+}
+
+func openBrowser(port int) {
+	open.Run(g.F("http://localhost:%d", port))
 }
