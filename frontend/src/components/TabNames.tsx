@@ -56,7 +56,7 @@ export const createTabChild = (parent: Tab) => {
   let activeChildTab = getTabState(parent.selectedChild)
   let newTab = new Tab({ 
     parent: parent.id, 
-    resultLimit: activeChildTab.resultLimit.get() || parent.resultLimit,
+    resultLimit: activeChildTab.get()?.resultLimit || parent.resultLimit,
     connection: parent.connection,
     database: parent.database,
   });
@@ -64,18 +64,30 @@ export const createTabChild = (parent: Tab) => {
   // add new child tab
   queryPanel.tabs.merge([newTab])
   getTabState(parent.id)?.selectedChild?.set(newTab.id)
+  cleanupOtherChildTabs(newTab)
+  return newTab
+}
 
+export const cleanupOtherChildTabs = (childTab: Tab) => {
   // delete existing non-pinned child tabs
   let tabs = queryPanel.tabs.get()
   for (let i = 0; i < tabs.length; i++) {
-    if (tabs[i].parent === parent.id && !tabs[i].loading && !tabs[i].pinned && tabs[i].id !== newTab.id) {
+    if (tabs[i].parent === childTab.parent && 
+      !tabs[i].loading && !tabs[i].pinned && 
+      tabs[i].id !== childTab.id) {
       queryPanel.tabs[i].set(none)
       i--
     }
   }
-
-  return newTab
 }
+
+// export const getConnTab = (connName: string) => {
+//   let tabs = queryPanel.get().tabs.filter(t => t.connection === connName)
+//   if(tabs.length === 0) {
+//     store.connection
+//     return createTab(connName)
+//   }
+// }
 
 export const getTabState = (tabID: string) => {
   let index = queryPanel.get().getTabIndexByID(tabID)
@@ -159,7 +171,15 @@ export const TabNames: React.FC<Props> = (props) => {
     let icon = '';
     if (option === 'del') { icon = 'pi pi-times'; }
     if (option === 'add') { icon = 'pi pi-plus'; }
-    if (icon) { return <i style={{fontSize: '15px'}} className={icon}></i>; }
+    if (icon) { 
+      let style = {
+        paddingTop: '7px',
+        paddingBottom: '6px',
+        paddingLeft: '16px',
+        paddingRight: '16px',
+      }
+      return <span style={style}><i style={{fontSize: '13px'}} className={icon}></i></span> 
+    }
 
     let index = queryPanel.get().tabs.map(t => t.name).indexOf(option)
     let tab = queryPanel.tabs[index]

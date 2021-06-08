@@ -18,7 +18,9 @@ export const history = createBrowserHistory()
 export const getDexieDb = () => {
   const db = new Dexie('dbnet')
   db.version(1).stores({
-    queryCache: '&id,time'
+    query: '&id,conn,time',
+    // connection: '&name',
+    // schemata: '[conn+schema+table]',
   })
   return db
 }
@@ -26,7 +28,7 @@ export const getDexieDb = () => {
 export const cleanupDexieDb = async () => {
   let marker = (new Date()).getTime() - 7 * 24 * 60 * 60 * 1000
   const db = getDexieDb()
-  db.table('queryCache').where('time').below(marker).delete();
+  await db.table('query').where('time').below(marker).delete();
 }
 
 export class Editor {
@@ -791,12 +793,22 @@ class HistoryPanelState {
 
 class QueryPanelState {
   tabs: Tab[]
+  tabs2: Record<string, Tab>
   selectedTabId: string
   availableCaches: string[] // query result caches available from backend
 
   constructor(data: ObjectAny = {}) {
-    this.tabs = data.tabs || []
     this.availableCaches = []
+    this.tabs = data.tabs || []
+    this.loadTabs()
+
+    this.tabs2 = data.tabs2 || {}
+    this.loadTabs2()
+
+    this.selectedTabId = data.selectedTabId || this.tabs[0].id
+  }
+
+  loadTabs = () => {
     if(this.tabs.length === 0 ) {
       let t1 = new Tab({name: 'Q1'})
       let c1 = new Tab({name: 'C1', parent: t1.id})
@@ -817,7 +829,28 @@ class QueryPanelState {
       }
       this.tabs = this.tabs.concat(child_tabs)
     }
-    this.selectedTabId = data.selectedTabId || this.tabs[0].id
+  }
+
+  loadTabs2 = () => {
+    if(Object.keys(this.tabs2).length === 0 ) {
+      let t1 = new Tab({name: 'Q1'})
+      let c1 = new Tab({name: 'C1', parent: t1.id})
+      t1.selectedChild = c1.id
+      this.tabs2[t1.name] = t1
+    } else {
+      for(let [k, t] of Object.entries(this.tabs2)) {
+        this.tabs2[k] = new Tab(t)
+      }
+      for(let [k, tab] of Object.entries(this.tabs2)) {
+        if(this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
+        if(tab.parent) continue
+        if(!tab.selectedChild || !(tab.selectedChild in this.tabs2)) {
+          let child = new Tab({parent: tab.id})
+          this.tabs2[k].selectedChild = child.id
+          this.tabs2[child.id] = child
+        } 
+      }
+    }
   }
 
   hasCache = (query: Query) => {

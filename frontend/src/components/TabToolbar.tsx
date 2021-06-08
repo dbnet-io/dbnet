@@ -48,7 +48,7 @@ export const refreshResult = async (tab: State<Tab>) => {
 
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if (!sql) sql = tab.editor.text.get() // get current block
-  console.log(tab.get())
+  
   const connection = tab.connection.get() || store.connection.name.get()
   const database = tab.database.get() || store.connection.database.get()
   const queryPanel = store.queryPanel
@@ -122,7 +122,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
       )
 
       // cache results
-      getDexieDb().table('queryCache').put(jsonClone(query))
+      getDexieDb().table('query').put(jsonClone(query))
     }
   } catch (error) {
     toastError(error)

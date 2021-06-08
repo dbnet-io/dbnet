@@ -191,3 +191,15 @@ font-size: 9px !important;
 .no-padding {
   padding: 0px !important;
 }
+
+
+#tab-names > div {
+  padding: 0px;
+}
+
+#tab-names > div > span {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+}

@@ -3,14 +3,12 @@ import './TabTable.css'
 import {  accessStore, getDexieDb, Query, QueryStatus, Tab, useVariable } from "../store/state";
 import { none, State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
-import { MsgType } from "../store/websocket";
 import _ from "lodash";
 
 import { HotTable } from '@handsontable/react';
 import 'handsontable/dist/handsontable.full.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
-import { apiGet } from "../store/api";
 import { getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
 const PrettyTable = require('prettytable');
@@ -30,7 +28,7 @@ export const pullResult = async (tabState: State<Tab>) => {
   try {
     // put in IndexedDb
     const db = getDexieDb()
-    let cachedQ = await db.table('queryCache')
+    let cachedQ = await db.table('query')
         .where('id')
         .equals(tab.query.id.get())
         .first()

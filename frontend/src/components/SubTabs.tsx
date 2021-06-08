@@ -1,21 +1,27 @@
-import { none, State } from "@hookstate/core";
+import * as React from "react";
+import { State } from "@hookstate/core";
 import { accessStore, Tab, useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
-import { getTabState } from "./TabNames";
+import { cleanupOtherChildTabs, createTabChild, getTabState } from "./TabNames";
+import { ContextMenu } from "primereact/contextmenu";
+import { jsonClone } from "../utilities/methods";
+import { MenuItem } from "primereact/components/menuitem/MenuItem";
 
 const queryPanel = accessStore().queryPanel 
 
 
 // getChildTabs returns the child tabs of a tab
 const getChildTabs = (tab: Tab) => {
-  return queryPanel.tabs.get().filter(t => t.parent === tab.id)
+  return queryPanel.tabs.get().filter(t => t.parent === tab.id && !t.hidden)
 }
 
 export function SubTabs(props: { tab: State<Tab>; }) {
-  const childTab = getTabState(props.tab.selectedChild.get())
+  const childTab = useHS(getTabState(props.tab.selectedChild.get()))
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const activeIndex = useHS(getChildTabs(props.tab.get()).map(t => t.id).indexOf(childTab.id.get()))
+  const cm = React.useRef<ContextMenu>(null);
+  const contextTabId = useHS('')
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -26,7 +32,8 @@ export function SubTabs(props: { tab: State<Tab>; }) {
   const headerTemplate = (options: TabPanelHeaderTemplateOptions) => {
     let childTabId = tabOptions()[options.index].id
     let childTab = getTabState(childTabId)
-    let index = queryPanel.get().getTabIndexByID(childTabId)
+    // let parentTab = getTabState(childTab.parent.get() as string)
+    // let index = queryPanel.get().getTabIndexByID(childTabId)
 
     // we want the double click to pin / unpin
     return <>
@@ -37,11 +44,8 @@ export function SubTabs(props: { tab: State<Tab>; }) {
         }}
         onContextMenu={(e) => {
           e.preventDefault()
-          childTab.pinned.set(v => !v) 
-          props.tab.selectedChild.set(childTabId)
-        }}
-        onAuxClick={(e) => {
-          queryPanel.tabs[index].set(none)
+          contextTabId.set(jsonClone(childTabId))
+          cm.current?.show(e as any)
         }}
       >
         {options.element}
@@ -49,8 +53,52 @@ export function SubTabs(props: { tab: State<Tab>; }) {
     </>
   }
   
+
+
+  const menu = () : MenuItem[] => {
+    let childTab = getTabState(jsonClone(contextTabId.get()))
+
+    let items : MenuItem[] = [
+      {
+        label: childTab.get()?.pinned ? 'Unpin' : 'Pin',
+        icon: 'pi pi-chevron-circle-down',
+        command: () => {
+          childTab.pinned.set(v => !v) 
+          props.tab.selectedChild.set(childTab.id.get()) // refresh
+        }
+      },
+      {
+        label: 'Close',
+        icon: 'pi pi-times',
+        command: () => {
+          let parentTab = getTabState(childTab.get()?.parent as string)
+          let selectTabID = childTab.get().id
+          if(tabOptions().length === 1) {
+            childTab.set(t => {
+              t.pinned = false
+              t.loading = false
+              return t
+            })
+            selectTabID = createTabChild(parentTab.get()).id
+          } else {
+            let index = tabOptions().map(t => t.id).indexOf(selectTabID)
+            let newIndex = index === 0 ? 1 : index - 1
+            selectTabID = tabOptions()[newIndex].id
+            cleanupOtherChildTabs(getTabState(selectTabID).get())
+          }
+          props.tab.selectedChild.set(selectTabID)
+        }
+      },
+      {
+        separator: true
+      },
+    ]
+    return items
+  }
+
   return (
     <div>
+      <ContextMenu model={menu()} ref={cm} onHide={() => {}} style={{fontSize:'11px'}}/>
       <TabView
         id="sub-tabs"
         className="tabview-custom"
