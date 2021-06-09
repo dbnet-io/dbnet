@@ -3,11 +3,11 @@
   windows_subsystem = "windows"
 )]
 
-use tauri::{CustomMenuItem, SystemTrayMenuItem};
 use tauri::Manager;
+use tauri::{CustomMenuItem, SystemTrayMenuItem};
 // use tauri::api::path::resource_dir;
 use std::sync::{Arc, Mutex};
-use std::{thread, time, env};
+use std::{env, thread, time};
 
 fn main() {
   let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -53,7 +53,7 @@ fn main() {
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 
-    child.kill().expect("could not kill process")
+  child.kill().expect("could not kill process")
 }
 
 use std::process::{Child, Command};
@@ -64,7 +64,7 @@ use std::process::{Child, Command};
 //   if cfg!(target_os = "windows") {
 //       let mut cmd = Command::new("cmd");
 //       cmd.args(&["/C", "date"]);
-              
+
 //       let output = cmd.output()
 //               .expect("failed to execute process");
 //       println!("{}", String::from_utf8_lossy(&output.stdout));
@@ -79,37 +79,48 @@ use std::process::{Child, Command};
 //         .expect("failed to execute process");
 //       pid = child.id().to_string();
 //     };
-      
+
 //     println!("PID {}",pid);
 //     pid.into()
 //   // println!("status: {}", output.status);
 //   // println!("{}", String::from_utf8_lossy(&output.stdout));
 // }
 
-
 fn launch_backend() -> Child {
   // println!("I was invoked from JS!");
-  let mut sh : String = "sh".to_string();
-  // let mut bin : String = "../../dbnet-x86_64-apple-darwin".to_string();
-  
+  let mut sh: String = "sh".to_string();
   let exe = env::current_exe().unwrap();
   let mut parent = exe.parent();
-  // let mut bin : String = "/Applications/DbNet.app/Contents/MacOS/dbnet-x86_64-apple-darwin".to_string();
-  let mut bin : String = format!("{}/dbnet-x86_64-apple-darwin", parent.as_mut().unwrap().to_string_lossy());
-  let mut arg1 : String = "-c".to_string();
+  let mut parent_folder = parent.as_mut().unwrap().to_string_lossy().to_string();
+
+  let mut bin: String = "".to_string();
+  let mut arg1: String = "-c".to_string();
+
   if cfg!(target_os = "windows") {
     sh = "cmd".to_string();
     arg1 = "/C".to_string();
-    bin = "dbnet-x86_64-pc-windows-msvc.exe".to_string();
+    if parent_folder.contains("src-tauri") &&  parent_folder.ends_with("debug") {
+      parent_folder = format!("{}\\..\\..\\..\\..", parent_folder);
+    }
+    bin = format!("{}\\dbnet-x86_64-pc-windows-msvc.exe", parent_folder);
+  } else {
+    if parent_folder.contains("src-tauri") &&  parent_folder.ends_with("debug") {
+      parent_folder = format!("{}/../../../..", parent_folder);
+    }
+    bin = format!("{}/dbnet-x86_64-apple-darwin", parent_folder);
   }
 
+  kill_process_by_name();
+
+  println!("{}", &bin);
   let mut cmd = Command::new(&sh);
-  let child = cmd.args(&[&arg1, &bin]).spawn()
-      .expect("failed to execute process");
+  let child = cmd
+    .args(&[&arg1, &bin])
+    .spawn()
+    .expect("failed to execute process");
   thread::sleep(time::Duration::from_secs(2));
   child.into()
 }
-
 
 #[tauri::command]
 fn get_cwd() -> String {
@@ -127,39 +138,48 @@ fn get_cwd() -> String {
   // String::from_utf8_lossy(&output.stdout).into()
 }
 
-#[tauri::command]
-fn kill_pid(pid: String) {
-  
+fn kill_process_by_name() {
   if cfg!(target_os = "windows") {
     let mut cmd = Command::new("cmd");
-    cmd.args(&["/C", "Taskkill /F /PID", &pid]);
-            
-    let output = cmd.output()
-            .expect("failed to execute process");
-            println!("killed PID {}: {}", pid, output.status);
-} else {
+    cmd.args(&["/C", "Taskkill /F /IM dbnet-x86_64-pc-windows-msvc.exe"]);
+
+    let output = cmd.output().expect("failed to execute process");
+    println!("killed PID: {}", output.status);
+  } else {
     let mut cmd = Command::new("sh");
-    cmd.arg("-c").arg(format!("kill -9 {}", pid));
-    let output = cmd.output()
-      .expect("failed to execute process");
-    println!("killed PID {}: {}", pid, output.status);
+    cmd.arg("-c").arg(format!("pkill -f \"dbnet-x86_64-apple-darwin\""));
+    let output = cmd.output().expect("failed to execute process");
+    println!("killed PID: {}", output.status);
   };
 }
 
+#[tauri::command]
+fn kill_pid(pid: String) {
+  if cfg!(target_os = "windows") {
+    let mut cmd = Command::new("cmd");
+    cmd.args(&["/C", "Taskkill /F /PID", &pid]);
+
+    let output = cmd.output().expect("failed to execute process");
+    println!("killed PID {}: {}", pid, output.status);
+  } else {
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c").arg(format!("kill -9 {}", pid));
+    let output = cmd.output().expect("failed to execute process");
+    println!("killed PID {}: {}", pid, output.status);
+  };
+}
 
 fn open_browser(port: String) {
   let url = format!("http://localhost:{}", port);
   if cfg!(target_os = "windows") {
     let mut cmd = Command::new("cmd");
-    cmd.args(&["/C", "start", "", &url]);        
-    let output = cmd.output()
-            .expect("failed to open browser");
-      println!("open {}: {}", url, output.status);
-} else {
+    cmd.args(&["/C", "start", "", &url]);
+    let output = cmd.output().expect("failed to open browser");
+    println!("open {}: {}", url, output.status);
+  } else {
     let mut cmd = Command::new("sh");
     cmd.arg("-c").arg(format!("open {}", url));
-    let output = cmd.output()
-      .expect("failed to open browser");
+    let output = cmd.output().expect("failed to open browser");
     println!("open {}: {}", url, output.status);
   };
 }
