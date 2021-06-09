@@ -11,14 +11,15 @@
   },
   "tauri": {
     "systemTray": {
-      "iconPath": "icons/icon.png"
+      "iconPath": "icons/icon256.png"
     },
     "bundle": {
       "active": true,
       "targets": "all",
       "identifier": "io.dbnet",
       "icon": [
-        "icons/favicon.ico"
+        "icons/icon.png",
+        "icons/icon.icns"
       ],
       "resources": [],
       "externalBin": ["../../dbnet"],
@@ -56,10 +57,11 @@
     "windows": [
       {
         "title": "DbNet",
-        "width": 800,
-        "height": 600,
+        "width": 1024,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "visible": false
       }
     ],
     "security": {
