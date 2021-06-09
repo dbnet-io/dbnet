@@ -26,7 +26,7 @@ func TestAll(t *testing.T) {
 	defer srv.Cleanup()
 	go srv.Start()
 	time.Sleep(1 * time.Second)
-	testDbtServer(t)
+	// testDbtServer(t)
 	testFileOps(t)
 	testSubmitSQL(t)
 	testGetConnections(t)

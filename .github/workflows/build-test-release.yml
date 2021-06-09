@@ -70,6 +70,7 @@ jobs:
         source /__/devbox/.env.sh
         bash scripts/prep.gomod.sh
         export _DEBUG=''
+        cp -f /__/docker-data/devbox/root/dbnet/.dbnet.yaml /root/dbnet/.dbnet.yaml
         bash scripts/test.sh
 
   release:
