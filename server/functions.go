@@ -346,7 +346,7 @@ func GetConnObject(connName, databaseName string) (connObj connection.Connection
 	}
 
 	// create new connection with specific database
-	data := g.M()
+	data := g.M("application", "DbNet")
 	for k, v := range c.Conn.Data {
 		data[k] = v
 	}

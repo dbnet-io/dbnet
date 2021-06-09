@@ -57,8 +57,8 @@
     "windows": [
       {
         "title": "DbNet",
-        "width": 1024,
-        "height": 800,
+        "width": 400,
+        "height": 400,
         "resizable": true,
         "fullscreen": false,
         "visible": false

@@ -6,32 +6,42 @@
 use tauri::Manager;
 use tauri::{CustomMenuItem, SystemTrayMenuItem};
 // use tauri::api::path::resource_dir;
-use std::sync::{Arc, Mutex};
 use std::{env, thread, time};
 
 fn main() {
   let quit = CustomMenuItem::new("quit".to_string(), "Quit");
   // let hide = CustomMenuItem::new("hide".to_string(), "Hide");
-  let show = CustomMenuItem::new("show".to_string(), "Show");
-  let use_browser = CustomMenuItem::new("useBrowser".to_string(), "Use Browser");
+  // let show = CustomMenuItem::new("show".to_string(), "Show");
+  let restart = CustomMenuItem::new("restart".to_string(), "Restart Server");
+  let use_browser = CustomMenuItem::new("useBrowser".to_string(), "Open Browser");
   let tray_menu_items = vec![
     SystemTrayMenuItem::Custom(use_browser),
     // SystemTrayMenuItem::Custom(hide),
-    SystemTrayMenuItem::Custom(show),
+    // SystemTrayMenuItem::Custom(show),
     // SystemTrayMenuItem::Separator,
+    SystemTrayMenuItem::Custom(restart),
     SystemTrayMenuItem::Custom(quit),
   ];
 
   // launch
   let mut child = launch_backend();
-  let pid = Arc::new(Mutex::new(child.id().to_string()));
 
   tauri::Builder::default()
     .system_tray(tray_menu_items)
+    .setup(|app| {
+      for (key, window) in app.windows().into_iter() {
+        println!("hiding {}", key);
+        window.hide().unwrap();
+      }
+      // we perform the initialization code on a new task so the app doesn't freeze
+      tauri::async_runtime::spawn(async move {
+        open_browser("5987".to_string());
+      });
+      Ok(())
+    })
     .on_system_tray_event(move |app, event| match event.menu_item_id().as_str() {
       "quit" => {
-        // https://stackoverflow.com/questions/30559073/cannot-borrow-captured-outer-variable-in-an-fn-closure-as-mutable
-        kill_pid(pid.lock().unwrap().to_string());
+        kill_process_by_name();
         std::process::exit(0);
       }
       "hide" => {
@@ -46,6 +56,10 @@ fn main() {
         let window = app.get_window("main").unwrap();
         window.hide().unwrap();
         open_browser("5987".to_string());
+      }
+      "restart" => {
+        kill_process_by_name();
+        launch_backend();
       }
       _ => {}
     })
