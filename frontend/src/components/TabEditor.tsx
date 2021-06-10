@@ -19,10 +19,8 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   const sql = useHS(tab.editor.text);
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
-  const tabNamesHeight = useHS(40)
 
   React.useEffect(() => {
-    tabNamesHeight.set(document.getElementById("tab-names")?.offsetHeight || 40)
     return () => {
       // save session & history
       // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
@@ -102,7 +100,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
 
   return <div
     style={{ 
-      paddingTop: `${tabNamesHeight.get()}px`, 
+      paddingTop: `5px`, 
       display: tab.showSql.get() ? '' : 'none',
       width: '100%',
      }}

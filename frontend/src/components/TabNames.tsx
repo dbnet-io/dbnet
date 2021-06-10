@@ -5,7 +5,9 @@ import { none } from "@hookstate/core";
 import { jsonClone } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
 import { ContextMenu } from "primereact/contextmenu";
-import { MenuItem } from "primereact/components/menuitem/MenuItem";
+import { MenuItem, MenuItemOptions } from "primereact/components/menuitem/MenuItem";
+import { TabMenu } from 'primereact/tabmenu';
+import classNames from "classnames";
 
 const store = accessStore()
 const queryPanel = store.queryPanel
@@ -243,17 +245,92 @@ export const TabNames: React.FC<Props> = (props) => {
     return items.concat(databaseItems)
   }
 
+  const tabItems = () : MenuItem[] => {
+    let items : MenuItem[] = [
+      {
+        // label: 'del',
+        icon: 'pi pi-times',
+        name: 'del',
+      },
+      {
+        // label: 'add',
+        icon: 'pi pi-plus',
+        name: 'add',
+      },
+    ]
+    // let items : MenuItem[] = []
+
+    return items.concat(
+      tabs.get().filter(t => !t.parent && !t.hidden).map(tab => {
+
+        let id = `tab-${tab.name}`
+        return {
+          label: tab.name,
+          name: tab.name,
+          icon: tab.loading ? "pi pi-spin pi-spinner" : '',
+          template: ((item: MenuItem, options: MenuItemOptions) => {
+            return <>
+              <Tooltip
+                target={`#${id}`}
+                style={{
+                  fontSize: '11px',
+                  minWidth: '250px',
+                  fontFamily:'monospace',
+                }}
+              >
+                <span>Connection: {tab.connection || store.connection.name.get()}</span>
+                <br/>
+                <span>Database:   {tab.database || store.connection.database.get()}</span>
+            </Tooltip>
+              <a 
+                id={id}
+                data-pr-position="top"
+                href="#"
+                className={options.className}
+                target={item.target}
+                onClick={options.onClick}
+              >
+                  {
+                    options.iconClassName !== 'p-menuitem-icon'?
+                    <>
+                      <span style={{paddingLeft: '-8px'}}/>
+                      <span className={classNames(options.iconClassName)}/>
+                      <span style={{paddingRight: '8px'}}/>
+                    </>
+                    :
+                    null
+                  }
+                  <span
+                    className={options.labelClassName}
+                  >
+                      {item.label}
+                    </span>
+              </a>
+          </>
+          })
+        } as MenuItem
+      })
+    )
+  }
+
+  const getTabIndex = () => {
+    let index = tabs.get().filter(t => !t.parent && !t.hidden).map(t => t.id).indexOf(selectedTabId.get());
+    return index + 2
+  }
+
+  const setTabIndex = (item: MenuItem) => {
+    actionTab(item.name as string)
+  }
+
 
   return <>
     <ContextMenu model={menu()} ref={cm} onHide={() => {}} style={{fontSize:'11px'}}/>
-    <SelectButton
-      id="tab-names"
-      value={getSelectedTabName()}
-      options={['del', 'add'].concat(tabOptions)}
-      onChange={(e: any) => actionTab(e.value)}
-      style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
-      // options={justifyOptions}
-      itemTemplate={optionTemplate} />
-    
+    <TabMenu
+      id="tab-names-menu"
+      model={tabItems()}
+      activeIndex={getTabIndex()}
+      onTabChange={(e) => setTabIndex(e.value)}
+      // style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
+    />
   </>
 }

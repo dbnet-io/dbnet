@@ -206,3 +206,16 @@ font-size: 9px !important;
   padding-left: 16px;
   padding-right: 16px;
 }
+
+#tab-names-menu > ul > li > a > span.pi {
+  margin: 0px !important;
+}
+
+#tab-names-menu > ul > li > a > span {
+  font-size: 10px !important;
+}
+
+#tab-names-menu > ul > li > a  {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
