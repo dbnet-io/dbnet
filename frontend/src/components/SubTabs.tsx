@@ -1,8 +1,8 @@
 import * as React from "react";
-import { State } from "@hookstate/core";
+import { none, State } from "@hookstate/core";
 import { accessStore, Tab, useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
-import { cleanupOtherChildTabs, createTabChild, getTabState } from "./TabNames";
+import { createTabChild, getTabState } from "./TabNames";
 import { ContextMenu } from "primereact/contextmenu";
 import { jsonClone } from "../utilities/methods";
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
@@ -64,7 +64,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
         icon: 'pi pi-chevron-circle-down',
         command: () => {
           childTab.pinned.set(v => !v) 
-          props.tab.selectedChild.set(childTab.id.get()) // refresh
+          props.tab.selectedChild.set(childTab.get().id)
         }
       },
       {
@@ -73,20 +73,27 @@ export function SubTabs(props: { tab: State<Tab>; }) {
         command: () => {
           let parentTab = getTabState(childTab.get()?.parent as string)
           let selectTabID = childTab.get().id
+          childTab.set(t => {
+            t.pinned = false
+            t.loading = false
+            return t
+          })
+
           if(tabOptions().length === 1) {
-            childTab.set(t => {
-              t.pinned = false
-              t.loading = false
-              return t
-            })
             selectTabID = createTabChild(parentTab.get()).id
+            props.tab.selectedChild.set(selectTabID)
           } else {
+            let oldIndex = queryPanel.get().getTabIndexByID(selectTabID)
             let index = tabOptions().map(t => t.id).indexOf(selectTabID)
             let newIndex = index === 0 ? 1 : index - 1
+
+            // select other tab
             selectTabID = tabOptions()[newIndex].id
-            cleanupOtherChildTabs(getTabState(selectTabID).get())
+            props.tab.selectedChild.set(selectTabID)
+
+            // delete old child tab
+            queryPanel.tabs[oldIndex].set(none)
           }
-          props.tab.selectedChild.set(selectTabID)
         }
       },
       {

@@ -127,7 +127,7 @@ export const get_duration = function(secs : number, simple=false) {
   if (secs < 60) return `${secs}s` 
   if (secs < 3600) {
     let mins = Math.floor(secs/60)
-    secs = secs - mins*60
+    secs = Math.floor(secs - mins*60)
     return simple ? `${neg}${mins}m` : `${neg}${mins}m${secs}s`
   }
 
@@ -135,7 +135,7 @@ export const get_duration = function(secs : number, simple=false) {
     let hours = Math.floor(secs/3600)
     secs = secs - hours*3600
     let mins = Math.floor(secs/60)
-    secs = secs - mins*60
+    secs = Math.floor(secs - mins*60)
     return simple ? `${neg}${hours}h` : `${neg}${hours}h${mins}m`
   }
 
@@ -144,7 +144,7 @@ export const get_duration = function(secs : number, simple=false) {
   let hours = Math.floor(secs/3600)
   secs = secs - hours*3600
   let mins = Math.floor(secs/60)
-  secs = secs - mins*60
+  secs = Math.floor(secs - mins*60)
   return simple ? `${neg}${days}d` : `${neg}${days}d${hours}h`
 }
 

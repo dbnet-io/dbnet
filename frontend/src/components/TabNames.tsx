@@ -200,7 +200,6 @@ export const TabNames: React.FC<Props> = (props) => {
         <br/>
         <span>Database:   {tab.database.get() || store.connection.database.get()}</span>
       </Tooltip>
-      { loading ? <span style={{paddingRight: '5px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
       <span
         id={id}
         data-pr-position="top"
@@ -210,7 +209,10 @@ export const TabNames: React.FC<Props> = (props) => {
           contextTabId.set(jsonClone(tab.id.get()))
           cm.current?.show(event as any)
         }}
-      >{option}</span >
+      >
+        { loading ? <span style={{paddingRight: '0px', marginLeft: '-7px', fontSize: '12px'}}><i className="pi pi-spin pi-spinner"></i></span > : null}
+        {option}
+      </span >
     </> 
   }
 

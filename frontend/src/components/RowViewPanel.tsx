@@ -30,7 +30,7 @@ export const RowViewPanel: React.FC<Props> = (props) => {
       modal={false}
       position="right"
       onHide={()=>{ childTab.rowView.show.set(false) }}
-      style={{width: '400px'}}
+      style={{width: `${(window.innerWidth)/7*2}px`, minWidth: '400px'}}
       closeOnEscape={false}
     >
     <div className="p-fluid">

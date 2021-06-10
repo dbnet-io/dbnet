@@ -330,7 +330,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
           />
 
           <span className="p-inputgroup-addon">{ Math.min(tab.query.rows.length, tab.resultLimit.get()) } rows</span>
-          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()*10)/10).replace('s', ' sec').replace('m', ' min')}</span>
+          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()*10)/10).replace('s', 's').replace('m', 'm ')}</span>
 
           <Button
             icon="pi pi-angle-double-down"

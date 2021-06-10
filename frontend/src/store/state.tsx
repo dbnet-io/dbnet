@@ -495,6 +495,7 @@ export class MetaTable {
   search: string
   loading: boolean
   show: boolean
+  isView: boolean
   
   constructor(data: ObjectAny = {}) {
     this.name = data.name
@@ -504,6 +505,7 @@ export class MetaTable {
     this.selectedColumns = data.selectedColumns || []
     this.loading = data.loading || false
     this.show = data.show || false
+    this.isView = data.isView || false
   }
 
   schema = () => {

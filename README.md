@@ -16,4 +16,10 @@
 ## Electron
 - https://github.com/electron/electron-packager
 - https://www.electron.build/
-- `nativefier -n dbnet --counter 'http://localhost:3000/'`
+- `nativefier -n DbNetClient --counter 'http://localhost:5987/'`
+
+## Icons
+
+https://github.com/jackmordaunt/icns
+`cat icon.png | icnsify > icon.icns`
+`bash frontend/src-tauri/icons/generate.sh`

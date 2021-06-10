@@ -13,7 +13,7 @@ interface Props {}
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const tabOptions = useState<string[]>(['Project', 'Schema', 'Object', 'History'])
+  const tabOptions = useState<string[]>(['Files', 'Schema', 'Object', 'History'])
   const tabValue = useStoreApp().selectedMetaTab
   // const tabValue = useStore().selectedMetaTab
 
@@ -38,7 +38,7 @@ export const LeftPane: React.FC<Props> = (props) => {
       </div>
       <div className="p-col-12 p-md-12" style={{paddingTop: '0px'}}>
           { 
-            tabValue.get() === "Project" ?
+            tabValue.get() === "Files" ?
             <ProjectPanel/> : null
           }
           { 
