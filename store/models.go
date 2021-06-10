@@ -112,6 +112,30 @@ type Query struct {
 	Affected  int64         `json:"affected" gorm:"-"`
 }
 
+type WorkspaceSettings struct {
+	Connections   []string
+	RepositoryURL string
+	RootPath      string   // path to root folder
+	FilesOpen     []string // relative paths of open files
+}
+
+// Scan scan value into Jsonb, implements sql.Scanner interface
+func (w *WorkspaceSettings) Scan(value interface{}) error {
+	return g.JSONScanner(w, value)
+}
+
+// Value return json value, implement driver.Valuer interface
+func (w WorkspaceSettings) Value() (driver.Value, error) {
+	return g.JSONValuer(w, "{}")
+}
+
+type Workspace struct {
+	ID        string            `json:"id" query:"id" gorm:"primaryKey"`
+	Name      string            `json:"name" query:"name"`
+	Settings  WorkspaceSettings `json:"settings" query:"settings" gorm:"type:json default '{}'"`
+	UpdatedDt time.Time         `json:"-" gorm:"autoUpdateTime"`
+}
+
 // Job represents a job
 type Job struct {
 	ID        string         `json:"id" gorm:"primaryKey"`

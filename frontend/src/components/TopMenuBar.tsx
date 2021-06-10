@@ -38,6 +38,22 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       localStorage.setItem("_connection_name", c.name)
     }
 
+    let workspaceItems = () : MenuItem[] => {
+      let items : MenuItem[] = [
+        {
+          label:'New Workspace...',
+          icon: 'pi pi-fw pi-plus',
+        },
+        {
+          separator: true
+        },
+      ]
+
+      let workpaces : MenuItem[] = [
+      ]
+      return items.concat(workpaces)
+    }
+
     let connItems : MenuItem[] = connections.get().map((c) : MenuItem => {
       return {
         label: c.name,
@@ -64,6 +80,11 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     })
 
     let items : MenuItem[] = [
+      {
+        label: 'Workspaces',
+        icon: 'pi pi-fw pi-briefcase',
+        items: workspaceItems(),
+      },
       {
         label: 'Connections',
         icon: 'pi pi-fw pi-sitemap',
