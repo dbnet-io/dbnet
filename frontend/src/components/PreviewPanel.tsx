@@ -1,42 +1,44 @@
 import { Dialog } from "primereact/dialog";
 import * as React from "react";
-import { useStoreObjectPanel } from "../store/state";
+import { accessStore, useStoreObjectPanel } from "../store/state";
 import { copyToClipboard } from "../utilities/methods";
 import { MetaTablePanel } from "./MetaTablePanel";
 
-interface Props {}
+const store = accessStore()
+
+interface Props { }
 
 export const PreviewPanel: React.FC<Props> = (props) => {
-  const objectView = useStoreObjectPanel().table
+  const objectPanel = store.objectPanel
+  const objectView = objectPanel.table
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
-  
-  const header = <p style={{margin:0}}>
+
+  const header = <p style={{ margin: 0 }}>
     <span
-      style={{fontFamily: 'monospace', fontSize: '16px', backgroundColor: 'white', color:'blue'}}
+      style={{ fontFamily: 'monospace', fontSize: '16px', backgroundColor: 'white', color: 'blue' }}
       onDoubleClick={() => { copyToClipboard(objectView.name.get()) }}
     >
       <strong>{objectView.name.get()}</strong>
-      <a href="#;" onClick={(e) => {copyToClipboard(objectView.name.get())}}>
-        <i className="pi pi-copy" style={{'fontSize': '0.9em'}}></i>
+      <a href="#;" onClick={(e) => { copyToClipboard(objectView.name.get()) }}>
+        <i className="pi pi-copy" style={{ 'fontSize': '0.9em' }}></i>
       </a>
     </span>
   </p>
 
   return (
-    <Dialog 
+    <Dialog
       header={header}
-      visible={objectView.show.get()}
+      visible={objectPanel.show.get()}
       modal={false}
       position="right"
-      onHide={()=>{ objectView.show.set(false) }}
-      style={{width: '400px'}}
+      onHide={() => { objectPanel.show.set(false) }}
+      style={{ width: '400px' }}
       closeOnEscape={false}
     >
-      <MetaTablePanel/>
+      <MetaTablePanel />
     </Dialog>
   );
 };
-      

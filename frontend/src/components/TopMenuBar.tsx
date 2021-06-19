@@ -2,15 +2,14 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, globalStore, useHS, useVariable } from "../store/state";
+import { accessStore, Connection, globalStore, lookupTable, Table, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { LogError } from "../utilities/methods";
-import { ObjectAny, ObjectString } from "../utilities/interfaces";
 import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
 import { TauriGetCwd } from "../utilities/tauri";
+import { jsonClone } from "../utilities/methods";
 
 
 const store = accessStore()
@@ -20,22 +19,22 @@ interface Props { }
 
 export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const connName = useHS(store.connection.name)
-  const connections = useHS(store.app.connections)
-  const recentSearches = store.app.recentOmniSearches
+  const connName = useHS(store.workspace.selectedConnection)
+  const connections = useHS(store.connections)
+  const recentSearches = store.connection.recentOmniSearches
+  const tableKeys = React.useRef<Record<string, Table>>({})
 
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const makeItems = () => {
-    const loadConn = (c: ObjectAny) => { 
-      globalStore.loadSession(c.name).then(async () => {
-        if(c.database) store.connection.database.set(c.database)
-        await GetDatabases(store.connection.name.get())
-        await GetSchemata(store.connection.name.get(), store.connection.database.get())
+    const loadConn = (conn: Connection) => {
+      globalStore.loadSession(conn.name).then(async () => {
+        await GetDatabases(conn.name)
+        await GetSchemata(conn.name, conn.database)
       })
-      localStorage.setItem("_connection_name", c.name)
+      localStorage.setItem("_connection_name", conn.name)
     }
 
     let connItems : MenuItem[] = connections.get().map((c) : MenuItem => {
@@ -44,26 +43,26 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         command: () => { loadConn(c) },
         template: (item, options) => {
           return <a // eslint-disable-line
-              role="menuitem" 
-              className="p-menuitem-link"
-              aria-haspopup="false"
-              onClick={()=> loadConn(c)}
-            >
-            <span className="p-menuitem-text" style={{fontSize: '0.8rem', fontFamily: 'monospace'}}>{item.label}</span>
+            role="menuitem"
+            className="p-menuitem-link"
+            aria-haspopup="false"
+            onClick={() => loadConn(c)}
+          >
+            <span className="p-menuitem-text" style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{item.label}</span>
             {
               c.dbt ?
-              <span style={{paddingLeft: '7px', color: 'green'}}>
-                <b>dbt</b>
-              </span>
-              :
-              null
+                <span style={{ paddingLeft: '7px', color: 'green' }}>
+                  <b>dbt</b>
+                </span>
+                :
+                null
             }
           </a>
         },
       }
     })
 
-    let items : MenuItem[] = [
+    let items: MenuItem[] = [
       {
         label: 'Connections',
         icon: 'pi pi-fw pi-sitemap',
@@ -90,16 +89,15 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       style={{ paddingLeft: "20px" }}
     />
     <OmniBox />
-    </div>
+  </div>
 
   const OmniBox = () => {
-    const allTables = useVariable<string[]>([])
-    const searchResults = useVariable<string[]>([])
+    const allTables = useVariable<Table[]>([])
+    const searchResults = useVariable<Table[]>([])
     const omniSearch = useVariable('')
     const removedRecent = useHS('') // little hack to prevent item clicking
 
-    const schemas = accessStore().connection.schemas
-    const selectedMetaTab = accessStore().app.selectedMetaTab
+    const selectedMetaTab = store.workspace.selectedMetaTab
 
     const omniKeyPress = (e: any) => {
       // omni search
@@ -140,24 +138,8 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       );
     }
 
-    const getAllTables = () => {
-      let all : ObjectString = {}
-      try {
-        for (let schema of schemas.get()) {
-          if (!schema.tables || !Array.isArray(schema.tables)) { continue }
-          for (let table of schema.tables) {
-            all[`${table.schema}.${table.name}`.toLowerCase()] = ''
-          }
-        }
-      } catch (error) {
-        LogError(error)
-      }
-      return Object.keys(all)
-    }
-
     React.useEffect(() => {
-      let all = getAllTables()
-      allTables.set(all)
+      allTables.set(store.connection.get().getAllTables())
     }, []) // eslint-disable-line
 
     const searchTable = (e: any) => {
@@ -165,47 +147,54 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       if (!queryStr.length) {
         return []
       }
-      
+
       let recents = recentSearches.get()
       let queries = queryStr.split(' ')
-      let results: string[] = []
-      for(let key of Object.keys(recents)) {
-        let found : boolean[] = queries.map(v => false)
+      let results: Table[] = []
+      for (let key of Object.keys(recents)) {
+        let found: boolean[] = queries.map(v => false)
         for (let i = 0; i < queries.length; i++) {
           const query = queries[i];
           found[i] = key.toString().includes(query.toLowerCase())
         }
-        if(found.every(v => v)){
-          results.push(key.toString())
+        if (found.every(v => v)) {
+          let table = lookupTable(store.connection.name.get(), key.toString())
+          if (table) results.push(new Table(table))
         }
       }
 
-      for (let table of getAllTables()) {
-        let found : boolean[] = queries.map(v => false)
+      for (let table of store.connection.get().getAllTables()) {
+        let found: boolean[] = queries.map(_ => false)
+        let fullName = `${table.schema}.${table.name}`
         for (let i = 0; i < queries.length; i++) {
           const query = queries[i];
-          found[i] = table.toLowerCase().includes(query.toLowerCase()) && !(table.toLowerCase() in recents)
+          found[i] = fullName.toLowerCase().includes(query.toLowerCase()) && !(fullName.toLowerCase() in recents)
         }
-        if(found.every(v => v)){
-          results.push(table)
+        if (found.every(v => v)) {
+          results.push(new Table(table))
         }
       }
-
       searchResults.set(results)
+      tableKeys.current = {}
+      for(let table of results) {
+        tableKeys.current[table.key()] = table
+      }
     }
 
     return <AutoComplete
       id='omni-search'
       placeholder="Search..."
       value={omniSearch.get()}
-      suggestions={searchResults.get()}
+      suggestions={searchResults.get().map(t => t.key())}
       completeMethod={searchTable}
       field="name"
       onKeyUp={omniKeyPress}
       onChange={(e: any) => { omniSearch.set(e.target.value) }}
       onSelect={(e: any) => {
-        if(e.value === removedRecent.get()) return omniSearch.set('')
-        loadMetaTable(e.value)
+        let table = tableKeys.current[e.value]
+        console.log(table)
+        if (table.fullName() === removedRecent.get()) return omniSearch.set('')
+        loadMetaTable(table)
         selectedMetaTab.set('Object')
         omniSearch.set('')
         setTimeout(
@@ -215,9 +204,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
         // save in recent searches
         setTimeout(() => {
-          recentSearches[e.value.toLowerCase()].set(v => (v||0)+1)
-          if(recentSearches.keys.length > 100) {
-            let key = recentSearches.keys[recentSearches.keys.length-1]
+          recentSearches[table.fullName2()].set(v => (v || 0) + 1)
+          if (recentSearches.keys.length > 100) {
+            let key = recentSearches.keys[recentSearches.keys.length - 1]
             recentSearches[key].set(none)
           }
         }, 1000);
@@ -238,7 +227,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   }
 
   const end = () => <div style={{ paddingRight: "0px" }} className="p-inputgroup">
-    <h3 style={{paddingRight: '8px', fontFamily: 'monospace'}}>{connName.get()}</h3>
+    <h3 style={{ paddingRight: '8px', fontFamily: 'monospace' }}>{connName.get()}</h3>
 
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
@@ -276,7 +265,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       }
     </span> */}
   </div>
-  
+
   return (
     <Menubar
       id="top-menu-bar"

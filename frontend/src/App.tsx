@@ -13,7 +13,7 @@ import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { MsgType, WsQueue } from './store/websocket';
-import { accessStore, globalStore, useHS } from './store/state';
+import { accessStore, Connection, ConnectionRecord, globalStore, useHS } from './store/state';
 import { jsonClone, Sleep, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import { Dialog } from 'primereact/dialog';
@@ -26,6 +26,7 @@ import { GetDatabases, GetSchemata } from './components/SchemaPanel';
 import { apiGet, Response } from './store/api';
 import { Button } from 'primereact/button';
 import { JobPanel } from './components/JobPanel';
+import { DbNet } from './store/dbnet';
 
 // this is to extends the window global functions
 declare global {
@@ -48,11 +49,23 @@ export const App = () => {
   const chooseConnection = useHS(false)
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
+
+  const dbNet = React.useRef<DbNet>()
   
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
     Init()
+  }, [])// eslint-disable-line
+
+
+  React.useEffect(() => {
+    dbNet.current = new DbNet({
+    }) 
+    return () => {
+      dbNet.current?.dispose()
+      dbNet.current = undefined;
+    }
   }, [])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -74,23 +87,26 @@ export const App = () => {
         }
       }
       
-      if(resp.error) return toastError(resp.error)
-      let conns : ObjectAny[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
-      store.app.connections.set(conns)
-      if(conns.length === 0) {
-        // need to create connections
-        toastInfo('Did not find any connections.')
-        return
-      }
+    if (resp.error) return toastError(resp.error)
+    let conns : Connection[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
+    store.connections.set(conns.map(c => new Connection(c)))
+    if(conns.length === 0) {
+      // need to create connections
+      toastInfo('Did not find any connections.')
+      return
+    }
 
     // last connection
     let last_conn = localStorage.getItem("_connection_name")
-    let found = store.app.connections.get().map(c => (c.name as string).toLowerCase()).includes(last_conn?.toLowerCase()||'')
-    if(last_conn && found) store.connection.name.set(last_conn)
-    else {
-      // if none detected/found, prompt to choose
-      chooseConnection.set(true)
-      return
+    if(last_conn) {
+      let found = store.connections.get().map(c => c.name.toLowerCase()).includes(last_conn.toLowerCase())
+      if(found) {
+        store.workspace.selectedConnection.set(last_conn)
+      } else {
+        // if none detected/found, prompt to choose
+        chooseConnection.set(true)
+        return
+      }
     }
 
     // init load session
@@ -117,7 +133,7 @@ export const App = () => {
   ///////////////////////////  JSX  ///////////////////////////
   const ConnectionChooser = () => {
     const connSelected = useHS('')
-    const dbtConns = () : string[] => store.app.connections.get().filter(c => c.dbt).map(c => c.name)
+    const dbtConns = () : string[] => store.connections.get().filter(c => c.dbt).map(c => c.name)
     const footer = () => {
       return <div style={{textAlign: 'center'}}>
           <Button label="OK" icon="pi pi-check" onClick={() => {
@@ -155,7 +171,7 @@ export const App = () => {
       >
         <ListBox 
           value={connSelected.get()}
-          options={store.app.connections.get().map(c => c.name)} 
+          options={store.connections?.get()?.map(c => c.name) || []} 
           onChange={(e) => connSelected.set(e.value)} 
           listStyle={{fontFamily:'monospace'}}
           itemTemplate={itemTemplate}

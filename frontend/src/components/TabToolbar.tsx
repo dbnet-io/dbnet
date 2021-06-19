@@ -21,12 +21,10 @@ const setFilter = _.debounce(
 )
 
 export const cancelSQL = async (tab: State<Tab>) => {
-  const connection = accessStore().connection
-
   let data1 = {
     id: tab.query.id.get(),
-    conn: connection.name.get(),
-    database: connection.database.get(),
+    conn: tab.connection.get(),
+    database: tab.database.get(),
     tab: tab.id.get(),
     wait: true,
   }
@@ -48,22 +46,19 @@ export const refreshResult = async (tab: State<Tab>) => {
 
 export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
   if (!sql) sql = tab.editor.text.get() // get current block
-  
-  const connection = tab.connection.get() || store.connection.name.get()
-  const database = tab.database.get() || store.connection.database.get()
-  const queryPanel = store.queryPanel
-  
+
   // create child tab
   if (!childTab) childTab = createTabChild(tab.get())
+  // store.queryPanel.selectedTabId.set(tab.id.get())
   tab.selectedChild.set(childTab.id)
-  
+
   // set limit to fetch, and save in cache
   const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 ? 500 : childTab.resultLimit
 
   let data1 = {
     id: new_ts_id('query.'),
-    conn: connection,
-    database: database,
+    conn: tab.connection.get(),
+    database: tab.database.get(),
     text: sql.trim(),
     time: (new Date()).getTime(),
     tab: childTab.id,
@@ -93,10 +88,10 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   tab_.loading.set(true)
   tab_.filter.set('')
   parentTab.loading.set(true)
-  
+
   // cleanup
   cleanupDexieDb()
-  
+
   try {
     let done = false
     let headers = {}
@@ -104,7 +99,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
       let resp = await apiPost(MsgType.SubmitSQL, data1, headers)
       if (resp.error) throw new Error(resp.error)
       if (resp.status === 202) {
-        headers = {"DbNet-Continue": "true"}
+        headers = { "DbNet-Continue": "true" }
         continue
       }
       done = true
@@ -135,6 +130,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
 
 
   // to refresh
+  const queryPanel = store.queryPanel
   if (queryPanel.get().currTab().id === parentTab.id.get()) {
     queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get()))
   } else {
@@ -148,7 +144,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
 }
 
-export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>, hotTable: React.MutableRefObject<any>}) {
+export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>, hotTable: React.MutableRefObject<any> }) {
   const tab = props.tab;
   const filter = useHS(tab.filter);
   const resultLimit = useHS(tab.resultLimit);
@@ -156,7 +152,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
   const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   const sqlOp = React.useRef<any>(null);
 
-  React.useEffect(()=>{
+  React.useEffect(() => {
     localFilter.set(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   }, [tab.id.get()]) // eslint-disable-line
 
@@ -287,12 +283,12 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             className="p-button-sm p-button-outlined p-button-secondary"
             tooltip="Copy headers"
             tooltipOptions={{ position: 'top' }}
-            onClick={() => { 
+            onClick={() => {
               // console.log(props.hotTable.current?.hotInstance)
               // console.log(props.hotTable.current?.hotInstance.countRows())
               let startCol = tab.lastTableSelection.get()[1]
               let endCol = tab.lastTableSelection.get()[3]
-              copyToClipboard(tab.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n')) 
+              copyToClipboard(tab.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n'))
             }}
           />
 
@@ -329,8 +325,8 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
             tooltipOptions={{ position: 'top' }}
           />
 
-          <span className="p-inputgroup-addon">{ Math.min(tab.query.rows.length, tab.resultLimit.get()) } rows</span>
-          <span className="p-inputgroup-addon">{ get_duration(Math.floor(tab.query.duration.get()*10)/10).replace('s', 's').replace('m', 'm ')}</span>
+          <span className="p-inputgroup-addon">{Math.min(tab.query.rows.length, tab.resultLimit.get())} rows</span>
+          <span className="p-inputgroup-addon">{get_duration(Math.floor(tab.query.duration.get() * 10) / 10).replace('s', 's').replace('m', 'm ')}</span>
 
           <Button
             icon="pi pi-angle-double-down"

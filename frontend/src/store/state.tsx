@@ -4,7 +4,7 @@ import { createRef } from "react";
 import { Toast } from "primereact/toast";
 import { createBrowserHistory } from "history";
 import * as React from "react";
-import { jsonClone, new_ts_id, toastError } from "../utilities/methods";
+import { jsonClone, LogError, new_ts_id, toastError } from "../utilities/methods";
 import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
 import TreeNode from "primereact/components/treenode/TreeNode";
@@ -36,12 +36,14 @@ export class Editor {
   selection: number[] // startRow, startCol, endRow, endCol
   highlight: number[] // startRow, startCol, endRow, endCol
   undoManager: any
+  focus: number // to trigger focus
 
   constructor(data: ObjectAny = {}) {
     this.text = data.text || ''
-    this.selection = data.selection || [0,0,0,0]
-    this.highlight = data.highlight || [0,0,0,0]
+    this.selection = data.selection || [0, 0, 0, 0]
+    this.highlight = data.highlight || [0, 0, 0, 0]
     this.undoManager = data.undoManager || {}
+    this.focus = 0
   }
 
   lines = () => {
@@ -52,14 +54,14 @@ export class Editor {
     block = block.trim()
     let points = undefined
     let pos = this.text.indexOf(block)
-    if(pos === -1) return points 
+    if (pos === -1) return points
 
     let upperBlock = this.text.slice(0, pos)
     let upperBlockLines = upperBlock.split('\n')
     // let lastUpperBlockLine = upperBlockLines[upperBlockLines.length - 1]
     let blockLines = block.split('\n')
     let lastBlockLine = blockLines[blockLines.length - 1]
-    points = [upperBlockLines.length-1, 0, upperBlockLines.length + blockLines.length-1, lastBlockLine.length-1]
+    points = [upperBlockLines.length - 1, 0, upperBlockLines.length + blockLines.length - 1, lastBlockLine.length - 1]
     return points
   }
 
@@ -73,8 +75,8 @@ export class Editor {
     let i = pos
     let l = lineI
     while (true) {
-      if(i >= line.length) {
-        if(l >= lines.length-1) {
+      if (i >= line.length) {
+        if (l >= lines.length - 1) {
           break
         }
         l++
@@ -84,28 +86,28 @@ export class Editor {
 
       line = lines[l]
       const char = line[i]
-      if(char === ';') { break }
-      if(char) { block += char }
+      if (char === ';') { break }
+      if (char) { block += char }
       i++
     }
 
-    i = pos-1
+    i = pos - 1
     l = lineI
     line = lines[l]
     while (true) {
-      if(i < 0) {
-        if(l <= 0) {
+      if (i < 0) {
+        if (l <= 0) {
           break
         }
         l--
         line = lines[l]
-        i = line.length-1
+        i = line.length - 1
         block = '\n' + block
       }
 
       const char = line[i]
-      if(char === ';') { break }
-      if(char)  { block = char + block }
+      if (char === ';') { break }
+      if (char) { block = char + block }
       i--
     }
 
@@ -120,14 +122,14 @@ export class Editor {
 
     for (let i = pos; i < line.length; i++) {
       const char = line[i];
-      if(char === ' ' || char === '\t') { break }
-      else {  word += char }
+      if (char === ' ' || char === '\t') { break }
+      else { word += char }
     }
 
-    for (let i = pos-1; i >= 0; i--) {
+    for (let i = pos - 1; i >= 0; i--) {
       const char = line[i];
-      if(char === ' ' || char === '\t') { break }
-      else {  word = char + word }
+      if (char === ' ' || char === '\t') { break }
+      else { word = char + word }
     }
 
     return word
@@ -137,7 +139,7 @@ export class Editor {
 export interface RowView {
   show: boolean
   filter: string
-  rows: {n:number, name: string, value: any}[]
+  rows: { n: number, name: string, value: any }[]
 }
 
 export const getParentTabName = (tabId: string) => {
@@ -146,7 +148,7 @@ export const getParentTabName = (tabId: string) => {
     parent_name = tabId.split('.')[0].split('-')[1]
   } catch (error) { }
   return parent_name
-} 
+}
 
 export class Tab {
   id: string
@@ -161,9 +163,9 @@ export class Tab {
   selectedChild: string
   hidden: boolean
   file: FileItem | undefined
-  connection: string
-  database: string
-  
+  connection: string | undefined
+  database: string | undefined
+
   rowView: RowView
   showSql: boolean
   showText: boolean
@@ -180,13 +182,13 @@ export class Tab {
     this.limit = data.limit || this.resultLimit
     this.loading = data.loading || false
     this.hidden = data.hidden || false
-    
-    this.rowView = data.rowView || {show: false, rows:[], filter: ''}
+
+    this.rowView = data.rowView || { show: false, rows: [], filter: '' }
     this.showSql = data.showSql || true
     this.showText = data.showText || false
     this.pinned = data.pinned || false
     this.refreshInterval = data.refreshInterval || 0
-    this.lastTableSelection = data.lastTableSelection || [0,0,0,0]
+    this.lastTableSelection = data.lastTableSelection || [0, 0, 0, 0]
     this.parent = data.parent
     this.selectedChild = data.selectedChild
     this.file = data.file
@@ -195,7 +197,7 @@ export class Tab {
 
     let parent_name = getParentTabName(this.parent || '')
     this.id = data.id || new_ts_id(`tab-${this.name || parent_name}.`)
-    if(!this.name) this.name = this.id.slice(-7)
+    if (!this.name) this.name = this.id.slice(-7)
   }
 }
 
@@ -203,8 +205,9 @@ export interface Column {
   id: number
   name: string
   type: string
-  length: number | undefined
-  scale: number | undefined
+  length?: number
+  scale?: number
+  precision?: number
 }
 
 export interface Key {
@@ -213,23 +216,84 @@ export interface Key {
   columns: string[]
 }
 
-export interface Table {
+export const lookupTable = (connName: string, key: string) => {
+  let connection = getConnectionState(connName).get()
+  let [tableDb, tableSchema, tableName] = key.toLowerCase().split('.')
+  for (let database of Object.values(connection.databases)) {
+    for (let schema of database.schemas) {
+      for (let table of schema.tables) {
+        if (
+          database.name.toLowerCase() === tableDb &&
+          schema.name.toLowerCase() === tableSchema &&
+          table.name.toLowerCase() === tableName
+        ) return table
+      }
+    }
+  }
+}
+
+export class Table {
+  connection: string
+  database: string
   schema: string
   name: string
   isView: boolean
   columns?: Column[]
   primaryKey?: Key
   indexes?: Key[]
+  constructor(data: ObjectAny = {}) {
+    this.connection = data.connection
+    this.schema = data.schema
+    this.name = data.name
+    this.database = data.database
+    this.isView = data.isView
+    this.columns = data.columns || []
+    this.primaryKey = data.primaryKey
+    this.indexes = data.indexes
+  }
+
+  fullName = () => `${this.schema}.${this.name}`
+  fullName2 = () => `${this.database}.${this.schema}.${this.name}`.toLowerCase()
+  key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
 }
+
 
 export class Schema {
   name: string
+  database: string
   tables: Table[]
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name
+    this.database = data.database
     this.tables = data.tables || []
   }
+}
+
+export class Database {
+  name: string
+  schemas: Schema[]
+
+  constructor(data: ObjectAny = {}) {
+    this.name = data.name
+    this.schemas = data.schemas || []
+    this.schemas = this.schemas.map(s => new Schema(s))
+  }
+
+  getAllTables = () => {
+    let tables: Table[] = []
+    try {
+      for (let schema of this.schemas) {
+        for (let table of schema.tables) {
+          tables.push(table)
+        }
+      }
+    } catch (error) {
+      LogError(error)
+    }
+    return tables
+  }
+
 }
 
 
@@ -302,11 +366,11 @@ export class Query {
   }
 
   getRowData = (n: number) => {
-    if (this.rows.length === 0) { return []}
+    if (this.rows.length === 0) { return [] }
     let row = this.rows[n]
-    let data : {n: number, name: string, value: any}[] = []
+    let data: { n: number, name: string, value: any }[] = []
     for (let i = 0; i < this.headers.length; i++) {
-      data.push({n: i+1, name: this.headers[i], value: row[i]})
+      data.push({ n: i + 1, name: this.headers[i], value: `${row[i]}` })
     }
     return data
   }
@@ -318,7 +382,7 @@ export interface SourceOptions {
   trim_space?: boolean,
   empty_as_null?: boolean,
   header?: boolean,
-  compression?: 'auto'|'gzip',
+  compression?: 'auto' | 'gzip',
   null_if?: string,
   datetime_format?: string,
   skip_blank_lines?: boolean,
@@ -326,7 +390,7 @@ export interface SourceOptions {
   max_decimals?: number,
 }
 
-export const DefaultSourceOptionsFile : SourceOptions = {
+export const DefaultSourceOptionsFile: SourceOptions = {
   trim_space: false,
   empty_as_null: true,
   header: true,
@@ -346,7 +410,7 @@ export enum JobMode {
 
 export interface TargetOptions {
   header?: boolean,
-  compression?: 'auto'|'gzip',
+  compression?: 'auto' | 'gzip',
   concurrency?: number,
   datetime_format?: string,
   delimiter?: string,
@@ -359,7 +423,7 @@ export interface TargetOptions {
   use_bulk?: boolean,
 }
 
-export const DefaultTargetOptionsFile : TargetOptions = {
+export const DefaultTargetOptionsFile: TargetOptions = {
   header: true,
   compression: 'gzip',
   concurrency: 4,
@@ -455,7 +519,7 @@ export class Job {
   constructor(data: ObjectAny = {}) {
     this.id = data.id
     this.type = data.type
-    this.request = data.request || {id: '', source: '', target: '', config: {}} 
+    this.request = data.request || { id: '', source: '', target: '', config: {} }
     this.time = data.time
     this.duration = data.duration
     this.status = data.status
@@ -478,89 +542,127 @@ class JobPanelState {
   }
 }
 
+export type DatabaseRecord = { [key: string]: Database; }
 
-export interface MetaTableRow {
-  column_name: string
-  column_type: string
-  length?: number
-  precision?: number
-  scale?: number
+export const getCurrDatabaseState = () => {
+  const store = accessStore()
+  let databases = store.connection.databases
+  let database = store.connection.database
+  if (databases.keys.length === 0) {
+    return createState<Database>(new Database())
+  }
+  if (!database.get()) database.set(databases[0].name.get())
+  return databases[database.get()]
 }
 
-export class MetaTable {
-  name: string
-  database: string
-  rows: MetaTableRow[]
-  selectedColumns: any[]
-  search: string
-  loading: boolean
-  show: boolean
-  isView: boolean
-  
-  constructor(data: ObjectAny = {}) {
-    this.name = data.name
-    this.database = data.database
-    this.search = data.search || ''
-    this.rows = data.rows || []
-    this.selectedColumns = data.selectedColumns || []
-    this.loading = data.loading || false
-    this.show = data.show || false
-    this.isView = data.isView || false
+export const getDatabaseState = (connName: string, dbName: string) => {
+  let connection = getConnectionState(connName)
+  let databases = connection.databases
+  // dbName = dbName.toLowerCase()
+  if (!databases.keys.includes(dbName)) {
+    // toastError(`Database "${dbName}" not found`)
+    return createState<Database>(new Database())
   }
+  return databases[dbName]
+}
 
-  schema = () => {
-    let name_arr = this.name.split('.')
-    if(name_arr.length === 1) return undefined
-    return name_arr[0]
+export const getConnectionState = (connName: string) => {
+  connName = connName.toLowerCase()
+  const store = accessStore()
+  let index = store.connections.get().map(c => c.name.toLowerCase()).indexOf(connName)
+  if (index > -1) {
+    return store.connections[index]
   }
-
-  table = () => {
-    let name_arr = this.name.split('.')
-    return name_arr[name_arr.length-1]
-  }
+  return createState(new Connection())
 }
 
 export class Connection {
   name: string
   type: ConnType
   database: string
-  databases: string[]
+  dbt: boolean
+  databases: DatabaseRecord
   data: ObjectString;
   schemas: Schema[]
   history: Query[]
+  recentOmniSearches: { [key: string]: number; }
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || ''
     this.type = data.type
     this.data = data.data
     this.database = data.database || ''
+    this.dbt = data.dbt || false
     this.schemas = data.schemas || []
     this.history = data.history || []
-    this.databases = data.databases || []
+    this.databases = data.databases || {}
+    for (let k of Object.keys(this.databases)) {
+      this.databases[k] = new Database(this.databases[k])
+    }
+    this.recentOmniSearches = data.recentOmniSearches || {}
+  }
+
+  getAllTables = () => {
+    let tables: Table[] = []
+    try {
+      for (let database of Object.values(this.databases)) {
+        for (let table of database.getAllTables()) {
+          tables.push(table)
+        }
+      }
+    } catch (error) {
+      LogError(error)
+    }
+    return tables
   }
 
   payload = () => {
     return {
       name: this.name,
+      type: this.type,
+      dbt: this.dbt,
       database: this.database,
       databases: this.databases,
-      type: this.type,
+      recentOmniSearches: this.recentOmniSearches,
     }
   }
 
-  schemaNodes = () => {
-    let newNodes : TreeNode[] = []
-    let schema : Schema = new Schema()
+  databaseNodes = () => {
+    let newNodes: TreeNode[] = []
+    let database: Database = new Database()
     try {
-      for (let i = 0; i < this.schemas.length; i++) {
-        schema = this.schemas[i]
-  
-        let children : TreeNode[] = []
-        if(schema?.tables !== undefined) {
-          if(!Array.isArray(schema.tables)) schema.tables = []
-          for(let table of schema.tables) {
+      for (database of Object.values(this.databases)) {
+        newNodes.push({
+          key: database.name,
+          label: database.name.toUpperCase(),
+          data: {
+            type: 'database',
+            data: database,
+          },
+          children: this.schemaNodes(database),
+        })
+      }
+    } catch (error) {
+      console.log(error)
+      console.log(database)
+      toastError('Error loading databases', `${error}`)
+    }
+    return newNodes
+  }
+
+  schemaNodes = (database: Database) => {
+    let newNodes: TreeNode[] = []
+    let schema: Schema = new Schema()
+    try {
+      for (let i = 0; i < database.schemas.length; i++) {
+        schema = database.schemas[i]
+
+        let children: TreeNode[] = []
+        if (schema?.tables !== undefined) {
+          if (!Array.isArray(schema.tables)) schema.tables = []
+          for (let table of schema.tables) {
             children.push({
-              key: `${schema.name}.${table.name}`,
+              key: `${database.name}.${schema.name}.${table.name}`,
               label: table.name,
               data: {
                 type: 'table',
@@ -570,9 +672,9 @@ export class Connection {
             })
           }
         }
-  
+
         newNodes.push({
-          key: schema.name,
+          key: `${database.name}.${schema.name}`,
           label: schema.name,
           data: {
             type: 'schema',
@@ -590,13 +692,20 @@ export class Connection {
   }
 }
 
-export const setSchemas = (conn: State<Connection>, schemas: Schema[]) => {
-  // let exSchemas = conn.schemas.get()
-  for (let i = 0; i < conn.schemas.length; i++) {
-    conn.schemas[i].set(none)
+export const setSchemas = (connName: string, dbName: string, schemas: Schema[]) => {
+  dbName = dbName.toLowerCase()
+  let conn = getConnectionState(connName)
+  if (!conn.databases.keys.includes(dbName)) {
+    conn.databases[dbName].set(new Database({ name: dbName.toUpperCase(), schemas: schemas }))
+    return
   }
-  conn.schemas.set([])
-  conn.schemas.merge(schemas)
+
+  let database = conn.databases[dbName]
+  for (let i = 0; i < database.schemas.length; i++) {
+    database.schemas[i].set(none)
+  }
+  database.schemas.set([])
+  database.schemas.merge(schemas)
 }
 
 export class Ws {
@@ -614,29 +723,31 @@ export class Ws {
   }
 }
 
+export class WorkspaceState {
+  name: string
+  selectedMetaTab: string
+  selectedConnection: string
+  rootDir: string
+
+  constructor(data: ObjectAny = {}) {
+    this.name = data.name || 'default'
+    this.rootDir = data.rootDir
+    this.selectedConnection = data.selectedConnection || ''
+    this.selectedMetaTab = 'Schema' || data.selectedMetaTab
+  }  
+}
 export class AppState {
   version: number
   tableHeight: number
   tableWidth: number
-  homeDir: string
-  connections: ObjectAny[]
-  selectedMetaTab: string
-  recentOmniSearches:  { [key: string]: number; }
   constructor(data: ObjectAny = {}) {
     this.version = 0.1
     this.tableHeight = 1100
     this.tableWidth = 1100
-    this.connections = []
-    this.homeDir = ''
-    this.selectedMetaTab = 'Schema' || data.selectedMetaTab
-    this.recentOmniSearches = data.recentOmniSearches || {}
   }
 
   payload = () => {
     return {
-      connections: this.connections,
-      selectedMetaTab: this.selectedMetaTab,
-      recentOmniSearches: this.recentOmniSearches,
     }
   }
 }
@@ -770,17 +881,23 @@ class SchemaPanelState {
 }
 
 class ObjectPanelState {
-  table: MetaTable
-  history: MetaTable[]
+  table: Table
+  history: Table[]
   historyI: number
+  selectedColumns: Column[]
+  search: string
+  loading: boolean
+  show: boolean
+
   constructor(data: ObjectAny = {}) {
-    this.table = new MetaTable(data.table)
+    this.table = data.table || {}
     this.history = data.history || []
+    this.search = data.search || ''
+    this.selectedColumns = data.selectedColumns || []
+    this.loading = data.loading || false
+    this.show = data.show || false
     this.historyI = data.historyI || -1
-    if(this.history) {
-      this.history = this.history.filter(t => t instanceof Object).map(t => new MetaTable(t))
-    }
-    if(!Array.isArray(this.history)) this.history = []
+    if (!Array.isArray(this.history)) this.history = []
   }
 }
 
@@ -811,9 +928,9 @@ class QueryPanelState {
   }
 
   loadTabs = () => {
-    if(this.tabs.length === 0 ) {
-      let t1 = new Tab({name: 'Q1'})
-      let c1 = new Tab({name: 'C1', parent: t1.id})
+    if (this.tabs.length === 0) {
+      let t1 = new Tab({ name: 'Q1' })
+      let c1 = new Tab({ name: 'C1', parent: t1.id })
       t1.selectedChild = c1.id
       this.tabs = [t1, c1]
     } else {
@@ -821,36 +938,36 @@ class QueryPanelState {
       let child_tabs = []
       for (let i = 0; i < this.tabs.length; i++) {
         const tab = this.tabs[i];
-        if(this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
-        if(tab.parent) continue
-        if(!tab.selectedChild || this.getTabIndexByID(tab.selectedChild)===-1) {
-          let child = new Tab({parent: tab.id})
+        if (this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
+        if (tab.parent) continue
+        if (!tab.selectedChild || this.getTabIndexByID(tab.selectedChild) === -1) {
+          let child = new Tab({ parent: tab.id })
           this.tabs[i].selectedChild = child.id
           child_tabs.push(child)
-        } 
+        }
       }
       this.tabs = this.tabs.concat(child_tabs)
     }
   }
 
   loadTabs2 = () => {
-    if(Object.keys(this.tabs2).length === 0 ) {
-      let t1 = new Tab({name: 'Q1'})
-      let c1 = new Tab({name: 'C1', parent: t1.id})
+    if (Object.keys(this.tabs2).length === 0) {
+      let t1 = new Tab({ name: 'Q1' })
+      let c1 = new Tab({ name: 'C1', parent: t1.id })
       t1.selectedChild = c1.id
       this.tabs2[t1.name] = t1
     } else {
-      for(let [k, t] of Object.entries(this.tabs2)) {
+      for (let [k, t] of Object.entries(this.tabs2)) {
         this.tabs2[k] = new Tab(t)
       }
-      for(let [k, tab] of Object.entries(this.tabs2)) {
-        if(this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
-        if(tab.parent) continue
-        if(!tab.selectedChild || !(tab.selectedChild in this.tabs2)) {
-          let child = new Tab({parent: tab.id})
+      for (let [k, tab] of Object.entries(this.tabs2)) {
+        if (this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
+        if (tab.parent) continue
+        if (!tab.selectedChild || !(tab.selectedChild in this.tabs2)) {
+          let child = new Tab({ parent: tab.id })
           this.tabs2[k].selectedChild = child.id
           this.tabs2[child.id] = child
-        } 
+        }
       }
     }
   }
@@ -868,7 +985,7 @@ class QueryPanelState {
 
   getTab = (id: string) => {
     let index = this.getTabIndexByID(id)
-    if(index > -1) {
+    if (index > -1) {
       return this.tabs[index]
     }
     return this.tabs[0]
@@ -877,19 +994,19 @@ class QueryPanelState {
   currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
 
   payload = () => {
-    let tabs : Tab[] = []
-    let parentTabs : ObjectAny = {}
-    for(let tab of this.tabs) { 
-      if(tab.parent || tab.hidden) continue
-      parentTabs[tab.id] = 0 
+    let tabs: Tab[] = []
+    let parentTabs: ObjectAny = {}
+    for (let tab of this.tabs) {
+      if (tab.parent || tab.hidden) continue
+      parentTabs[tab.id] = 0
     }
 
-    for(let tab of this.tabs) {
+    for (let tab of this.tabs) {
       let tab_ = jsonClone<Tab>(tab)
       tab_.query.rows = []
       // clean up rogue child tabs
-      if(tab_.parent && !(tab_.parent in parentTabs)) continue
-      if(tab_.hidden) continue
+      if (tab_.parent && !(tab_.parent in parentTabs)) continue
+      if (tab_.hidden) continue
       tabs.push(tab_)
     }
 
@@ -900,9 +1017,11 @@ class QueryPanelState {
   }
 }
 
+export type ConnectionRecord = { [key: string]: Connection; }
 class GlobalStore {
   app: State<AppState>
-  connection: State<Connection>
+  workspace: State<WorkspaceState>
+  connections: State<Connection[]>
   queryPanel: State<QueryPanelState>
   jobPanel: State<JobPanelState>
   projectPanel: State<ProjectPanelState>
@@ -913,7 +1032,8 @@ class GlobalStore {
 
   constructor(data: ObjectAny = {}) {
     this.app = createState(new AppState(data.app))
-    this.connection = createState(new Connection(data.connection))
+    this.workspace = createState(new WorkspaceState(data.workspace))
+    this.connections = createState<Connection[]>(data.connections || [])
     this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
@@ -924,13 +1044,16 @@ class GlobalStore {
   }
 
   saveSession = async () => {
-    localStorage.setItem("_connection_name", this.connection.get().name);
+    localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
+
     let payload = {
-      name: 'default',
-      conn: this.connection.get().name,
+      name: this.workspace.name.get(),
+      conn: this.workspace.selectedConnection.get(),
+
       data: {
         app: jsonClone(this.app.get().payload()),
-        connection: jsonClone(this.connection.get().payload()),
+        workspace: jsonClone(this.workspace.get()),
+        connections: jsonClone(this.connections.value.map((c) => c.payload())),
         projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
         schemaPanel: jsonClone(this.schemaPanel.get()),
@@ -940,28 +1063,27 @@ class GlobalStore {
     }
     try {
       let resp = await apiPost(MsgType.SaveSession, payload)
-      if(resp.error) throw new Error(resp.error)
+      if (resp.error) throw new Error(resp.error)
     } catch (error) {
       toastError('Could not save session', error)
     }
   }
 
   loadSession = async (connName: string) => {
-    if(connName === '') return
-
+    if (connName === '') return
     let payload = {
       name: 'default',
       conn: connName,
     }
+
     try {
       let resp = await apiGet(MsgType.LoadSession, payload)
-      if(resp.error) throw new Error(resp.error)
+      if (resp.error) throw new Error(resp.error)
       let data = resp.data
       let app = new AppState(data.app)
-      this.app.selectedMetaTab.set(app.selectedMetaTab)
-      this.app.recentOmniSearches.set(app.recentOmniSearches)
-      this.connection.set(new Connection(data.connection))
-      this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      // this.connections.set(data.connections?.map((c: any) =>new Connection(c)))
+      this.workspace.set(new WorkspaceState(data.workspace))
+      // this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.projectPanel.set(new ProjectPanelState(data.projectPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))
@@ -973,30 +1095,7 @@ class GlobalStore {
 }
 export const globalStore = new GlobalStore()
 
-export const useStore = () => {
-  const app = useState(globalStore.app)
-  const connection = useState(globalStore.connection)
-  const jobPanel = useState(globalStore.jobPanel)
-  const schemaPanel = useState(globalStore.schemaPanel)
-  const objectPanel = useState(globalStore.objectPanel)
-  const queryPanel = useState(globalStore.queryPanel)
-  const historyPanel = useState(globalStore.historyPanel)
-  const ws = useState(globalStore.ws)
-
-  return ({
-    get app() { return app },
-    get connection() { return connection },
-    get jobPanel() { return jobPanel },
-    get schemaPanel() { return schemaPanel },
-    get objectPanel() { return objectPanel },
-    get queryPanel() { return queryPanel },
-    get historyPanel() { return historyPanel },
-    get ws() { return ws },
-  }) 
-}
-
 export const useStoreApp = () => useState(globalStore.app)
-export const useStoreConnection = () => useState(globalStore.connection)
 export const useStoreSchemaPanel = () => useState(globalStore.schemaPanel)
 export const useStoreObjectPanel = () => useState(globalStore.objectPanel)
 export const useStoreQueryPanel = () => useState(globalStore.queryPanel)
@@ -1005,9 +1104,10 @@ export const useStoreWs = () => useState(globalStore.ws)
 
 export const accessStore = () => {
   const wrap = function <T>(s: State<T>) { return s }
-  
+
   const app = wrap<AppState>(globalStore.app)
-  const connection = wrap<Connection>(globalStore.connection)
+  const workspace = wrap<WorkspaceState>(globalStore.workspace)
+  const connections = wrap<Connection[]>(globalStore.connections)
   const projectPanel = wrap<ProjectPanelState>(globalStore.projectPanel)
   const schemaPanel = wrap<SchemaPanelState>(globalStore.schemaPanel)
   const objectPanel = wrap<ObjectPanelState>(globalStore.objectPanel)
@@ -1018,7 +1118,20 @@ export const accessStore = () => {
 
   return ({
     get app() { return app },
-    get connection() { return connection },
+    get workspace() { return workspace },
+    get connections() { return connections },
+    get connection() { 
+      // let conn = getConnectionState(workspace.selectedConnection.get()) 
+      // console.log(conn)
+      // return wrap<Connection>(conn)
+
+      let connName = workspace.selectedConnection.get().toLowerCase()
+      let index = connections.get().map(c => c.name.toLowerCase()).indexOf(connName)
+      if (index > -1) {
+        return connections[index]
+      }
+      return wrap<Connection>(createState(new Connection()))
+    },
     get projectPanel() { return projectPanel },
     get jobPanel() { return jobPanel },
     get schemaPanel() { return schemaPanel },
@@ -1026,5 +1139,5 @@ export const accessStore = () => {
     get queryPanel() { return queryPanel },
     get historyPanel() { return historyPanel },
     get ws() { return ws },
-  }) 
+  })
 }

@@ -136,7 +136,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     return items.filter(i => filter(i))
   }
 
-  const dbtConns = () : string[] => store.app.connections.get().filter(c => c.dbt).map(c => c.name.toLowerCase())
+  const dbtConns = () : string[] => store.connections.get().filter(c => c.dbt).map(c => c.name.toLowerCase())
   
   const loadDbtProject = async (file: FileItem) => {
     if(file.name?.toLowerCase() !== 'dbt_project.yml') return
@@ -184,7 +184,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       >
         <ListBox 
           value={profileTargetSelected.get()}
-          options={store.app.connections.get().filter(c => c.dbt).map(c => c.name)} 
+          options={store.connections.get().filter(c => c.dbt).map(c => c.name)}
           onChange={(e) => profileTargetSelected.set(e.value)} 
           listStyle={{fontFamily:'monospace'}}
           style={{width: '14rem'}} 

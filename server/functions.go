@@ -235,21 +235,14 @@ func LoadSchemata(connName, DbName string) (err error) {
 		return
 	}
 
-	s, err := c.GetSchemas()
+	g.Info("Loading schemata for %s, %s", connName, DbName)
+	schemata, err := c.GetSchemata("", "")
 	if err != nil {
-		err = g.Error(err, "could not get schemas for conn %s", connName)
+		err = g.Error(err, "could not get schemata for conn %s, %s", connName, DbName)
 		return
 	}
 
-	for _, r := range s.Rows {
-		schemaName := cast.ToString(r[0])
-		g.Info("loading schema " + schemaName)
-		schema, err := c.GetSchemaObjects(schemaName)
-		if err != nil {
-			err = g.Error(err, "could not get schema %s", schemaName)
-			break
-		}
-
+	for schemaName, schema := range schemata.Schemas {
 		// to store
 		schemaTables := make([]store.SchemaTable, len(schema.Tables))
 		totColumns := 0

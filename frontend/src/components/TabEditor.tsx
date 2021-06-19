@@ -1,7 +1,7 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
 import { Ace, Range } from "ace-builds";
-import { Tab, useHS } from "../store/state";
+import { Tab, Table, useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";
@@ -30,21 +30,27 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   React.useEffect(() => {
     let editor = props.aceEditor.current.editor as Ace.Editor
     let points = tab.editor.highlight.get()
-    if(sum(points) > 0) {
+    if (sum(points) > 0) {
       let rng = new Range(points[0], points[1], points[2], points[3])
       editor.session.addMarker(rng, "editor-highlight", 'text')
     } else {
-      for(let marker of Object.values(editor.session.getMarkers())) {
-        if(marker.clazz === "tab-names") editor.session.removeMarker(marker.id)
+      for (let marker of Object.values(editor.session.getMarkers())) {
+        if (marker.clazz === "tab-names") editor.session.removeMarker(marker.id)
       }
     }
   }, [tab.editor.highlight.get()]) // eslint-disable-line
+
+  React.useEffect(() => {
+    focusSelection(true)
+  }, [tab.name.get(), tab.editor.focus.get()])
 
   const getDefinition = () => {
     let editor = props.aceEditor.current.editor as Ace.Editor
     let word = editor.getSelectedText()
     if (word === '') { word = tab.editor.get().getWord() }
-    if (word.trim() !== '') { loadMetaTable(word, tab.database.get()) }
+    let [name, schema] = word.split('.')
+    let table = { name, schema, database: tab.database.get(), connection: tab.connection.get() } as Table
+    if (word.trim() !== '') { loadMetaTable(table) }
   }
 
   const executeText = () => {
@@ -53,6 +59,22 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
     let parentTab = getTabState(tab.id.get() || '')
     if (sql === '') { sql = parentTab.editor.get().getBlock() }
     if (sql.trim() !== '') { submitSQL(parentTab, sql) }
+  }
+
+  const focusSelection = (scroll = false) => {
+    let editor = props.aceEditor.current?.editor as Ace.Editor
+    if (!editor) return
+    let selection = tab.editor.selection.get()
+
+    editor.selection.setRange(new Range(
+      selection[0], selection[1],
+      selection[2], selection[3],
+    ))
+    if (scroll) {
+      editor.scrollToLine(selection[0], true, true, () => { })
+      editor.gotoLine(selection[0], selection[1], true)
+    }
+    editor.focus()
   }
 
 
@@ -99,11 +121,11 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
 
 
   return <div
-    style={{ 
-      paddingTop: `5px`, 
+    style={{
+      paddingTop: `5px`,
       display: tab.showSql.get() ? '' : 'none',
       width: '100%',
-     }}
+    }}
     onContextMenu={(e: any) => (cm as any).current.show(e)}
     onKeyDown={onKeyPress}
   >
@@ -126,18 +148,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
       value={sql.get()}
       commands={commands}
       onLoad={(editor: Ace.Editor) => {
-        // toastInfo('editor onLoad')
-        let selection = tab.editor.selection.get()
-        // let undoManager = editor.session.getUndoManager() as any
-        // undoManager.$undoStack = tab.editor.undoManager.get()
-        // editor.session.setUndoManager(undoManager)
-
-        editor.selection.setRange(new Range(
-          selection[0], selection[1],
-          selection[2], selection[3],
-        ))
-        editor.scrollToLine(selection[0], true, false, () => { })
-        editor.focus()
+        focusSelection(true)
       }}
       // onSelectionChange={(e) => {
       //   tab.editor.selection.set([
@@ -163,22 +174,22 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
         tabSize: 2,
         fontSize: "11px"
       }} />
-      
-      <span
-        hidden
-        style={{
-          position: 'absolute',
-          marginLeft: '50px',
-          marginTop: '-150px',
-          zIndex: 999,
-        }}
-      >
-        <Button
-          icon="pi pi-play"
-          className="p-button-rounded p-button-text p-button-success"
-          tooltip="Execute SQL"
-          tooltipOptions={{position: 'top'}}
-        />
-      </span>
+
+    <span
+      hidden
+      style={{
+        position: 'absolute',
+        marginLeft: '50px',
+        marginTop: '-150px',
+        zIndex: 999,
+      }}
+    >
+      <Button
+        icon="pi pi-play"
+        className="p-button-rounded p-button-text p-button-success"
+        tooltip="Execute SQL"
+        tooltipOptions={{ position: 'top' }}
+      />
+    </span>
   </div>;
 }

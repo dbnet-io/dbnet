@@ -219,3 +219,9 @@ font-size: 9px !important;
   padding-top: 10px;
   padding-bottom: 10px;
 }
+
+
+#left-pane-select > div.p-button {
+  font-size: 14px;
+  padding: 8px;
+}

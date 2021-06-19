@@ -1,6 +1,6 @@
 import * as React from "react";
 import './TabTable.css'
-import {  accessStore, getDexieDb, Query, QueryStatus, Tab, useVariable } from "../store/state";
+import {  accessStore, getDexieDb, Query, QueryStatus, Tab, useHS, useVariable } from "../store/state";
 import { none, State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import _ from "lodash";
@@ -111,14 +111,11 @@ export const TabTable: React.FC<Props> = (props) => {
   const tab = props.tab
 
   ///////////////////////////  HOOKS  ///////////////////////////
+  const filteredRows = React.useRef<any[]>([])
+
   React.useEffect(()=>{
-    // pull cache result only once
-    let availableCaches = store.queryPanel.availableCaches.get()
-    let index = availableCaches.indexOf(tab.query.id.get())
-    if(index > -1) {
-      pullResult(tab)
-      store.queryPanel.availableCaches[index].set(none)
-    }
+    // pull cache result
+    if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { pullResult(tab) }
   },[])  // eslint-disable-line
 
   React.useEffect(()=>{
@@ -132,12 +129,21 @@ export const TabTable: React.FC<Props> = (props) => {
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {
-    tab.rowView.rows.set(jsonClone(tab.query.get().getRowData(r1)))
+    let rows = filteredRows.current
+    let row = rows[r1]
+    let data: { n: number, name: string, value: any }[] = []
+    for (let i = 0; i < props.tab.query.headers.get().length; i++) {
+      data.push({ n: i + 1, name: props.tab.query.headers.get()[i], value: `${row[i]}` })
+    }
+    tab.rowView.rows.set(data)
     tab.lastTableSelection.set([r1, c1, r2, c2])
   }
   
   const filterRows = () => {
-    if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { return [] }
+    if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { 
+      filteredRows.current = []
+      return []
+    }
     let data = jsonClone<any[]>(props.tab.query.rows.get())
     let filters = props.tab.filter.get().toLowerCase().split(' ')
     let data2 : any[] = []
@@ -154,8 +160,9 @@ export const TabTable: React.FC<Props> = (props) => {
         }
         if(include.every(v => v === true)) { break }
       }
-      if(include.every(v => v === true)) { data2.push(row) }
+      if(include.every(v => v === true)) { data2.push(row.map((v: any) => `${v}`)) }
     }
+    filteredRows.current = data2
     return data2
   }
 
