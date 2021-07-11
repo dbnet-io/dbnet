@@ -1,7 +1,7 @@
 import Dexie from "dexie";
 import _ from "lodash";
 import { apiGet, Response } from "../store/api";
-import { Database, DatabaseRecord, getConnectionState, globalStore, Variable } from "../store/state";
+import { accessStore, Database, DatabaseRecord, getConnectionState, Variable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
@@ -9,6 +9,8 @@ import { Connection } from "./connection";
 import { Editor } from "./editor";
 import { Schema, Table } from "./schema";
 import { Workspace } from "./workspace";
+
+const store = accessStore()
 
 export type DbNetOptions = {
   // readonly uri: string;
@@ -24,7 +26,8 @@ export type DbNetOptions = {
 
 export type TriggerType = 'refreshSchemaPanel' | 'refreshJobPanel' | 'refreshTable' | 'onSelectConnection'
 
-export type TriggerMapRecord = Record<TriggerType, Record<string, Variable<number>>>
+// export type TriggerMapRecord = Record<TriggerType, Record<string, Variable<number>>>
+export type TriggerMapRecord = Record<TriggerType, Record<string, () => void>>
 
 export class DbNet {
   private ws?: WebSocket;
@@ -73,7 +76,7 @@ export class DbNet {
   trigger(type: TriggerType) {
     if (type in this.triggerMap) {
       for (let k of Object.keys(this.triggerMap[type])) {
-        this.triggerMap[type][k].set(v => v + 1)
+        this.triggerMap[type][k]()
       }
     }
   }
@@ -81,7 +84,14 @@ export class DbNet {
   subscribe(type: TriggerType, varVal: Variable<number>) {
     const id = new_ts_id()
     if (!(type in this.triggerMap)) this.triggerMap[type] = {}
-    this.triggerMap[type][id] = varVal
+    this.triggerMap[type][id] = () => varVal.set(v => v + 1)
+    return id
+  }
+
+  subscribeFunc(type: TriggerType, func: () => void) {
+    const id = new_ts_id()
+    if (!(type in this.triggerMap)) this.triggerMap[type] = {}
+    this.triggerMap[type][id] = func
     return id
   }
 
@@ -218,7 +228,7 @@ export class DbNet {
         if (!(tableKey in tables)) {
           tables[tableKey] = new Table({
             connection: connName,
-            database: dbName,
+            database: dbName.toUpperCase(),
             schema: row.schema_name,
             name: row.table_name,
             isView: row.table_is_view,

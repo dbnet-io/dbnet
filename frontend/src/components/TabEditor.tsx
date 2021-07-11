@@ -1,7 +1,7 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
 import { Ace, Range } from "ace-builds";
-import { Tab, Table, useHS } from "../store/state";
+import { Tab, useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";
@@ -11,6 +11,7 @@ import { loadMetaTable } from "./MetaTablePanel";
 import { sum } from "lodash";
 import { getTabState } from "./TabNames";
 import { Button } from "primereact/button";
+import { Table } from "../state/schema";
 
 
 export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
@@ -30,13 +31,14 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   React.useEffect(() => {
     let editor = props.aceEditor.current.editor as Ace.Editor
     let points = tab.editor.highlight.get()
+
+    for (let marker of Object.values(editor.session.getMarkers())) {
+      editor.session.removeMarker(marker.id)
+    }
+
     if (sum(points) > 0) {
       let rng = new Range(points[0], points[1], points[2], points[3])
       editor.session.addMarker(rng, "editor-highlight", 'text')
-    } else {
-      for (let marker of Object.values(editor.session.getMarkers())) {
-        if (marker.clazz === "tab-names") editor.session.removeMarker(marker.id)
-      }
     }
   }, [tab.editor.highlight.get()]) // eslint-disable-line
 
@@ -66,14 +68,14 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
     if (!editor) return
     let selection = tab.editor.selection.get()
 
+    if (scroll) {
+      editor.scrollToLine(selection[0], true, true, () => { })
+    }
+
     editor.selection.setRange(new Range(
       selection[0], selection[1],
       selection[2], selection[3],
     ))
-    if (scroll) {
-      editor.scrollToLine(selection[0], true, true, () => { })
-      editor.gotoLine(selection[0], selection[1], true)
-    }
     editor.focus()
   }
 

@@ -3,19 +3,19 @@ import React from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
 import { new_ts_id } from '../utilities/methods';
-import { accessStore, useStoreWs } from './state';
+import { accessStore, globalStore } from './state';
 
 
 export const sendWsMsg = (msg : Message) => {
   window.queue.send.push(msg)
-  accessStore().ws.doRequest.set(v => v+1)
+  globalStore.ws.doRequest.set(v => v+1)
 }
 
 export const sendWsMsgWait = (msg : Message) : Promise<Message> => {
   return new Promise(function(resolve) {
     msg.callback = (data2: Message) => resolve(data2)
     window.queue.send.push(msg)
-    accessStore().ws.doRequest.set(v => v+1)
+    globalStore.ws.doRequest.set(v => v+1)
   });
 }
 
@@ -76,8 +76,7 @@ const socketOptions = {
 const socketUrl = 'ws://localhost:7788/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
-  const ws = useStoreWs()
-  const doRequest = useState(ws.doRequest)
+  const doRequest = useState(globalStore.ws.doRequest)
 
   const {
     sendMessage,
@@ -108,7 +107,6 @@ export const Websocket: React.FC<Props> = (props) => {
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useMemo(handleMsg, [lastJsonMessage]);
   React.useEffect(() => {
-    ws.connected.set(connected)
     if(connected) {
       accessStore().ws.doRequest.set(v => v+1)
     }

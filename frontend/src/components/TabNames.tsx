@@ -262,7 +262,7 @@ export const TabNames: React.FC<Props> = (props) => {
     ]
     // let items : MenuItem[] = []
 
-    return items.concat(
+    items =  items.concat(
       tabs.get().filter(t => !t.parent && !t.hidden).map(tab => {
 
         let id = `tab-${tab.name}`
@@ -270,6 +270,7 @@ export const TabNames: React.FC<Props> = (props) => {
           label: tab.name,
           name: tab.name,
           icon: tab.loading ? "pi pi-spin pi-spinner" : '',
+          data: tab,
           template: ((item: MenuItem, options: MenuItemOptions) => {
 
             if (nameEdit.id.get() === tab.id) { // for editing the tab
@@ -343,6 +344,8 @@ export const TabNames: React.FC<Props> = (props) => {
         } as MenuItem
       })
     )
+
+    return items
   }
 
   const getTabIndex = () => {

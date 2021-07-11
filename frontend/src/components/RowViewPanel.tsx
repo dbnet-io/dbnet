@@ -3,14 +3,14 @@ import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import * as React from "react";
-import { useHS, useStoreQueryPanel } from "../store/state";
+import { accessStore, useHS } from "../store/state";
 import { getTabState } from "./TabNames";
 
 interface Props {}
 
 export const RowViewPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const queryPanel = useStoreQueryPanel()
+  const queryPanel = accessStore().queryPanel
   const tabIndex = queryPanel.get().currTabIndex() || 0
   const childTab = useHS(getTabState(queryPanel.tabs[tabIndex].selectedChild.get()))
   const parentTab = getTabState(childTab.parent.get() || '')

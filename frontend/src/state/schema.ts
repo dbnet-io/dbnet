@@ -60,6 +60,7 @@ export class Table {
   fullName = () => `${this.schema}.${this.name}`
   fullName2 = () => `${this.database}.${this.schema}.${this.name}`.toLowerCase()
   key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
+  selectAll = () => `select * from ${this.schema}.${this.name}`
 }
 
 

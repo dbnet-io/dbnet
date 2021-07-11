@@ -2,7 +2,7 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, globalStore, lookupTable, Table, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, lookupTable, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
@@ -10,6 +10,7 @@ import { none } from "@hookstate/core";
 import { TauriGetCwd } from "../utilities/tauri";
 import { DbNet } from "../state/dbnet";
 import { Connection } from "../state/connection";
+import { Table } from "../state/schema";
 
 
 const store = accessStore()

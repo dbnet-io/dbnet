@@ -2,7 +2,7 @@ import * as React from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import './TabTable.css'
-import { Query, QueryStatus, Tab, accessStore, useStoreQueryPanel } from "../store/state";
+import { Tab, accessStore } from "../store/state";
 import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
 import { jsonClone, toastError, toastInfo } from "../utilities/methods";
@@ -40,7 +40,7 @@ export const TabTableOld: React.FC<Props> = React.memo((props) => {
     // tableWidth: '100%',
   })
 
-  const queryPanel = useStoreQueryPanel()
+  const queryPanel = accessStore().queryPanel
   const tabs = queryPanel.tabs
   const selectedTab = useState(queryPanel.selectedTabId)
  

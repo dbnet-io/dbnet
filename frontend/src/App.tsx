@@ -23,11 +23,13 @@ import { RowViewPanel } from './components/RowViewPanel';
 import { JobPanel } from './components/JobPanel';
 import { DbNet } from './state/dbnet';
 import { ConnectionChooser } from './components/ConnectionChooser';
+import { getTabState } from './components/TabNames';
 
 // this is to extends the window global functions
 declare global {
   interface Window {
     toast: RefObject<Toast>
+    dbnet: DbNet
     table: JSpreadsheet
     callbacks: ObjectAny
     queue: WsQueue
@@ -43,10 +45,12 @@ export const App = () => {
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
   const store = accessStore()
   const chooseConnection = useHS(false)
+
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
 
   const state = React.useRef<DbNet>(new DbNet({}))
+  window.dbnet = state.current
   var dbnet = state.current
   
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -60,7 +64,7 @@ export const App = () => {
     Init()
     return () => {
       dbnet.dispose()
-      dbnet = new DbNet({});
+      state.current = new DbNet({});
     }
   }, [])// eslint-disable-line
 
@@ -85,6 +89,20 @@ export const App = () => {
 
     await dbnet.getDatabases(dbnet.currentConnection)
     await dbnet.getAllSchemata(dbnet.currentConnection)
+
+
+    // set init tab to current connection/database
+    let tabs = store.queryPanel.tabs.get().filter(t => !t.parent && !t.hidden)
+    if (tabs.length === 1 && !tabs[0].connection) {
+      let tab = getTabState(tabs[0].id)
+      let conn = dbnet.getConnection(dbnet.currentConnection)
+      tab.set(t => {
+        t.connection = conn.name
+        t.database = conn.database
+        return t
+      })
+    }
+
     dbnet.trigger('refreshSchemaPanel')
   }
   

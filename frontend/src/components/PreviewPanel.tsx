@@ -1,7 +1,6 @@
 import { Dialog } from "primereact/dialog";
 import * as React from "react";
-import { accessStore, useHS, useStoreObjectPanel } from "../store/state";
-import { copyToClipboard } from "../utilities/methods";
+import { accessStore, useHS } from "../store/state";
 import { MetaTablePanel } from "./MetaTablePanel";
 
 const store = accessStore()

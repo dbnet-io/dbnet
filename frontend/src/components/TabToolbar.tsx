@@ -48,9 +48,12 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   if (!sql) sql = tab.editor.text.get() // get current block
 
   // create child tab
-  if (!childTab) childTab = createTabChild(tab.get())
+  // if (!childTab) childTab = createTabChild(tab.get())
+  if (!childTab) {
+    childTab = getTabState(tab.selectedChild.get()).get()
+  }
   // store.queryPanel.selectedTabId.set(tab.id.get())
-  tab.selectedChild.set(childTab.id)
+  // tab.selectedChild.set(childTab.id)
 
   // set limit to fetch, and save in cache
   const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 ? 500 : childTab.resultLimit
@@ -77,16 +80,21 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   let points = parentTab.editor.get().getBlockPoints(sql)
   if (points) parentTab.editor.highlight.set(points)
 
-  tab_.query.time.set(new Date().getTime())
-  tab_.lastTableSelection.set([0, 0, 0, 0])
-  tab_.query.rows.set([])
-  tab_.query.headers.set([])
-  tab_.query.text.set(sql)
-  tab_.query.err.set('')
-  tab_.query.duration.set(0)
-  tab_.query.id.set(data1.id)
-  tab_.loading.set(true)
-  tab_.filter.set('')
+  tab_.set(
+    t => {
+      t.query.time = new Date().getTime()
+      t.lastTableSelection = [0, 0, 0, 0]
+      t.query.rows = []
+      t.query.headers = []
+      t.query.text = `${sql}`
+      t.query.err = ''
+      t.query.duration = 0
+      t.query.id = data1.id
+      t.loading = true
+      t.filter = ''
+      return t
+    }
+  )
   parentTab.loading.set(true)
 
   // cleanup
@@ -123,7 +131,6 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     toastError(error)
     tab_.query?.err.set(`${error}`)
   }
-  tab_.loading.set(false)
   parentTab.loading.set(false)
   parentTab.editor.highlight.set([0, 0, 0, 0])
   globalStore.saveSession()
@@ -132,7 +139,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   // to refresh
   const queryPanel = store.queryPanel
   if (queryPanel.get().currTab().id === parentTab.id.get()) {
-    queryPanel.selectedTabId.set(jsonClone(queryPanel.selectedTabId.get()))
+    window.dbnet.trigger('refreshTable')
   } else {
     // notify if out of focus
     if (tab_.query.err.get()) toastError(`Query "${parentTab.name.get()}" failed`)

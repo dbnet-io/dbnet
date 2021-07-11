@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Tree } from 'primereact/tree';
-import { copyToClipboard, data_req_to_records, jsonClone, toastError, toastSuccess, zeroPad } from "../utilities/methods";
+import { copyToClipboard, data_req_to_records, jsonClone, toastError, zeroPad } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
-import { accessStore, getDatabaseState, globalStore, lookupSchema, Query, Schema, setSchemas, Table, useHS, useVariable } from "../store/state";
+import { accessStore, getDatabaseState, Query, Schema, useHS, useVariable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { loadMetaTable, makeYAML } from "./MetaTablePanel";
 import { apiGet } from "../store/api";
@@ -15,7 +15,7 @@ import { Button } from "primereact/button";
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
 import { DbNet } from "../state/dbnet";
 import { Connection } from "../state/connection";
-import { Database } from "../state/schema";
+import { Database, Table } from "../state/schema";
 import _ from "lodash";
 
 interface Props {
@@ -149,6 +149,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     loading.set(false)
   }
 
+  const selectAll = (table: Table) => {
+    let sql = `${table.selectAll()} limit 5000;`
+    let tab = getOrCreateParentTabState(table.connection, table.database)
+    appendSqlToTab(tab.id.get(), sql)
+    submitSQL(tab, sql)
+  }
 
   ///////////////////////////  JSX  ///////////////////////////
 
@@ -203,6 +209,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
                       <span><strong>View:</strong> {node.data.data.name}</span> :
                       <span><strong>Table:</strong> {node.data.data.name}</span>
                   }
+                  <br />
+                  <span><strong>Columns:</strong> {node.data.data.columns.length}</span>
                 </>
                 :
                 null
@@ -249,13 +257,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           command: () => {
             let keys = Object.keys(selectedKeys.get())
             if (keys.length !== 1) return toastError("Must choose only one object")
-
-            let sql = `select * from ${keys[0]} limit 5000;`
-            // let tab = createTab(keys[0], sql)
             let table = nodeKeyToTable(keys[0])
-            let tab = getOrCreateParentTabState(table.connection, table.database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            selectAll(table)
           }
         },
         {
@@ -276,11 +279,20 @@ export const SchemaPanel: React.FC<Props> = (props) => {
               countTables = countTables.concat(schema.tables)
             }
             countTables = countTables.concat(tables)
-
-            let sql = countTables
-              .map(t => `select '${t.fullName()}' as table_name, count(1) cnt from ${t.fullName2()}`)
-              .join(' UNION ALL\n') + ';'
-            copyToClipboard(sql)
+            
+            let table = nodeKeyToTable(keys[0])
+            if (keys.length > 1) {
+              let sql = countTables
+                .map(t => `select '${t.fullName()}' as table_name, count(1) cnt from ${t.fullName2()}`)
+                .join(' UNION ALL\n') + ';'
+              let tab = getOrCreateParentTabState(table.connection, table.database)
+              appendSqlToTab(tab.id.get(), sql)
+            } else {
+              let sql = `select '${table.fullName()}' as table_name, count(1) cnt from ${table.fullName2()};`
+              let tab = getOrCreateParentTabState(table.connection, table.database)
+              appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql)
+            }
           }
         },
         {
@@ -440,23 +452,28 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         expandedKeys={expandedKeys.get()}
         onToggle={e => expandedKeys.set(e.value)}
         onSelect={e => {
-          let table = e.node.data.data as Table
+          let table = new Table(e.node.data.data)
+          let ts = (new Date()).getTime()
           if (e.node.data.type === 'table') {
-            let ts = (new Date()).getTime()
             if (lastClick.ts.get() === 0) {
               lastClick.set({ ts: ts, key: e.node.key?.toString() })
-            } else if (ts - lastClick.ts.get() < 500 && e.node.key === lastClick.key.get()) {
+            } else if (ts - lastClick.ts.get() < 320 && e.node.key === lastClick.key.get()) {
               // simulate double click
               // loadMetaTable(table)
-              // tree.current?.filter(e.node.key)
-              // filter.set(`${e.node.key}`)
+              selectAll(table)
               lastClick.set({ ts: 0, key: '' })
               return
             } else {
               lastClick.set({ ts: ts, key: e.node.key })
             }
+            
             // single click
-            loadMetaTable(table)
+            setTimeout(() => {
+              let keys = Object.keys(selectedKeys.get())
+              if (keys.length > 1) return // don't load if selecting multi
+              if(lastClick.ts.get() > 300) loadMetaTable(table)
+              lastClick.set({ ts: 0, key: '' })
+            }, 320);
           }
         }}
         onSelectionChange={e => selectedKeys.set(e.value)}

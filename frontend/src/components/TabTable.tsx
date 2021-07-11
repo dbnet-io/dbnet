@@ -108,7 +108,7 @@ const settings = {
 
 export const TabTable: React.FC<Props> = (props) => {
   const resultHeight = document.getElementById("result-panel")?.parentElement?.clientHeight
-  const resultWidth = document.getElementById("result-panel")?.parentElement?.clientWidth
+  const resultWidth = (document.getElementById("result-panel")?.parentElement?.clientWidth || 500) - 10
   const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-78
   const tab = props.tab
   const trigger = useVariable(0)
@@ -123,9 +123,10 @@ export const TabTable: React.FC<Props> = (props) => {
   
 
   React.useEffect(() => {
-    let id1 = props.dbnet.subscribe('refreshTable', trigger)
+    let id1 = window.dbnet.subscribe('refreshTable', trigger)
+    // let id1 = window.dbnet.subscribeFunc('refreshTable', refreshTable )
     return () => {
-      props.dbnet.unsubscribe(id1)
+      window.dbnet.unsubscribe(id1)
     }
   }, [])
 
@@ -136,7 +137,15 @@ export const TabTable: React.FC<Props> = (props) => {
     // if(filter === '') return
     // let filters = filter.split(',')
     // console.log(props.hotTable.current?.hotInstance)
-  },[tab.filter.get()])  // eslint-disable-line
+  }, [tab.filter.get()])  // eslint-disable-line
+  
+  const refreshTable = () => {
+    const ht = props.hotTable.current?.hotInstance
+    let data = jsonClone<any[]>(props.tab.query.rows.get())
+    ht.loadData(data)
+    // console.log(data)
+    console.log(ht)
+  }
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {
@@ -151,6 +160,7 @@ export const TabTable: React.FC<Props> = (props) => {
   }
   
   const filterRows = () => {
+    // return []
     if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { 
       filteredRows.current = []
       return []

@@ -2,10 +2,9 @@ import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
-import { AutoComplete } from 'primereact/autocomplete';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, getConnectionState, globalStore, Table, useHS, useVariable } from "../store/state";
+import { accessStore, getConnectionState, globalStore, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
@@ -16,6 +15,7 @@ import { apiGet } from "../store/api";
 import YAML from 'yaml'
 import { Dropdown } from "primereact/dropdown";
 import { Tooltip } from "primereact/tooltip";
+import { Table } from "../state/schema";
 
 export const makeYAML = (data: ObjectAny) => {
   return '/*@\n' + YAML.stringify(data).trim() + '\n@*/'
@@ -599,6 +599,23 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         />
 
         <Button
+          icon="pi pi-sort-amount-down"
+          tooltip="Column Distro"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-info"
+          onClick={(e) => {
+            let cols = selectedColumns.get()?.map(v => v.name) || []
+            if (cols.length === 0) return toastError('need to select columns')
+            let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
+            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
+            appendSqlToTab(tab.id.get(), sql)
+            submitSQL(tab, sql)
+            hideOverlay()
+          }}
+        />
+
+        <Button
           icon="pi pi-chart-bar"
           tooltip="Column Stats"
           tooltipOptions={{ position: 'top' }}
@@ -634,23 +651,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               },
             }
             let sql = makeYAML(data) + ';'
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
-            hideOverlay()
-          }}
-        />
-
-        <Button
-          icon="pi pi-sort-amount-down"
-          tooltip="Column Distro"
-          tooltipOptions={{ position: 'top' }}
-          className="p-button-sm p-button-info"
-          onClick={(e) => {
-            let cols = selectedColumns.get()?.map(v => v.name) || []
-            if (cols.length === 0) return toastError('need to select columns')
-            let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)

@@ -245,7 +245,7 @@ export const lookupTable = (connName: string, key: string) => {
   }
 }
 
-export class Table {
+class Table {
   connection: string
   database: string
   schema: string
@@ -268,6 +268,8 @@ export class Table {
   fullName = () => `${this.schema}.${this.name}`
   fullName2 = () => `${this.database}.${this.schema}.${this.name}`.toLowerCase()
   key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
+
+  selectAll = () => `select * from ${this.schema}.${this.name}`
 }
 
 
@@ -1104,13 +1106,6 @@ class GlobalStore {
   }
 }
 export const globalStore = new GlobalStore()
-
-export const useStoreApp = () => useState(globalStore.app)
-export const useStoreSchemaPanel = () => useState(globalStore.schemaPanel)
-export const useStoreObjectPanel = () => useState(globalStore.objectPanel)
-export const useStoreQueryPanel = () => useState(globalStore.queryPanel)
-export const useStoreHistoryPanel = () => useState(globalStore.historyPanel)
-export const useStoreWs = () => useState(globalStore.ws)
 
 export const accessStore = () => {
   const wrap = function <T>(s: State<T>) { return s }
