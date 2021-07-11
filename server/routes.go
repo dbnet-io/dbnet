@@ -81,18 +81,18 @@ func GetSchemata(c echo.Context) (err error) {
 	}
 
 	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
-		schemaTables := []store.SchemaTable{}
+		schemaTablesColumns := []store.TableColumn{}
 		dbQ := store.Db.Where("conn = ? and database = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database))
 		load := func() error {
-			err := dbQ.Order("schema_name, table_name").Find(&schemaTables).Error
+			err := dbQ.Order("schema_name, table_name").Find(&schemaTablesColumns).Error
 			if err != nil {
 				return g.Error(err, "could not query schemata")
 			}
 			return nil
 		}
 
-		err := load()
-		if len(schemaTables) == 0 || req.Procedure == "refresh" {
+		err = load()
+		if len(schemaTablesColumns) == 0 || req.Procedure == "refresh" {
 			// delete old entries
 			err = dbQ.Delete(&store.SchemaTable{}).Error
 			g.LogError(err, "could not delete old schemata for %s/%s", strings.ToLower(req.Conn), strings.ToLower(req.Database))
@@ -108,11 +108,15 @@ func GetSchemata(c echo.Context) (err error) {
 			}
 		}
 
-		columns := []string{"schema_name", "table_name", "is_view"}
+		columns := []string{"schema_name", "table_name", "table_is_view", "column_id", "column_name", "column_type"}
 		data := iop.NewDataset(iop.NewColumnsFromFields(columns...))
 
-		for _, schemaTable := range schemaTables {
-			row := []interface{}{schemaTable.SchemaName, schemaTable.TableName, schemaTable.IsView}
+		for _, tableColumn := range schemaTablesColumns {
+			row := []interface{}{
+				tableColumn.SchemaName, tableColumn.TableName,
+				tableColumn.TableIsView, tableColumn.ID,
+				tableColumn.Name, tableColumn.Type,
+			}
 			data.Rows = append(data.Rows, row)
 		}
 
@@ -121,7 +125,7 @@ func GetSchemata(c echo.Context) (err error) {
 
 	data, err := ProcessRequest(req, rf)
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas")
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas for %s", req.Database)
 	}
 
 	return c.JSON(http.StatusOK, data.ToJSONMap())
@@ -139,7 +143,7 @@ func GetSchemas(c echo.Context) (err error) {
 
 	data, err := ProcessRequest(req, rf)
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas")
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas for %s", req.Database)
 	}
 
 	return c.JSON(http.StatusOK, data.ToJSONMap())
@@ -203,7 +207,7 @@ func GetTables(c echo.Context) (err error) {
 
 	data, err := ProcessRequest(req, rf)
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas")
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas for %s", req.Database)
 	}
 
 	return c.JSON(http.StatusOK, data.ToJSONMap())
@@ -270,7 +274,7 @@ func GetColumns(c echo.Context) (err error) {
 
 	data, err := ProcessRequest(req, rf)
 	if err != nil {
-		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas")
+		return g.ErrJSON(http.StatusInternalServerError, err, "could not get schemas for %s", req.Database)
 	}
 
 	return c.JSON(http.StatusOK, data.ToJSONMap())
@@ -313,13 +317,14 @@ func GetHistory(c echo.Context) (err error) {
 	}
 
 	entries := []store.Query{}
+	conns := strings.Split(req.Conn, ",")
 	switch req.Procedure {
 	case "get_latest":
 		err = store.Db.Order("time desc").Limit(100).
-			Where("conn = ?", req.Conn).Find(&entries).Error
+			Where("conn in (?)", conns).Find(&entries).Error
 
 	case "search":
-		whereValues := []interface{}{req.Conn}
+		whereValues := []interface{}{conns}
 		orArr := []string{}
 		for _, orStr := range strings.Split(req.Name, ",") {
 			andWhere := []string{}
@@ -329,7 +334,7 @@ func GetHistory(c echo.Context) (err error) {
 			}
 			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")
 		}
-		whereStr := g.F("conn = ? and (%s)", strings.Join(orArr, " or "))
+		whereStr := g.F("conn in (?) and (%s)", strings.Join(orArr, " or "))
 		err = store.Db.Order("time desc").Limit(100).
 			Where(whereStr, whereValues...).Find(&entries).Error
 	}
@@ -409,6 +414,7 @@ func PostSubmitQuery(c echo.Context) (err error) {
 		case <-query.Done:
 			result, err = query.ProcessResult()
 			if err != nil {
+				result["err"] = g.ErrMsgSimple(err)
 				return c.JSON(500, result)
 			}
 		case <-ticker.C:

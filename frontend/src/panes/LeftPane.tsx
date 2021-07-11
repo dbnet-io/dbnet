@@ -6,15 +6,18 @@ import { SchemaPanel } from "../components/SchemaPanel";
 import { MetaTablePanel } from "../components/MetaTablePanel";
 import { useState } from "@hookstate/core";
 import { ProjectPanel } from "../components/ProjectPanel";
+import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 
-interface Props {}
+interface Props {
+  dbnet: DbNet
+}
 
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const tabOptions = useState<string[]>(['Files', 'Schema', 'Object', 'History'])
+  const tabOptions = useState<string[]>(['Files', 'Schema', 'History'])
   const tabValue = useHS(store.workspace.selectedMetaTab)
   // const tabValue = useStore().selectedMetaTab
 
@@ -41,21 +44,21 @@ export const LeftPane: React.FC<Props> = (props) => {
       <div className="p-col-12 p-md-12" style={{paddingTop: '0px'}}>
           { 
             tabValue.get() === "Files" ?
-            <ProjectPanel/> : null
+            <ProjectPanel dbnet={props.dbnet}/> : null
           }
           { 
             tabValue.get() === "Schema" ?
-            <SchemaPanel/> : null
+            <SchemaPanel dbnet={props.dbnet}/> : null
           }
 
-          { 
+          {/* { 
             tabValue.get() === "Object" ?
             <MetaTablePanel/> : null
-          }
+          } */}
 
           { 
             tabValue.get() === 'History' ?
-            <HistoryPanel/> : null
+            <HistoryPanel dbnet={props.dbnet}/> : null
           }
       </div>
 

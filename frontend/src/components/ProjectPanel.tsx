@@ -7,17 +7,20 @@ import { Tooltip } from "primereact/tooltip";
 import { Tree } from "primereact/tree";
 import * as React from "react";
 import { apiGet, apiPost } from "../store/api";
-import { accessStore, FileItem, globalStore, useHS } from "../store/state";
+import { accessStore, Connection, FileItem, globalStore, useHS } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { jsonClone, toastError } from "../utilities/methods";
 import { createTab } from "./TabNames";
 import yaml from 'yaml'
 import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
+import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 
-interface Props {}
+interface Props {
+  dbnet: DbNet
+}
 
 export const ProjectPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -136,7 +139,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     return items.filter(i => filter(i))
   }
 
-  const dbtConns = () : string[] => store.connections.get().filter(c => c.dbt).map(c => c.name.toLowerCase())
+  const dbtConns = () : string[] => props.dbnet.connections.filter(c => c.dbt).map(c => c.name.toLowerCase())
   
   const loadDbtProject = async (file: FileItem) => {
     if(file.name?.toLowerCase() !== 'dbt_project.yml') return
@@ -184,7 +187,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       >
         <ListBox 
           value={profileTargetSelected.get()}
-          options={store.connections.get().filter(c => c.dbt).map(c => c.name)}
+          options={props.dbnet.connections.filter(c => c.dbt).map(c => c.name)}
           onChange={(e) => profileTargetSelected.set(e.value)} 
           listStyle={{fontFamily:'monospace'}}
           style={{width: '14rem'}} 
@@ -247,7 +250,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
               try {
                 let resp = await fileOp('read', {path: item.path})
                 if(resp.error) throw new Error(resp.error)
-                let tab = createTab(item.name, resp.data.file.body as string)
+                let tab = createTab(item.name, resp.data.file.body as string, '', '')
                 tab.file.set(item)
               } catch (error) {
                 toastError(error)

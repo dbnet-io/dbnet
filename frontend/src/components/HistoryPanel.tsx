@@ -11,8 +11,11 @@ import { Tooltip } from "primereact/tooltip";
 import { InputTextarea } from 'primereact/inputtextarea';
 import { submitSQL } from "./TabToolbar";
 import { appendSqlToTab, getCurrentParentTabState, getTabState } from "./TabNames";
+import { DbNet } from "../state/dbnet";
 
-interface Props { }
+interface Props { 
+  dbnet: DbNet
+}
 
 export const HistoryPanel: React.FC<Props> = (props) => {
   const store = accessStore()
@@ -28,14 +31,13 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   React.useEffect(() => {
     if (filter.get() === '') getLatest()
     else debounceSearch(filter.get())
-  }, [filter.get(), tabLoading.get(), store.connection.name.get()])// eslint-disable-line
+  }, [filter.get(), tabLoading.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const getLatest = async () => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: store.connection.name.get(),
-      database: store.connection.database.get(),
+      conn: props.dbnet.connections.map(c => c.name).join(','),
       procedure: "get_latest",
     }
     try {
@@ -50,8 +52,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const doSearch = async (filter: string) => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: store.connection.name.get(),
-      database: store.connection.database.get(),
+      conn: props.dbnet.connections.map(c => c.name).join(','),
       procedure: "search",
       name: filter,
     }
@@ -107,7 +108,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           onDoubleClick={(e) => { }}
         >
           {/* {formatTime(query.time)} | {shorten(query.text, 50)} */}
-          {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
+          {query.conn} | {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
           <span
             style={{
               paddingLeft: '10px',
@@ -134,6 +135,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
             }}
             onKeyDown={(e: any) => { if (e.key === 'Escape') { filter.set('') } }}
           />
+          <Button icon="pi pi-times" className="p-button-outlined p-button-danger" onClick={() => filter.set('')} />
           <Button icon={loading.get() ? "pi pi-spin pi-spinner" : "pi pi-refresh"} className="p-button-warning" tooltip="refresh" onClick={() => doSearch(filter.get())} />
         </div>
       </div>

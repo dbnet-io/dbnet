@@ -332,3 +332,10 @@ export const showNotification = (text: string, options: NotificationOptions = {}
 export function Sleep(ms: number) {
    return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export function zeroPad(num: number, len: number) {
+  let str = num.toString()
+  while (str.length < len)
+     str = '0' + str;
+  return str;
+}

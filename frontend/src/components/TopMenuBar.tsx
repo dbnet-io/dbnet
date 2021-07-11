@@ -2,42 +2,55 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, Connection, globalStore, lookupTable, Table, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, lookupTable, Table, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { GetDatabases, GetSchemata } from "./SchemaPanel";
 import { none } from "@hookstate/core";
 import { TauriGetCwd } from "../utilities/tauri";
-import { jsonClone } from "../utilities/methods";
+import { DbNet } from "../state/dbnet";
+import { Connection } from "../state/connection";
 
 
 const store = accessStore()
 
-interface Props { }
+interface Props {
+  dbnet: DbNet
+}
 
 
 export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
+  const connection = useHS<Connection>(new Connection())
   const connName = useHS(store.workspace.selectedConnection)
-  const connections = useHS(store.connections)
-  const recentSearches = store.connection.recentOmniSearches
+  const recentSearches = connection.recentOmniSearches
   const tableKeys = React.useRef<Record<string, Table>>({})
+  const onSelectConnection = useVariable(0)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
+  React.useEffect(() => {
+    let id2 = props.dbnet.subscribe('onSelectConnection', onSelectConnection)
+    return () => {
+      props.dbnet.unsubscribe(id2)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    connection.set(new Connection(props.dbnet.getConnection(props.dbnet.currentConnection)))
+  }, [onSelectConnection.get()])
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const makeItems = () => {
     const loadConn = (conn: Connection) => {
       globalStore.loadSession(conn.name).then(async () => {
-        await GetDatabases(conn.name)
-        await GetSchemata(conn.name, conn.database)
+        await props.dbnet.getDatabases(conn.name)
+        await props.dbnet.getSchemata(conn.name, conn.database)
       })
-      localStorage.setItem("_connection_name", conn.name)
+      props.dbnet.selectConnection(conn.name)
     }
 
-    let connItems : MenuItem[] = connections.get().map((c) : MenuItem => {
+    let connItems: MenuItem[] = props.dbnet.connections.map((c): MenuItem => {
       return {
         label: c.name,
         command: () => { loadConn(c) },
@@ -139,7 +152,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     }
 
     React.useEffect(() => {
-      allTables.set(store.connection.get().getAllTables())
+      allTables.set(connection.get().getAllTables())
     }, []) // eslint-disable-line
 
     const searchTable = (e: any) => {
@@ -158,12 +171,12 @@ export const TopMenuBar: React.FC<Props> = (props) => {
           found[i] = key.toString().includes(query.toLowerCase())
         }
         if (found.every(v => v)) {
-          let table = lookupTable(store.connection.name.get(), key.toString())
+          let table = lookupTable(connection.name.get(), key.toString())
           if (table) results.push(new Table(table))
         }
       }
 
-      for (let table of store.connection.get().getAllTables()) {
+      for (let table of connection.get().getAllTables()) {
         let found: boolean[] = queries.map(_ => false)
         let fullName = `${table.schema}.${table.name}`
         for (let i = 0; i < queries.length; i++) {
@@ -176,7 +189,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       }
       searchResults.set(results)
       tableKeys.current = {}
-      for(let table of results) {
+      for (let table of results) {
         tableKeys.current[table.key()] = table
       }
     }

@@ -1,6 +1,6 @@
 import { Dialog } from "primereact/dialog";
 import * as React from "react";
-import { accessStore, useStoreObjectPanel } from "../store/state";
+import { accessStore, useHS, useStoreObjectPanel } from "../store/state";
 import { copyToClipboard } from "../utilities/methods";
 import { MetaTablePanel } from "./MetaTablePanel";
 
@@ -12,12 +12,14 @@ export const PreviewPanel: React.FC<Props> = (props) => {
   const objectPanel = store.objectPanel
   const objectView = objectPanel.table
   ///////////////////////////  HOOKS  ///////////////////////////
+
+  const show = useHS(objectPanel.show)
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////
 
-  const header = <p style={{ margin: 0 }}>
-    <span
+  const header = <p style={{ marginTop: -20 }}>
+    {/* <span
       style={{ fontFamily: 'monospace', fontSize: '16px', backgroundColor: 'white', color: 'blue' }}
       onDoubleClick={() => { copyToClipboard(objectView.name.get()) }}
     >
@@ -25,16 +27,17 @@ export const PreviewPanel: React.FC<Props> = (props) => {
       <a href="#;" onClick={(e) => { copyToClipboard(objectView.name.get()) }}>
         <i className="pi pi-copy" style={{ 'fontSize': '0.9em' }}></i>
       </a>
-    </span>
+    </span> */}
   </p>
 
   return (
     <Dialog
+      id='preview-panel'
       header={header}
-      visible={objectPanel.show.get()}
+      visible={show.get()}
       modal={false}
-      position="right"
-      onHide={() => { objectPanel.show.set(false) }}
+      position="top-right"
+      onHide={() => { show.set(false) }}
       style={{ width: '400px' }}
       closeOnEscape={false}
     >

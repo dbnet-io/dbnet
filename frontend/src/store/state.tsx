@@ -216,6 +216,19 @@ export interface Key {
   columns: string[]
 }
 
+export const lookupSchema = (connName: string, key: string) => {
+  let connection = getConnectionState(connName).get()
+  let [tableDb, tableSchema] = key.toLowerCase().split('.')
+  for (let database of Object.values(connection.databases)) {
+    for (let schema of database.schemas) {
+      if (
+        database.name.toLowerCase() === tableDb &&
+        schema.name.toLowerCase() === tableSchema
+      ) return new Schema(schema)
+    }
+  }
+}
+
 export const lookupTable = (connName: string, key: string) => {
   let connection = getConnectionState(connName).get()
   let [tableDb, tableSchema, tableName] = key.toLowerCase().split('.')
@@ -226,7 +239,7 @@ export const lookupTable = (connName: string, key: string) => {
           database.name.toLowerCase() === tableDb &&
           schema.name.toLowerCase() === tableSchema &&
           table.name.toLowerCase() === tableName
-        ) return table
+        ) return new Table(table)
       }
     }
   }
@@ -238,7 +251,7 @@ export class Table {
   schema: string
   name: string
   isView: boolean
-  columns?: Column[]
+  columns: Column[]
   primaryKey?: Key
   indexes?: Key[]
   constructor(data: ObjectAny = {}) {
@@ -584,7 +597,6 @@ export class Connection {
   databases: DatabaseRecord
   data: ObjectString;
   schemas: Schema[]
-  history: Query[]
   recentOmniSearches: { [key: string]: number; }
 
   constructor(data: ObjectAny = {}) {
@@ -594,7 +606,6 @@ export class Connection {
     this.database = data.database || ''
     this.dbt = data.dbt || false
     this.schemas = data.schemas || []
-    this.history = data.history || []
     this.databases = data.databases || {}
     for (let k of Object.keys(this.databases)) {
       this.databases[k] = new Database(this.databases[k])
@@ -734,7 +745,7 @@ export class WorkspaceState {
     this.rootDir = data.rootDir
     this.selectedConnection = data.selectedConnection || ''
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
-  }  
+  }
 }
 export class AppState {
   version: number
@@ -1044,7 +1055,7 @@ class GlobalStore {
   }
 
   saveSession = async () => {
-    localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
+    // localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
 
     let payload = {
       name: this.workspace.name.get(),
@@ -1053,7 +1064,6 @@ class GlobalStore {
       data: {
         app: jsonClone(this.app.get().payload()),
         workspace: jsonClone(this.workspace.get()),
-        connections: jsonClone(this.connections.value.map((c) => c.payload())),
         projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
         schemaPanel: jsonClone(this.schemaPanel.get()),
@@ -1120,7 +1130,7 @@ export const accessStore = () => {
     get app() { return app },
     get workspace() { return workspace },
     get connections() { return connections },
-    get connection() { 
+    get connection() {
       // let conn = getConnectionState(workspace.selectedConnection.get()) 
       // console.log(conn)
       // return wrap<Connection>(conn)

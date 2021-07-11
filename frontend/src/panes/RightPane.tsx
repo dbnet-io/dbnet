@@ -7,8 +7,11 @@ import { TabTable } from "../components/TabTable";
 import { useHS, useStoreQueryPanel } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
+import { DbNet } from "../state/dbnet";
 
-interface Props {}
+interface Props {
+  dbnet: DbNet
+}
 
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -29,7 +32,7 @@ export const RightPane: React.FC<Props> = (props) => {
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId?.get()))}>
         <SplitterPanel className="p-d-flex" style={{overflowY: "scroll", height: "200px", minHeight:"110px"}}>
           <div id="work-input" style={{padding: '8px', width: '100%'}}>
-            <TabNames/>
+            <TabNames dbnet={props.dbnet}/>
             <TabEditor aceEditor={aceEditor} tab={tab}/>
           </div>
         </SplitterPanel>
@@ -38,7 +41,7 @@ export const RightPane: React.FC<Props> = (props) => {
             
             <SubTabs tab={tab}/>
             <TabToolbar aceEditor={aceEditor} hotTable={hotTable} tab={childTab}/>
-            <TabTable tab={childTab} hotTable={hotTable}/>
+            <TabTable tab={childTab} hotTable={hotTable} dbnet={props.dbnet}/>
           </div>
         </SplitterPanel>
       </Splitter>

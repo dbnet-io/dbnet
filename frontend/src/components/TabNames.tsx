@@ -1,6 +1,5 @@
 import * as React from "react";
-import { accessStore, Connection, getConnectionState, Tab, useHS } from "../store/state";
-import { Inplace, InplaceDisplay, InplaceContent } from 'primereact/inplace';
+import { accessStore, getConnectionState, Tab, useHS } from "../store/state";
 import { none } from "@hookstate/core";
 import { jsonClone, toastError } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
@@ -9,11 +8,14 @@ import { MenuItem, MenuItemOptions } from "primereact/components/menuitem/MenuIt
 import { TabMenu } from 'primereact/tabmenu';
 import classNames from "classnames";
 import { InputText } from "primereact/inputtext";
+import { ConnectionChooser } from "./ConnectionChooser";
+import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 const queryPanel = store.queryPanel
 
-export const createTab = (name: string = '', sql = '', conn?: Connection) => {
+export const createTab = (name: string = '', sql = '', connName: string, dbName: string) => {
+  name = newTabName(name)
   if (!name.toLowerCase().endsWith('.sql')) {
     let name_arr = name.split('.')
     name = name_arr[name_arr.length - 1]
@@ -27,12 +29,11 @@ export const createTab = (name: string = '', sql = '', conn?: Connection) => {
     queryPanel.selectedTabId.set(tab.id.get());
     return tab
   }
-  if (!conn) conn = jsonClone<Connection>(store.connection.get())
   let newTab = new Tab({
     name,
     editor: { text: sql },
-    connection: conn.name,
-    database: conn.database,
+    connection: connName,
+    database: dbName,
   });
   let childTab = createTabChild(newTab)
   newTab.selectedChild = childTab.id
@@ -48,7 +49,8 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
   let tab = queryPanel.tabs[index]
 
   let text = tab.editor.text.get()
-  let pos = text.indexOf(sql) // try to find existing sql block
+  // let pos = text.indexOf(sql) // try to find existing sql block
+  let pos = -1 // append always for now
   if (pos > -1) {
     let upperBlock = text.slice(0, pos)
     let lines = upperBlock.split('\n')
@@ -104,17 +106,51 @@ export const getCurrentParentTabState = () => {
   return queryPanel.tabs[index]
 }
 
-interface Props { }
+export const getOrCreateParentTabState = (connection: string, database: string) => {
+  let currTab = getCurrentParentTabState()
+  if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database.toUpperCase()) return currTab
+
+  let index = queryPanel.tabs.get()
+              .map(t => `${t.connection}-${t.database}`.toUpperCase())
+              .indexOf(`${connection}-${database}`.toUpperCase())
+  if(index === -1) {
+    let tab = createTab('', '', connection, database)
+    queryPanel.selectedTabId.set(tab.id.get())
+    return tab
+  }
+  let parent = queryPanel.tabs[index].parent.get()
+  if (parent) index = queryPanel.get().getTabIndexByID(parent)
+  queryPanel.selectedTabId.set(queryPanel.tabs[index].id.get())
+  return queryPanel.tabs[index]
+}
+
+export const newTabName = (name: string) => {
+  let prefix = 'Q'
+  // add new tab
+  let tabNames = queryPanel.tabs.get()
+                .filter(t => !t.parent).map(t => t.name)
+  let i = tabNames.length + 1;
+  let newName = name !== ''? name : `${prefix}${i}`
+  while (tabNames.includes(newName)) {
+    i++;
+    newName = name !== ''? `${name}${i}` : `${prefix}${i}`;
+  }
+  return newName
+}
+
+interface Props { 
+  dbnet: DbNet
+}
 
 export const TabNames: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const cm = React.useRef<ContextMenu>(null);
   const tabs = useHS(queryPanel.tabs)
-  const tabOptions = tabs.get().filter(t => !t.parent && !t.hidden).map(t => t.name);
   const selectedTabId = useHS(queryPanel.selectedTabId)
   const contextTabId = useHS('')
   const nameEdit = useHS({ id: '', name: '' })
+  const newTab = useHS({show: false, name: ''})
 
   ///////////////////////////  EFFECTS  ///////////////////////////
 
@@ -151,7 +187,6 @@ export const TabNames: React.FC<Props> = (props) => {
   }
 
   const actionTab = (name: string) => {
-    let prefix = 'Q'
     if (!name) {
       return;
     } else if (name === 'del') {
@@ -159,19 +194,15 @@ export const TabNames: React.FC<Props> = (props) => {
       deleteTab(jsonClone(selectedTabId.get()))
     } else if (name === 'add') {
       // add new tab
-      let tabNames = tabs.get().filter(t => !t.parent).map(t => t.name)
-      let i = tabNames.length + 1;
-      let newName = `${prefix}${i}`;
-      while (tabNames.includes(newName)) {
-        i++;
-        newName = `${prefix}${i}`;
-      }
-      createTab(newName)
+      let newName = newTabName('')
+      newTab.name.set(newName)
+      newTab.show.set(true)
     } else {
       let index = queryPanel.get().tabs.map(t => t.name).indexOf(name)
       let tab = tabs[index].get()
       if (!tab.selectedChild) createTabChild(tab)
       selectedTabId.set(tab.id);
+      props.dbnet.selectConnection(tab.connection || '')
     }
     document.getElementById("table-filter")?.focus();
   };
@@ -332,6 +363,18 @@ export const TabNames: React.FC<Props> = (props) => {
       activeIndex={getTabIndex()}
       onTabChange={(e) => setTabIndex(e.value)}
     // style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
+    />
+
+    <ConnectionChooser
+      show={newTab.show}
+      dbnet={props.dbnet}
+      selectDb={true}
+      onSelect={(connSelected: string, dbSelected: string) => {
+        if(!connSelected) return toastError('Please select a connection')
+        if(!dbSelected) return toastError('Please select a database')
+        createTab(newTab.name.get(), '', connSelected, dbSelected)
+        newTab.show.set(false)
+      }}
     />
   </>
 }

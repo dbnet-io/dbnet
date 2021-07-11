@@ -225,3 +225,7 @@ font-size: 9px !important;
   font-size: 14px;
   padding: 8px;
 }
+
+#preview-panel > div.p-dialog-header {
+  padding: 0px;
+}

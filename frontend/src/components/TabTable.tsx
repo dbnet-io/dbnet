@@ -11,6 +11,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
+import { DbNet } from "../state/dbnet";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
@@ -19,6 +20,7 @@ const store = accessStore()
 interface Props {
   tab: State<Tab>
   hotTable: React.MutableRefObject<any>
+  dbnet: DbNet
 }
 
 export const pullResult = async (tabState: State<Tab>) => {
@@ -109,6 +111,7 @@ export const TabTable: React.FC<Props> = (props) => {
   const resultWidth = document.getElementById("result-panel")?.parentElement?.clientWidth
   const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-78
   const tab = props.tab
+  const trigger = useVariable(0)
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const filteredRows = React.useRef<any[]>([])
@@ -116,7 +119,15 @@ export const TabTable: React.FC<Props> = (props) => {
   React.useEffect(()=>{
     // pull cache result
     if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { pullResult(tab) }
-  },[])  // eslint-disable-line
+  }, [])  // eslint-disable-line
+  
+
+  React.useEffect(() => {
+    let id1 = props.dbnet.subscribe('refreshTable', trigger)
+    return () => {
+      props.dbnet.unsubscribe(id1)
+    }
+  }, [])
 
   React.useEffect(()=>{
     // let p = jsonClone<number[]>(tab.lastTableSelection.get())

@@ -5,12 +5,12 @@ import { InputText } from "primereact/inputtext";
 import { AutoComplete } from 'primereact/autocomplete';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, globalStore, Table, useHS, useVariable } from "../store/state";
+import { accessStore, getConnectionState, globalStore, Table, useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
-import { appendSqlToTab, getCurrentParentTabState } from "./TabNames";
+import { appendSqlToTab, getOrCreateParentTabState } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 import { apiGet } from "../store/api";
 import YAML from 'yaml'
@@ -26,12 +26,13 @@ interface Props { }
 const store = accessStore()
 
 export const loadMetaTable = async (table: Table, refresh = false, fromHistory = false) => {
-  store.workspace.selectedMetaTab.set('Object')
+  // store.workspace.selectedMetaTab.set('Object')
 
   const objectPanel = store.objectPanel
   const history = objectPanel.history
   const historyI = objectPanel.historyI
 
+  objectPanel.show.set(true)
   try {
     let data1 = {
       conn: table.connection,
@@ -69,7 +70,7 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
         }
         history.merge(delObj) // https://hookstate.js.org/docs/nested-state#partial-updates-and-deletions-1
       }
-      if (history[historyI.get()].get().name !== table.name) {
+      if (history[historyI.get()].get()?.name !== table.name) {
         history.merge([table])
         if (history.length > 15) history[0].set(none)
         historyI.set(history.length - 1)
@@ -85,7 +86,8 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
 
 const TableDropdown = (props: { value: State<string> }) => {
   const getAllTables = () => {
-    return store.connection.get().getAllTables().map(
+    const connName = store.objectPanel.table.connection.get()
+    return getConnectionState(connName).get().getAllTables().map(
       (t) => {
         return {
           name: `${t.database}.${t.schema}.${t.name}`
@@ -180,7 +182,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         }
         sql = makeYAML(data) + ';'
       }
-      let tab = getCurrentParentTabState()
+      let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
       appendSqlToTab(tab.id.get(), sql)
       submitSQL(tab, sql)
       hideForms()
@@ -190,6 +192,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const objectPanel = useState(store.objectPanel)
+  const table = useState<Table>(new Table())
   const selectedColumns = useVariable<any[]>([])
   // const selectedColumns = useHS(store.objectPanel.selectedColumns)
   const filter = useHS(store.objectPanel.search);
@@ -208,6 +211,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     // reset the selected columns
     selectedColumns.set([])
     filter.set('')
+    table.set(new Table(jsonClone(objectPanel.table.get())))
   }, [objectPanel.table.name.get()])// eslint-disable-line
 
   // React.useEffect(() => {
@@ -290,7 +294,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   const StatsByGroup = (props: { form: State<Form> }) => {
     const objectPanel = store.objectPanel
-    const selectedColumns = store.objectPanel.selectedColumns
     interface Input {
       schema: string
       table: string
@@ -337,7 +340,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   const CompareColumns = (props: { form: State<Form> }) => {
     const objectPanel = store.objectPanel
-    const selectedColumns = store.objectPanel.selectedColumns
     interface Input {
       t1: string
       t1_field: string
@@ -450,7 +452,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           <a // eslint-disable-line
             href="#"
             title="Copy name to clipboard"
-            onClick={() => { copyToClipboard(new Table(objectPanel.table.get()).fullName()) }}
+            onClick={() => { copyToClipboard(table.get().fullName()) }}
           >
             <i className="pi pi-copy" style={{ 'fontSize': '0.9em', paddingLeft: '5px' }}></i>
           </a>
@@ -472,7 +474,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           target={`#history-panel-back`}
           style={{
             fontSize: '11px',
-            minWidth: '375px',
+            minWidth: '220px',
             fontFamily: 'monospace',
           }}
         >
@@ -503,7 +505,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           target={`#history-panel-forward`}
           style={{
             fontSize: '11px',
-            minWidth: '375px',
+            minWidth: '220px',
             fontFamily: 'monospace',
           }}
         >
@@ -534,7 +536,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            loadMetaTable(new Table(objectPanel.table.get()), true)
+            loadMetaTable(table.get(), true)
           }}
         />
 
@@ -574,8 +576,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
-            let sql = `select\n  ${cols.join(',\n  ')}\nfrom ${new Table(objectPanel.table.get()).fullName()}\nlimit 5000;`
-            let tab = getCurrentParentTabState()
+            let sql = `select ${cols.join(', ')}\nfrom ${table.get().fullName()}\nlimit 5000;`
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
           }}
@@ -589,8 +591,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsCnt = (selectedColumns.get()?.map(v => v.name) || [])
               .map(c => `count(${c}) cnt_${c}`)
             let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
-            let sql = `select\n  count(1) cnt${colsCntStr}\nfrom ${new Table(objectPanel.table.get()).fullName()}\n;`
-            let tab = getCurrentParentTabState()
+            let sql = `select\n  count(1) cnt${colsCntStr}\nfrom ${table.get().fullName()}\n;`
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
           }}
@@ -611,8 +613,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               },
             }
             let sql = makeYAML(data) + ';'
-            // let tab = createTab(objectPanel.table.name.get(), sql)
-            let tab = getCurrentParentTabState()
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
           }}
@@ -633,8 +634,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               },
             }
             let sql = makeYAML(data) + ';'
-            // let tab = createTab(objectPanel.table.name.get(), sql)
-            let tab = getCurrentParentTabState()
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
@@ -650,9 +650,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let cols = selectedColumns.get()?.map(v => v.name) || []
             if (cols.length === 0) return toastError('need to select columns')
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${new Table(objectPanel.table.get()).fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
-            // let tab = createTab(objectPanel.table.name.get(), sql)
-            let tab = getCurrentParentTabState()
+            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
@@ -677,8 +676,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
               },
             }
             let sql = makeYAML(data) + ';'
-            // let tab = createTab(objectPanel.table.name.get(), sql)
-            let tab = getCurrentParentTabState()
+            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
@@ -703,16 +701,16 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
       <div
         className="p-col-12 p-md-12"
-        style={{ height: `${window.innerHeight - 270}px` }}
+        style={{ height: `${window.innerHeight - 470}px` }}
       // onMouseEnter={() => toastInfo('hello')}  
       >
 
         <DataTable
-          value={jsonClone<Table>(new Table(objectPanel.table.get())).columns?.filter(r => r !== undefined) || []}
+          value={jsonClone<Table>(table.get()).columns?.filter(r => r !== undefined) || []}
           loading={objectPanel.loading.get()}
           rowHover={true}
           scrollable={true}
-          scrollHeight={`${window.innerHeight - 310}px`}
+          scrollHeight={`${window.innerHeight - 490}px`}
           resizableColumns={true}
           className="p-datatable-sm p-datatable-gridlines"
           style={{ fontSize: '10px' }}

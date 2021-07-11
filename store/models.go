@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -32,11 +33,12 @@ type TableColumn struct {
 	Database    string    `json:"database"  gorm:"primaryKey"`
 	SchemaName  string    `json:"schema_name" gorm:"primaryKey"`
 	TableName   string    `json:"table_name" gorm:"primaryKey"`
-	Name        string    `json:"name" gorm:"primaryKey"`
-	ID          int       `json:"id"`
-	Type        string    `json:"type"`
-	Precision   int       `json:"precision"`
-	Scale       int       `json:"scale"`
+	TableIsView bool      `json:"table_is_view"`
+	Name        string    `json:"column_name" gorm:"primaryKey"`
+	ID          int       `json:"column_id"`
+	Type        string    `json:"column_type"`
+	Precision   int       `json:"column_precision"`
+	Scale       int       `json:"column_scale"`
 	NumRows     int64     `json:"num_rows"`
 	NumDistinct int64     `json:"num_distinct"`
 	NumNulls    int64     `json:"num_nulls"`
@@ -358,13 +360,26 @@ func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 
 		q.Headers = data.Columns.Names()
 		q.Rows = data.Rows
+		g.Debug("Got %d rows", len(q.Rows))
 	}
 
 	q.Close(false)
 
 	q.Duration = (float64(time.Now().UnixNano()/1000000) - float64(q.Time)) / 1000
 
-	result = g.ToMap(q)
+	jBytes, err := json.Marshal(q)
+	if err != nil {
+		q.Rows = Rows{}
+		err = g.Error(err, "could not marshall query")
+		return g.ToMap(q), err
+	}
+
+	err = json.Unmarshal(jBytes, &result)
+	if err != nil {
+		q.Rows = Rows{}
+		err = g.Error(err, "could not unmarshall query")
+		return g.ToMap(q), err
+	}
 
 	Sync("queries", q)
 

@@ -1,0 +1,27 @@
+
+# backend store: queries (without data) for history, jobs (without data) for history, personal/account info/settings
+# file store: connections creds (dbt_profile.yaml, dbnet.yaml)
+# frontend store: state, everything else - tabs text & results, metapanel state, schema panel state
+
+dbNet:
+  version: version
+  connections: connections # all connections available
+
+  workspace:
+    name: name
+    rootPath: rootPath
+    connections: connections # workspace connections
+    tabs: tabs # the files that are open
+  
+  editor:
+    text1: text1 # single or left
+    text2: text2 # right
+
+  table:
+    hotInstance: hotInstance
+
+  project:
+    fileNodes: fileNodes
+    expandedNodes: expandedNodes
+    selectedNodes: selectedNodes 
+

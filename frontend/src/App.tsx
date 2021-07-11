@@ -12,21 +12,17 @@ import 'primeicons/primeicons.css';
 import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
-import { MsgType, WsQueue } from './store/websocket';
-import { accessStore, Connection, ConnectionRecord, globalStore, useHS } from './store/state';
-import { jsonClone, Sleep, toastError, toastInfo } from './utilities/methods';
+import { WsQueue } from './store/websocket';
+import { accessStore, Connection, globalStore, useHS } from './store/state';
+import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
-import { Dialog } from 'primereact/dialog';
-import { ListBox } from 'primereact/listbox';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
 import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
-import { GetDatabases, GetSchemata } from './components/SchemaPanel';
-import { apiGet, Response } from './store/api';
-import { Button } from 'primereact/button';
 import { JobPanel } from './components/JobPanel';
-import { DbNet } from './store/dbnet';
+import { DbNet } from './state/dbnet';
+import { ConnectionChooser } from './components/ConnectionChooser';
 
 // this is to extends the window global functions
 declare global {
@@ -50,70 +46,46 @@ export const App = () => {
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
 
-  const dbNet = React.useRef<DbNet>()
+  const state = React.useRef<DbNet>(new DbNet({}))
+  var dbnet = state.current
   
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
-    Init()
+    // Init()
   }, [])// eslint-disable-line
 
 
   React.useEffect(() => {
-    dbNet.current = new DbNet({
-    }) 
+    Init()
     return () => {
-      dbNet.current?.dispose()
-      dbNet.current = undefined;
+      dbnet.dispose()
+      dbnet = new DbNet({});
     }
   }, [])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const Init = async () => {
+    await dbnet.init()
 
-    // get all connections
-      let resp : Response = {} as Response
-      let tries = 0
-      while(true)  {
-        try {
-          tries++
-          resp = await apiGet(MsgType.GetConnections, {})
-          break
-        } catch (error) {
-          resp.error = error
-          if (tries >= 5) break
-          await Sleep(1000)
-        }
-      }
-      
-    if (resp.error) return toastError(resp.error)
-    let conns : Connection[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name )
-    store.connections.set(conns.map(c => new Connection(c)))
-    if(conns.length === 0) {
+    store.connections.set(dbnet.connections as Connection[])
+    store.workspace.selectedConnection.set(dbnet.currentConnection)
+    if(dbnet.connections.length === 0) {
       // need to create connections
       toastInfo('Did not find any connections.')
       return
     }
 
-    // last connection
-    let last_conn = localStorage.getItem("_connection_name")
-    if(last_conn) {
-      let found = store.connections.get().map(c => c.name.toLowerCase()).includes(last_conn.toLowerCase())
-      if(found) {
-        store.workspace.selectedConnection.set(last_conn)
-      } else {
-        // if none detected/found, prompt to choose
-        chooseConnection.set(true)
-        return
-      }
-    }
+    // choose conn if needed
+    if(!dbnet.currentConnection) return chooseConnection.set(true)
 
     // init load session
-    await globalStore.loadSession(store.connection.name.get())
+    await globalStore.loadSession(dbnet.currentConnection)
 
-    await GetDatabases(store.connection.name.get())
-    await GetSchemata(store.connection.name.get(), store.connection.database.get())
+    await dbnet.getDatabases(dbnet.currentConnection)
+    await dbnet.getAllSchemata(dbnet.currentConnection)
+    dbnet.trigger('refreshSchemaPanel')
   }
   
   const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
@@ -131,55 +103,6 @@ export const App = () => {
   }
 
   ///////////////////////////  JSX  ///////////////////////////
-  const ConnectionChooser = () => {
-    const connSelected = useHS('')
-    const dbtConns = () : string[] => store.connections.get().filter(c => c.dbt).map(c => c.name)
-    const footer = () => {
-      return <div style={{textAlign: 'center'}}>
-          <Button label="OK" icon="pi pi-check" onClick={() => {
-            localStorage.setItem("_connection_name", connSelected.get())
-            chooseConnection.set(false)
-            Init()
-          }} 
-          className="p-button-text" />
-      </div>
-    }
-
-    const itemTemplate = (option: any) => {
-      return <>
-        {option}
-        {
-          dbtConns().includes(option) ?
-          <span style={{
-            color:'green', fontSize:'0.6rem',
-            paddingLeft: '10px', marginBottom: '5px',
-          }}
-          >
-            <b>dbt</b>
-          </span>
-          :
-          null
-        }
-      </>
-    }
-
-    return  (
-      <Dialog
-        header="Choose a connection" visible={chooseConnection.get()}
-        footer={footer()} 
-        onHide={() => chooseConnection.set(false)}
-      >
-        <ListBox 
-          value={connSelected.get()}
-          options={store.connections?.get()?.map(c => c.name) || []} 
-          onChange={(e) => connSelected.set(e.value)} 
-          listStyle={{fontFamily:'monospace'}}
-          itemTemplate={itemTemplate}
-          style={{width: '15rem'}} 
-        />
-      </Dialog>
-    )
-  }
 
   return (
     <div
@@ -189,20 +112,30 @@ export const App = () => {
       onKeyDown={onKeyPress}
     >
       <Toast ref={toast} />
-      <JobPanel />
+      <JobPanel dbnet={dbnet}/>
       <PreviewPanel />
       <RowViewPanel />
-      <ConnectionChooser />
+      <ConnectionChooser
+        show={chooseConnection}
+        dbnet={dbnet}
+        selectDb={false}
+        onSelect={(connSelected: string) => {
+          if(!connSelected) return toastError('Please select a connection')
+          chooseConnection.set(false)
+          dbnet.selectConnection(connSelected)
+          Init()
+        }}
+      />
       <div style={{ paddingBottom: '7px' }}>
-        <TopMenuBar />
+        <TopMenuBar dbnet={dbnet}/>
       </div>
       <div>
       <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
         <SplitterPanel className="p-d-flex">
-          <LeftPane />
+          <LeftPane dbnet={dbnet}/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">
-          <RightPane />
+          <RightPane dbnet={dbnet}/>
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>
