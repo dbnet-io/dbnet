@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slingdata-io/sling/core/elt"
+	"github.com/slingdata-io/sling/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 
@@ -401,9 +401,9 @@ func NewJob(ctx context.Context) *store.Job {
 	return &j
 }
 
-func submitJob(req JobRequest, cfg elt.Config) (job *store.Job, err error) {
+func submitJob(req JobRequest, cfg sling.Config) (job *store.Job, err error) {
 
-	task := elt.NewTask(req.idNumber(), cfg)
+	task := sling.NewTask(req.idNumber(), cfg)
 	if task.Err != nil {
 		err = g.Error(task.Err, "error creating extract / load task")
 		return

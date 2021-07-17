@@ -11,7 +11,7 @@ import (
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
-	"github.com/slingdata-io/sling/core/elt"
+	"github.com/slingdata-io/sling/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v2"
 )
@@ -116,18 +116,18 @@ type Query struct {
 
 // Job represents a job
 type Job struct {
-	ID        string         `json:"id" gorm:"primaryKey"`
-	Type      string         `json:"type" gorm:"index:idx_job_type"`
-	Request   g.Map          `json:"request" gorm:"type:json default '{}'"`
-	Time      int64          `json:"time" gorm:"index:idx_job_time"`
-	Duration  float64        `json:"duration"`
-	Status    elt.ExecStatus `json:"status"`
-	Err       string         `json:"err"`
-	Result    g.Map          `json:"result" gorm:"type:json default '{}'"`
-	UpdatedDt time.Time      `json:"updated_dt" gorm:"autoUpdateTime"`
+	ID        string           `json:"id" gorm:"primaryKey"`
+	Type      string           `json:"type" gorm:"index:idx_job_type"`
+	Request   g.Map            `json:"request" gorm:"type:json default '{}'"`
+	Time      int64            `json:"time" gorm:"index:idx_job_time"`
+	Duration  float64          `json:"duration"`
+	Status    sling.ExecStatus `json:"status"`
+	Err       string           `json:"err"`
+	Result    g.Map            `json:"result" gorm:"type:json default '{}'"`
+	UpdatedDt time.Time        `json:"updated_dt" gorm:"autoUpdateTime"`
 
 	Context g.Context     `json:"-" gorm:"-"`
-	Task    *elt.Task     `json:"-" gorm:"-"`
+	Task    *sling.Task   `json:"-" gorm:"-"`
 	Wait    bool          `json:"wait" gorm:"-"`
 	Done    chan struct{} `json:"-" gorm:"-"`
 }
@@ -403,13 +403,13 @@ func (j *Job) MakeResult() (result map[string]interface{}) {
 		"duration", (float64(time.Now().UnixNano()/1000000)-float64(j.Time))/1000,
 		"bytes", task.Bytes,
 		"config", g.M(
-			"source", elt.Source{
+			"source", sling.Source{
 				Conn:    task.Cfg.Source.Conn,
 				Stream:  task.Cfg.Source.Stream,
 				Limit:   task.Cfg.Source.Limit,
 				Options: task.Cfg.Source.Options,
 			},
-			"target", elt.Target{
+			"target", sling.Target{
 				Conn:       task.Cfg.Target.Conn,
 				Object:     task.Cfg.Target.Object,
 				Mode:       task.Cfg.Target.Mode,

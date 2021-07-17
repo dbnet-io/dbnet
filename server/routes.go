@@ -13,7 +13,7 @@ import (
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
-	"github.com/slingdata-io/sling/core/elt"
+	"github.com/slingdata-io/sling/core/sling"
 	"github.com/spf13/cast"
 )
 
@@ -610,7 +610,7 @@ func PostSubmitExtractLoadJob(c echo.Context) (err error) {
 		}
 
 		// make config
-		cfg, err := elt.NewConfig(g.Marshal(req.Config))
+		cfg, err := sling.NewConfig(g.Marshal(req.Config))
 		if err != nil {
 			return g.ErrJSON(http.StatusBadRequest, err, "invalid extract / load job configuration")
 		}
