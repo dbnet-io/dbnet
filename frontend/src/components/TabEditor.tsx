@@ -14,7 +14,7 @@ import { Button } from "primereact/button";
 import { Table } from "../state/schema";
 
 
-export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any> }) {
+export function TabEditor(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
   const cm = React.useRef(null);
   const sql = useHS(tab.editor.text);
@@ -29,7 +29,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   }, []) // eslint-disable-line
 
   React.useEffect(() => {
-    let editor = props.aceEditor.current.editor as Ace.Editor
+    let editor = window.dbnet.editor.instance
     let points = tab.editor.highlight.get()
 
     for (let marker of Object.values(editor.session.getMarkers())) {
@@ -47,16 +47,16 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   }, [tab.name.get(), tab.editor.focus.get()])
 
   const getDefinition = () => {
-    let editor = props.aceEditor.current.editor as Ace.Editor
+    let editor = window.dbnet.editor.instance
     let word = editor.getSelectedText()
     if (word === '') { word = tab.editor.get().getWord() }
-    let [name, schema] = word.split('.')
+    let [schema, name] = word.split('.')
     let table = { name, schema, database: tab.database.get(), connection: tab.connection.get() } as Table
     if (word.trim() !== '') { loadMetaTable(table) }
   }
 
   const executeText = () => {
-    let editor = props.aceEditor.current.editor as Ace.Editor
+    let editor = window.dbnet.editor.instance
     let sql = editor.getSelectedText()
     let parentTab = getTabState(tab.id.get() || '')
     if (sql === '') { sql = parentTab.editor.get().getBlock() }
@@ -64,7 +64,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
   }
 
   const focusSelection = (scroll = false) => {
-    let editor = props.aceEditor.current?.editor as Ace.Editor
+    let editor = window.dbnet.editor.instance
     if (!editor) return
     let selection = tab.editor.selection.get()
 
@@ -134,7 +134,7 @@ export function TabEditor(props: { tab: State<Tab>, aceEditor: React.MutableRefO
 
     <ContextMenu model={contextItems} ref={cm}></ContextMenu>
     <AceEditor
-      ref={props.aceEditor}
+      ref={window.dbnet.editor.instanceRef}
       width="100%"
       // height={ !editorHeight || editorHeight < 400 ? '400px' : `${editorHeight}px` }
       height={editorHeight ? `${editorHeight - 56}px` : '1000px'}

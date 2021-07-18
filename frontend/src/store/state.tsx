@@ -1,35 +1,13 @@
-import { ObjectAny, ObjectString } from "../utilities/interfaces";
+import { ObjectAny } from "../utilities/interfaces";
 import { createState, useState, State, none } from '@hookstate/core';
-import { createRef } from "react";
-import { Toast } from "primereact/toast";
-import { createBrowserHistory } from "history";
 import * as React from "react";
 import { jsonClone, LogError, new_ts_id, toastError } from "../utilities/methods";
 import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
 import TreeNode from "primereact/components/treenode/TreeNode";
-import Dexie from 'dexie';
+import { Column, Schema, Table } from "../state/schema";
+import { Job } from "../state/job";
 
-
-export const masterToast = createRef<Toast>()
-
-export const history = createBrowserHistory()
-
-export const getDexieDb = () => {
-  const db = new Dexie('dbnet')
-  db.version(1).stores({
-    query: '&id,conn,time',
-    // connection: '&name',
-    // schemata: '[conn+schema+table]',
-  })
-  return db
-}
-
-export const cleanupDexieDb = async () => {
-  let marker = (new Date()).getTime() - 7 * 24 * 60 * 60 * 1000
-  const db = getDexieDb()
-  await db.table('query').where('time').below(marker).delete();
-}
 
 export class Editor {
   text: string
@@ -142,14 +120,6 @@ export interface RowView {
   rows: { n: number, name: string, value: any }[]
 }
 
-export const getParentTabName = (tabId: string) => {
-  let parent_name = ''
-  try {
-    parent_name = tabId.split('.')[0].split('-')[1]
-  } catch (error) { }
-  return parent_name
-}
-
 export class Tab {
   id: string
   name: string
@@ -195,142 +165,18 @@ export class Tab {
     this.connection = data.connection
     this.database = data.database
 
-    let parent_name = getParentTabName(this.parent || '')
+    let parent_name = this.getParentTabName()
     this.id = data.id || new_ts_id(`tab-${this.name || parent_name}.`)
     if (!this.name) this.name = this.id.slice(-7)
   }
-}
 
-export interface Column {
-  id: number
-  name: string
-  type: string
-  length?: number
-  scale?: number
-  precision?: number
-}
-
-export interface Key {
-  schema: string
-  name: string
-  columns: string[]
-}
-
-export const lookupSchema = (connName: string, key: string) => {
-  let connection = getConnectionState(connName).get()
-  let [tableDb, tableSchema] = key.toLowerCase().split('.')
-  for (let database of Object.values(connection.databases)) {
-    for (let schema of database.schemas) {
-      if (
-        database.name.toLowerCase() === tableDb &&
-        schema.name.toLowerCase() === tableSchema
-      ) return new Schema(schema)
-    }
-  }
-}
-
-export const lookupTable = (connName: string, key: string) => {
-  let connection = getConnectionState(connName).get()
-  let [tableDb, tableSchema, tableName] = key.toLowerCase().split('.')
-  for (let database of Object.values(connection.databases)) {
-    for (let schema of database.schemas) {
-      for (let table of schema.tables) {
-        if (
-          database.name.toLowerCase() === tableDb &&
-          schema.name.toLowerCase() === tableSchema &&
-          table.name.toLowerCase() === tableName
-        ) return new Table(table)
-      }
-    }
-  }
-}
-
-class Table {
-  connection: string
-  database: string
-  schema: string
-  name: string
-  isView: boolean
-  columns: Column[]
-  primaryKey?: Key
-  indexes?: Key[]
-  constructor(data: ObjectAny = {}) {
-    this.connection = data.connection
-    this.schema = data.schema
-    this.name = data.name
-    this.database = data.database
-    this.isView = data.isView
-    this.columns = data.columns || []
-    this.primaryKey = data.primaryKey
-    this.indexes = data.indexes
-  }
-
-  fullName = () => `${this.schema}.${this.name}`
-  fullName2 = () => `${this.database}.${this.schema}.${this.name}`.toLowerCase()
-  key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
-
-  selectAll = () => `select * from ${this.schema}.${this.name}`
-}
-
-
-export class Schema {
-  name: string
-  database: string
-  tables: Table[]
-
-  constructor(data: ObjectAny = {}) {
-    this.name = data.name
-    this.database = data.database
-    this.tables = data.tables || []
-  }
-}
-
-export class Database {
-  name: string
-  schemas: Schema[]
-
-  constructor(data: ObjectAny = {}) {
-    this.name = data.name
-    this.schemas = data.schemas || []
-    this.schemas = this.schemas.map(s => new Schema(s))
-  }
-
-  getAllTables = () => {
-    let tables: Table[] = []
+  getParentTabName = () => {
+    let parent_name = ''
     try {
-      for (let schema of this.schemas) {
-        for (let table of schema.tables) {
-          tables.push(table)
-        }
-      }
-    } catch (error) {
-      LogError(error)
-    }
-    return tables
+      parent_name = (this.parent || '').split('.')[0].split('-')[1]
+    } catch (error) { }
+    return parent_name
   }
-
-}
-
-
-export enum ConnType {
-  FileLocal = "local",
-  FileHDFS = "hdfs",
-  FileS3 = "s3",
-  FileAzure = "azure",
-  FileGoogle = "gs",
-  FileSftp = "sftp",
-  FileHTTP = "http",
-
-  DbPostgres = "postgres",
-  DbRedshift = "redshift",
-  DbMySQL = "mysql",
-  DbOracle = "oracle",
-  DbBigQuery = "bigquery",
-  DbSnowflake = "snowflake",
-  DbSQLite = "sqlite",
-  DbSQLServer = "sqlserver",
-  DbAzure = "azuresql",
-  DbAzureDWH = "azuredwh",
 }
 
 
@@ -393,155 +239,6 @@ export class Query {
 }
 
 
-export interface SourceOptions {
-  trim_space?: boolean,
-  empty_as_null?: boolean,
-  header?: boolean,
-  compression?: 'auto' | 'gzip',
-  null_if?: string,
-  datetime_format?: string,
-  skip_blank_lines?: boolean,
-  delimiter?: string,
-  max_decimals?: number,
-}
-
-export const DefaultSourceOptionsFile: SourceOptions = {
-  trim_space: false,
-  empty_as_null: true,
-  header: true,
-  compression: 'auto',
-  datetime_format: 'auto',
-  delimiter: ',',
-  skip_blank_lines: true,
-}
-
-export enum JobMode {
-  TruncateMode = "truncate",
-  DropMode = "drop",
-  AppendMode = "append",
-  UpsertMode = "upsert",
-  SnapshotMode = "snapshot",
-}
-
-export interface TargetOptions {
-  header?: boolean,
-  compression?: 'auto' | 'gzip',
-  concurrency?: number,
-  datetime_format?: string,
-  delimiter?: string,
-  file_max_rows?: number,
-  max_decimals?: number,
-  table_ddl?: string,
-  table_tmp?: string,
-  pre_sql?: string,
-  post_sql?: string,
-  use_bulk?: boolean,
-}
-
-export const DefaultTargetOptionsFile: TargetOptions = {
-  header: true,
-  compression: 'gzip',
-  concurrency: 4,
-  datetime_format: 'auto',
-  delimiter: ',',
-  file_max_rows: 0,
-}
-
-export interface JobConfig {
-  source: {
-    conn: string;
-    stream?: string;
-    limit?: number;
-    data?: ObjectString;
-    options: SourceOptions;
-  };
-
-  target: {
-    conn: string;
-    mode: JobMode;
-    object?: string;
-    data?: ObjectString;
-    dbt?: string;
-    primary_key?: string[];
-    update_key?: string;
-    options: TargetOptions;
-  };
-}
-
-export enum JobStatus {
-  Created = "created",
-  Queued = "queued",
-  Started = "started",
-  Running = "running",
-  Success = "success",
-  Terminated = "terminated",
-  Interrupted = "interrupted",
-  TimedOut = "timed-out",
-  Error = "error",
-  Skipped = "skipped",
-  Stalled = "stalled",
-}
-
-export interface JobResult {
-  id: string
-  type: JobType
-  status: JobStatus
-  error: string
-  progress: string
-  progress_hist: string[]
-  start_time: number
-  duration: number
-  bytes: number
-  config: JobConfig
-}
-
-export interface JobRequestConn {
-  type: string
-  name: string
-  database: string
-}
-
-export interface JobRequest {
-  id: string
-  source: JobRequestConn
-  target: JobRequestConn
-  config: JobConfig
-}
-
-export enum JobType {
-  APIToDb = "api-db",
-  APIToFile = "api-file",
-  ConnTest = "conn-test",
-  DbToDb = "db-db",
-  FileToDB = "file-db",
-  DbToFile = "db-file",
-  FileToFile = "file-file",
-  DbSQL = "db-sql",
-  DbDbt = "db-dbt",
-}
-
-
-export class Job {
-  id: string
-  type: JobType
-  request: JobRequest
-  time: number
-  duration: number
-  status: string
-  err: string
-  result: ObjectAny
-
-  constructor(data: ObjectAny = {}) {
-    this.id = data.id
-    this.type = data.type
-    this.request = data.request || { id: '', source: '', target: '', config: {} }
-    this.time = data.time
-    this.duration = data.duration
-    this.status = data.status
-    this.err = data.err
-    this.result = data.result
-  }
-}
 
 
 class JobPanelState {
@@ -557,169 +254,6 @@ class JobPanelState {
   }
 }
 
-export type DatabaseRecord = { [key: string]: Database; }
-
-export const getCurrDatabaseState = () => {
-  const store = accessStore()
-  let databases = store.connection.databases
-  let database = store.connection.database
-  if (databases.keys.length === 0) {
-    return createState<Database>(new Database())
-  }
-  if (!database.get()) database.set(databases[0].name.get())
-  return databases[database.get()]
-}
-
-export const getDatabaseState = (connName: string, dbName: string) => {
-  let connection = getConnectionState(connName)
-  let databases = connection.databases
-  // dbName = dbName.toLowerCase()
-  if (!databases.keys.includes(dbName)) {
-    // toastError(`Database "${dbName}" not found`)
-    return createState<Database>(new Database())
-  }
-  return databases[dbName]
-}
-
-export const getConnectionState = (connName: string) => {
-  connName = connName.toLowerCase()
-  const store = accessStore()
-  let index = store.connections.get().map(c => c.name.toLowerCase()).indexOf(connName)
-  if (index > -1) {
-    return store.connections[index]
-  }
-  return createState(new Connection())
-}
-
-export class Connection {
-  name: string
-  type: ConnType
-  database: string
-  dbt: boolean
-  databases: DatabaseRecord
-  data: ObjectString;
-  schemas: Schema[]
-  recentOmniSearches: { [key: string]: number; }
-
-  constructor(data: ObjectAny = {}) {
-    this.name = data.name || ''
-    this.type = data.type
-    this.data = data.data
-    this.database = data.database || ''
-    this.dbt = data.dbt || false
-    this.schemas = data.schemas || []
-    this.databases = data.databases || {}
-    for (let k of Object.keys(this.databases)) {
-      this.databases[k] = new Database(this.databases[k])
-    }
-    this.recentOmniSearches = data.recentOmniSearches || {}
-  }
-
-  getAllTables = () => {
-    let tables: Table[] = []
-    try {
-      for (let database of Object.values(this.databases)) {
-        for (let table of database.getAllTables()) {
-          tables.push(table)
-        }
-      }
-    } catch (error) {
-      LogError(error)
-    }
-    return tables
-  }
-
-  payload = () => {
-    return {
-      name: this.name,
-      type: this.type,
-      dbt: this.dbt,
-      database: this.database,
-      databases: this.databases,
-      recentOmniSearches: this.recentOmniSearches,
-    }
-  }
-
-  databaseNodes = () => {
-    let newNodes: TreeNode[] = []
-    let database: Database = new Database()
-    try {
-      for (database of Object.values(this.databases)) {
-        newNodes.push({
-          key: database.name,
-          label: database.name.toUpperCase(),
-          data: {
-            type: 'database',
-            data: database,
-          },
-          children: this.schemaNodes(database),
-        })
-      }
-    } catch (error) {
-      console.log(error)
-      console.log(database)
-      toastError('Error loading databases', `${error}`)
-    }
-    return newNodes
-  }
-
-  schemaNodes = (database: Database) => {
-    let newNodes: TreeNode[] = []
-    let schema: Schema = new Schema()
-    try {
-      for (let i = 0; i < database.schemas.length; i++) {
-        schema = database.schemas[i]
-
-        let children: TreeNode[] = []
-        if (schema?.tables !== undefined) {
-          if (!Array.isArray(schema.tables)) schema.tables = []
-          for (let table of schema.tables) {
-            children.push({
-              key: `${database.name}.${schema.name}.${table.name}`,
-              label: table.name,
-              data: {
-                type: 'table',
-                data: table,
-              },
-              children: [],
-            })
-          }
-        }
-
-        newNodes.push({
-          key: `${database.name}.${schema.name}`,
-          label: schema.name,
-          data: {
-            type: 'schema',
-            data: schema,
-          },
-          children: children,
-        })
-      }
-    } catch (error) {
-      console.log(error)
-      console.log(schema)
-      toastError('Error loading schemas', `${error}`)
-    }
-    return newNodes
-  }
-}
-
-export const setSchemas = (connName: string, dbName: string, schemas: Schema[]) => {
-  dbName = dbName.toLowerCase()
-  let conn = getConnectionState(connName)
-  if (!conn.databases.keys.includes(dbName)) {
-    conn.databases[dbName].set(new Database({ name: dbName.toUpperCase(), schemas: schemas }))
-    return
-  }
-
-  let database = conn.databases[dbName]
-  for (let i = 0; i < database.schemas.length; i++) {
-    database.schemas[i].set(none)
-  }
-  database.schemas.set([])
-  database.schemas.merge(schemas)
-}
 
 export class Ws {
   doRequest: number
@@ -736,69 +270,6 @@ export class Ws {
   }
 }
 
-export class WorkspaceState {
-  name: string
-  selectedMetaTab: string
-  selectedConnection: string
-  rootDir: string
-
-  constructor(data: ObjectAny = {}) {
-    this.name = data.name || 'default'
-    this.rootDir = data.rootDir
-    this.selectedConnection = data.selectedConnection || ''
-    this.selectedMetaTab = 'Schema' || data.selectedMetaTab
-  }
-}
-export class AppState {
-  version: number
-  tableHeight: number
-  tableWidth: number
-  constructor(data: ObjectAny = {}) {
-    this.version = 0.1
-    this.tableHeight = 1100
-    this.tableWidth = 1100
-  }
-
-  payload = () => {
-    return {
-    }
-  }
-}
-
-// class Store {
-//   app: AppState
-//   ws: Ws
-//   session : Session
-//   connections: { [key: string]: Connection; }
-//   constructor() {
-//     this.app = {
-//       version: 0.1,
-//       tableHeight: 1100,
-//       tableWidth: 1100,
-//       connections: [],
-//       selectedMetaTab: 'Schema',
-//     }
-//     this.ws = {
-//       doRequest: 0,
-//       connected: false,
-//       queue: {
-//         received: [],
-//       }
-//     }
-//     this.session = new Session()
-//     this.connections = {}
-//   }
-// }
-
-
-// export const globalState = createState<Store>(new Store());
-
-// const wrapState = (s: State<Store>) => (s)
-
-// export const accessGlobalState = () => wrapState(globalState)
-// export const useGlobalState = () => wrapState(useState(globalState))
-// export const store = () => accessGlobalState()
-// export const useSession = () => useState(globalState.session)
 
 
 export const useHS = useState;
@@ -1030,11 +501,7 @@ class QueryPanelState {
   }
 }
 
-export type ConnectionRecord = { [key: string]: Connection; }
 class GlobalStore {
-  app: State<AppState>
-  workspace: State<WorkspaceState>
-  connections: State<Connection[]>
   queryPanel: State<QueryPanelState>
   jobPanel: State<JobPanelState>
   projectPanel: State<ProjectPanelState>
@@ -1044,9 +511,6 @@ class GlobalStore {
   ws: State<Ws>
 
   constructor(data: ObjectAny = {}) {
-    this.app = createState(new AppState(data.app))
-    this.workspace = createState(new WorkspaceState(data.workspace))
-    this.connections = createState<Connection[]>(data.connections || [])
     this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
@@ -1060,12 +524,8 @@ class GlobalStore {
     // localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
 
     let payload = {
-      name: this.workspace.name.get(),
-      conn: this.workspace.selectedConnection.get(),
 
       data: {
-        app: jsonClone(this.app.get().payload()),
-        workspace: jsonClone(this.workspace.get()),
         projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
         schemaPanel: jsonClone(this.schemaPanel.get()),
@@ -1092,9 +552,7 @@ class GlobalStore {
       let resp = await apiGet(MsgType.LoadSession, payload)
       if (resp.error) throw new Error(resp.error)
       let data = resp.data
-      let app = new AppState(data.app)
       // this.connections.set(data.connections?.map((c: any) =>new Connection(c)))
-      this.workspace.set(new WorkspaceState(data.workspace))
       // this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       this.projectPanel.set(new ProjectPanelState(data.projectPanel))
       this.objectPanel.set(new ObjectPanelState(data.objectPanel))
@@ -1110,9 +568,6 @@ export const globalStore = new GlobalStore()
 export const accessStore = () => {
   const wrap = function <T>(s: State<T>) { return s }
 
-  const app = wrap<AppState>(globalStore.app)
-  const workspace = wrap<WorkspaceState>(globalStore.workspace)
-  const connections = wrap<Connection[]>(globalStore.connections)
   const projectPanel = wrap<ProjectPanelState>(globalStore.projectPanel)
   const schemaPanel = wrap<SchemaPanelState>(globalStore.schemaPanel)
   const objectPanel = wrap<ObjectPanelState>(globalStore.objectPanel)
@@ -1122,21 +577,6 @@ export const accessStore = () => {
   const ws = wrap<Ws>(globalStore.ws)
 
   return ({
-    get app() { return app },
-    get workspace() { return workspace },
-    get connections() { return connections },
-    get connection() {
-      // let conn = getConnectionState(workspace.selectedConnection.get()) 
-      // console.log(conn)
-      // return wrap<Connection>(conn)
-
-      let connName = workspace.selectedConnection.get().toLowerCase()
-      let index = connections.get().map(c => c.name.toLowerCase()).indexOf(connName)
-      if (index > -1) {
-        return connections[index]
-      }
-      return wrap<Connection>(createState(new Connection()))
-    },
     get projectPanel() { return projectPanel },
     get jobPanel() { return jobPanel },
     get schemaPanel() { return schemaPanel },

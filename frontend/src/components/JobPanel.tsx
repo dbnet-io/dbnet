@@ -6,14 +6,13 @@ import { ListBox } from "primereact/listbox";
 import { Steps } from 'primereact/steps';
 import * as React from "react";
 import { DbNet } from "../state/dbnet";
-import { accessStore, Job, JobRequestConn, useHS } from "../store/state";
+import { Job, JobRequestConn } from "../state/job";
+import { accessStore, useHS } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 
 const store = accessStore()
 
-interface Props {
-  dbnet: DbNet
- }
+interface Props {}
 
 export const JobPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -105,7 +104,7 @@ export const JobPanel: React.FC<Props> = (props) => {
           <h3>Source</h3>
           <ListBox
             value={job.request.source.get()}
-            options={props.dbnet.connections}
+            options={window.dbnet.connections}
             onChange={(e) => { job.request.source.set(e.value) }}
             filter={false}
             multiple={false}
@@ -121,7 +120,7 @@ export const JobPanel: React.FC<Props> = (props) => {
           <h3>Target</h3>
           <ListBox
             value={job.request.target.get()}
-            options={props.dbnet.connections}
+            options={window.dbnet.connections}
             onChange={(e) => { job.request.target.set(e.value) }}
             filter={false}
             multiple={false}

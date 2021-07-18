@@ -4,7 +4,9 @@ import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import { accessStore, getConnectionState, globalStore, useHS, useVariable } from "../store/state";
+import {
+  accessStore, globalStore, useHS, useVariable
+} from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
@@ -86,8 +88,7 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
 
 const TableDropdown = (props: { value: State<string> }) => {
   const getAllTables = () => {
-    const connName = store.objectPanel.table.connection.get()
-    return getConnectionState(connName).get().getAllTables().map(
+    return window.dbnet.currentConnection.getAllTables().map(
       (t) => {
         return {
           name: `${t.database}.${t.schema}.${t.name}`
@@ -190,6 +191,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     }
   }
 
+  const height = window.innerHeight - 570 > 500 ? 500 : window.innerHeight - 570
   ///////////////////////////  HOOKS  ///////////////////////////
   const objectPanel = useState(store.objectPanel)
   const table = useState<Table>(new Table())
@@ -212,7 +214,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     selectedColumns.set([])
     filter.set('')
     table.set(new Table(jsonClone(objectPanel.table.get())))
-  }, [objectPanel.table.name.get()])// eslint-disable-line
+  }, [objectPanel.table.name.get(), objectPanel.loading.get()])// eslint-disable-line
 
   // React.useEffect(() => {
   //   // reset the selected columns
@@ -350,8 +352,10 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       conds: string
     }
 
+    const t1 = objectPanel.table.get()
+
     const input = useHS<Input>({
-      t1: objectPanel.table.name.get(),
+      t1: `${t1.database}.${t1.schema}.${t1.name}`,
       t1_field: selectedColumns.get().map(c => c.name).join(','),
       t1_filter: '1=1',
       t2: '',
@@ -461,7 +465,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             title="Search history of this object"
             onClick={() => {
               store.historyPanel.filter.set(objectPanel.table.name.get())
-              store.workspace.selectedMetaTab.set('History')
+              window.dbnet.state.workspace.selectedMetaTab.set('History')
             }}
           >
             <span style={{ 'fontSize': '1.2em', paddingLeft: '5px' }}>H</span>
@@ -576,7 +580,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
-            let sql = `select ${cols.join(', ')}\nfrom ${table.get().fullName()}\nlimit 5000;`
+            let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 5000;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
@@ -590,8 +594,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           onClick={(e) => {
             let colsCnt = (selectedColumns.get()?.map(v => v.name) || [])
               .map(c => `count(${c}) cnt_${c}`)
-            let colsCntStr = colsCnt.length > 0 ? `,\n  ${colsCnt.join(',\n  ')}` : ''
-            let sql = `select\n  count(1) cnt${colsCntStr}\nfrom ${table.get().fullName()}\n;`
+            let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
+            let sql = `select count(1) cnt${colsCntStr} from ${table.get().fullName()};`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
@@ -607,7 +611,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let cols = selectedColumns.get()?.map(v => v.name) || []
             if (cols.length === 0) return toastError('need to select columns')
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc\n;`
+            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
@@ -701,7 +705,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
       <div
         className="p-col-12 p-md-12"
-        style={{ height: `${window.innerHeight - 470}px` }}
+        style={{ height: `${height}px` }}
       // onMouseEnter={() => toastInfo('hello')}  
       >
 
@@ -710,7 +714,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           loading={objectPanel.loading.get()}
           rowHover={true}
           scrollable={true}
-          scrollHeight={`${window.innerHeight - 490}px`}
+          scrollHeight={`${height - 20}px`}
           resizableColumns={true}
           className="p-datatable-sm p-datatable-gridlines"
           style={{ fontSize: '10px' }}

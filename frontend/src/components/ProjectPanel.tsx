@@ -7,7 +7,7 @@ import { Tooltip } from "primereact/tooltip";
 import { Tree } from "primereact/tree";
 import * as React from "react";
 import { apiGet, apiPost } from "../store/api";
-import { accessStore, Connection, FileItem, globalStore, useHS } from "../store/state";
+import { accessStore, FileItem, globalStore, useHS } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { jsonClone, toastError } from "../utilities/methods";
 import { createTab } from "./TabNames";
@@ -18,9 +18,7 @@ import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 
-interface Props {
-  dbnet: DbNet
-}
+interface Props {}
 
 export const ProjectPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -139,7 +137,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     return items.filter(i => filter(i))
   }
 
-  const dbtConns = () : string[] => props.dbnet.connections.filter(c => c.dbt).map(c => c.name.toLowerCase())
+  const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name.toLowerCase())
   
   const loadDbtProject = async (file: FileItem) => {
     if(file.name?.toLowerCase() !== 'dbt_project.yml') return
@@ -187,7 +185,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       >
         <ListBox 
           value={profileTargetSelected.get()}
-          options={props.dbnet.connections.filter(c => c.dbt).map(c => c.name)}
+          options={window.dbnet.connections.filter(c => c.dbt).map(c => c.name)}
           onChange={(e) => profileTargetSelected.set(e.value)} 
           listStyle={{fontFamily:'monospace'}}
           style={{width: '14rem'}} 

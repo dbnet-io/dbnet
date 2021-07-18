@@ -1,5 +1,5 @@
 import * as React from "react";
-import { accessStore, getConnectionState, Tab, useHS } from "../store/state";
+import { accessStore, Tab, useHS } from "../store/state";
 import { none } from "@hookstate/core";
 import { jsonClone, toastError } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
@@ -9,7 +9,6 @@ import { TabMenu } from 'primereact/tabmenu';
 import classNames from "classnames";
 import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
-import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 const queryPanel = store.queryPanel
@@ -61,6 +60,7 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
     // set to last line
     let lines = tab.editor.text.get().split('\n')
     tab.editor.selection.set([lines.length - 1, 0, lines.length - 1, 0])
+    // window.dbnet.editor.focusSelection(true)
   }
   tab.editor.focus.set(v => v + 1)
 }
@@ -138,9 +138,7 @@ export const newTabName = (name: string) => {
   return newName
 }
 
-interface Props { 
-  dbnet: DbNet
-}
+interface Props {}
 
 export const TabNames: React.FC<Props> = (props) => {
 
@@ -202,7 +200,7 @@ export const TabNames: React.FC<Props> = (props) => {
       let tab = tabs[index].get()
       if (!tab.selectedChild) createTabChild(tab)
       selectedTabId.set(tab.id);
-      props.dbnet.selectConnection(tab.connection || '')
+      window.dbnet.selectConnection(tab.connection || '')
     }
     document.getElementById("table-filter")?.focus();
   };
@@ -214,8 +212,8 @@ export const TabNames: React.FC<Props> = (props) => {
     let connName = contextTab?.get()?.connection
     let databaseItems: MenuItem[] = []
     if(connName) { 
-      let connection = getConnectionState(connName)
-      databaseItems = Object.values(connection.databases.get()).map(db => {
+      let connection = window.dbnet.currentConnection
+      databaseItems = Object.values(connection.databases).map(db => {
         return {
           label: db.name,
           icon: db.name === contextTab.get()?.database ? 'pi pi-angle-double-right' : '',
@@ -370,7 +368,6 @@ export const TabNames: React.FC<Props> = (props) => {
 
     <ConnectionChooser
       show={newTab.show}
-      dbnet={props.dbnet}
       selectDb={true}
       onSelect={(connSelected: string, dbSelected: string) => {
         if(!connSelected) return toastError('Please select a connection')

@@ -1,11 +1,9 @@
 import * as React from "react";
 import { Tree } from 'primereact/tree';
-import { copyToClipboard, data_req_to_records, jsonClone, toastError, zeroPad } from "../utilities/methods";
+import { copyToClipboard, jsonClone, toastError, zeroPad } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
-import { accessStore, getDatabaseState, Query, Schema, useHS, useVariable } from "../store/state";
-import { MsgType } from "../store/websocket";
+import { accessStore, Query, useHS, useVariable } from "../store/state";
 import { loadMetaTable, makeYAML } from "./MetaTablePanel";
-import { apiGet } from "../store/api";
 import { Tooltip } from "primereact/tooltip";
 import TreeNode from "primereact/components/treenode/TreeNode";
 import { appendSqlToTab, createTabChild, getCurrentParentTabState, getOrCreateParentTabState, getTabState } from "./TabNames";
@@ -13,14 +11,11 @@ import { submitSQL } from "./TabToolbar";
 import { Menu } from 'primereact/menu';
 import { Button } from "primereact/button";
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { DbNet } from "../state/dbnet";
 import { Connection } from "../state/connection";
-import { Database, Table } from "../state/schema";
+import { Database, Schema, Table } from "../state/schema";
 import _ from "lodash";
 
-interface Props {
-  dbnet: DbNet
-}
+interface Props {}
 
 const store = accessStore()
 
@@ -42,43 +37,43 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   React.useEffect(() => {
-    let id1 = props.dbnet.subscribe('refreshSchemaPanel', trigger)
-    let id2 = props.dbnet.subscribe('onSelectConnection', onSelectConnection)
+    let id1 = window.dbnet.subscribe('refreshSchemaPanel', trigger)
+    let id2 = window.dbnet.subscribe('onSelectConnection', onSelectConnection)
     return () => {
-      props.dbnet.unsubscribe(id1)
-      props.dbnet.unsubscribe(id2)
+      window.dbnet.unsubscribe(id1)
+      window.dbnet.unsubscribe(id2)
     }
   }, [])
 
   React.useEffect(() => {
     setTimeout(() => {
-      if (props.dbnet.currentConnection == connection.name.get()) return
-      loadConnection(props.dbnet.currentConnection)
+      if (window.dbnet.selectedConnection == connection.name.get()) return
+      loadConnection(window.dbnet.selectedConnection)
     }, 100);
   }, [onSelectConnection.get()])
 
   React.useEffect(() => {
-    if (props.dbnet.connections.length === 0) return
+    if (window.dbnet.connections.length === 0) return
     let connName = localStorage.getItem("_schema_panel_connection")
     if (!connName) {
-      connName = props.dbnet.connections[0].name
-    } else if (!props.dbnet.connections.map(c => c.name).includes(connName)) {
-      connName = props.dbnet.connections[0].name
+      connName = window.dbnet.connections[0].name
+    } else if (!window.dbnet.connections.map(c => c.name).includes(connName)) {
+      connName = window.dbnet.connections[0].name
     }
     // let conn = getConnectionState(connName)
-    connection.set(new Connection(jsonClone(props.dbnet.getConnection(connName))))
+    connection.set(new Connection(jsonClone(window.dbnet.getConnection(connName))))
     return () => localStorage.setItem("_schema_panel_connection", connection.name.get())
   }, [trigger.get()])
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const loadConnection = async (name: string, refresh = false) => {
-    connection.set(new Connection(props.dbnet.getConnection(name)))
+    connection.set(new Connection(window.dbnet.getConnection(name)))
     loading.set(true)
     setTimeout(async () => {
-      await props.dbnet.getDatabases(name)
-      await props.dbnet.getAllSchemata(name, refresh)
-      connection.set(new Connection(props.dbnet.getConnection(name)))
+      await window.dbnet.getDatabases(name)
+      await window.dbnet.getAllSchemata(name, refresh)
+      connection.set(new Connection(window.dbnet.getConnection(name)))
       // await globalStore.saveSession()
       loading.set(false)
     }, 10);
@@ -86,67 +81,29 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   const getConnectionItems = () => {
 
-    return Object.values(props.dbnet.connections).map((c): MenuItem => {
+    return Object.values(window.dbnet.connections).map((c): MenuItem => {
       let connName = c.name.toUpperCase()
       return {
         label: connName,
         // icon: 'pi pi-times',
-        command: async () => props.dbnet.selectConnection(connName)
+        command: async () => window.dbnet.selectConnection(connName)
       }
     })
   }
 
   const nodeKeyToDatabase = (key: string) => {
-    let conn = props.dbnet.getConnection(props.dbnet.currentConnection)
+    let conn = window.dbnet.getConnection(window.dbnet.selectedConnection)
     return conn.lookupDatabase(key) || new Database()
   }
 
   const nodeKeyToSchema = (key: string) => {
-    let conn = props.dbnet.getConnection(props.dbnet.currentConnection)
+    let conn = window.dbnet.getConnection(window.dbnet.selectedConnection)
     return conn.lookupSchema(key) || new Schema()
   }
 
   const nodeKeyToTable = (key: string) => {
-    let conn = props.dbnet.getConnection(props.dbnet.currentConnection)
+    let conn = window.dbnet.getConnection(window.dbnet.selectedConnection)
     return conn.lookupTable(key) || new Table()
-  }
-
-  const GetTables = async (connName: string, dbName: string, schemaName: string) => {
-    loading.set(true)
-    schemaName = schemaName.toLowerCase()
-    try {
-      let data1 = {
-        conn: connName,
-        database: dbName,
-        schema: schemaName,
-      }
-      let resp = await apiGet(MsgType.GetTables, data1)
-      if (resp.error) throw new Error(resp.error)
-      let rows = data_req_to_records(resp.data)
-      let tables: Table[] = rows.map(r => {
-        return new Table({
-          connection: connName,
-          database: dbName,
-          schema: schemaName,
-          name: r.name.toLowerCase(),
-          isView: r.is_view,
-        })
-      })
-
-      let database = getDatabaseState(connName, dbName)
-      let index = database.schemas.get().map(s => s.name.toLowerCase()).indexOf(schemaName)
-      if (index > -1) {
-        database.schemas[index].set(
-          s => {
-            s.tables = tables
-            return s
-          }
-        )
-      }
-    } catch (error) {
-      toastError(error)
-    }
-    loading.set(false)
   }
 
   const selectAll = (table: Table) => {
@@ -237,18 +194,16 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         {
           label: 'Refresh',
           icon: 'pi pi-refresh',
-          command: () => {
+          command: async () => {
             let keys = Object.keys(selectedKeys.get())
             if (keys.length !== 1) return toastError("Must choose only one object")
             let arr = keys[0].split('.')
+            loading.set(true)
             if (arr.length === 1) {
               // is database
-              props.dbnet.getSchemata(connection.name.get(), arr[0], true)
+              await window.dbnet.getSchemata(connection.name.get(), arr[0], true)
             }
-            if (arr.length === 2) {
-              // is schema
-              GetTables(connection.name.get(), arr[0], arr[1])
-            }
+            loading.set(false)
           }
         },
         {
@@ -459,7 +414,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
               lastClick.set({ ts: ts, key: e.node.key?.toString() })
             } else if (ts - lastClick.ts.get() < 320 && e.node.key === lastClick.key.get()) {
               // simulate double click
-              // loadMetaTable(table)
+              loadMetaTable(table)
               selectAll(table)
               lastClick.set({ ts: 0, key: '' })
               return

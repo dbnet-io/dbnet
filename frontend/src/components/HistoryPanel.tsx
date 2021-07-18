@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ListBox } from 'primereact/listbox';
-import { accessStore, getParentTabName, Query, QueryStatus, useHS, useVariable } from "../store/state";
+import { accessStore, Query, QueryStatus, useHS, useVariable } from "../store/state";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, get_duration, new_ts_id, relative_duration, toastError } from "../utilities/methods";
@@ -13,9 +13,7 @@ import { submitSQL } from "./TabToolbar";
 import { appendSqlToTab, getCurrentParentTabState, getTabState } from "./TabNames";
 import { DbNet } from "../state/dbnet";
 
-interface Props { 
-  dbnet: DbNet
-}
+interface Props {}
 
 export const HistoryPanel: React.FC<Props> = (props) => {
   const store = accessStore()
@@ -37,7 +35,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const getLatest = async () => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: props.dbnet.connections.map(c => c.name).join(','),
+      conn: window.dbnet.connections.map(c => c.name).join(','),
       procedure: "get_latest",
     }
     try {
@@ -52,7 +50,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const doSearch = async (filter: string) => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: props.dbnet.connections.map(c => c.name).join(','),
+      conn: window.dbnet.connections.map(c => c.name).join(','),
       procedure: "search",
       name: filter,
     }

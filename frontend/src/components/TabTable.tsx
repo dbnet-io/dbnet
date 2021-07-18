@@ -1,6 +1,6 @@
 import * as React from "react";
 import './TabTable.css'
-import {  accessStore, getDexieDb, Query, QueryStatus, Tab, useHS, useVariable } from "../store/state";
+import {  accessStore, Query, QueryStatus, Tab, useHS, useVariable } from "../store/state";
 import { none, State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import _ from "lodash";
@@ -11,7 +11,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
-import { DbNet } from "../state/dbnet";
+import { DbNet, getDexieDb } from "../state/dbnet";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
@@ -19,8 +19,6 @@ const store = accessStore()
 
 interface Props {
   tab: State<Tab>
-  hotTable: React.MutableRefObject<any>
-  dbnet: DbNet
 }
 
 export const pullResult = async (tabState: State<Tab>) => {
@@ -30,7 +28,7 @@ export const pullResult = async (tabState: State<Tab>) => {
   try {
     // put in IndexedDb
     const db = getDexieDb()
-    let cachedQ = await db.table('query')
+    let cachedQ = await db.table('queries')
         .where('id')
         .equals(tab.query.id.get())
         .first()
@@ -140,7 +138,7 @@ export const TabTable: React.FC<Props> = (props) => {
   }, [tab.filter.get()])  // eslint-disable-line
   
   const refreshTable = () => {
-    const ht = props.hotTable.current?.hotInstance
+    const ht = window.dbnet.resultTable.instance
     let data = jsonClone<any[]>(props.tab.query.rows.get())
     ht.loadData(data)
     // console.log(data)
@@ -218,7 +216,7 @@ export const TabTable: React.FC<Props> = (props) => {
   const rows = filterRows()
   let output = <HotTable
     id="tab-table"
-    ref={props.hotTable}
+    ref={window.dbnet.resultTable.instanceRef}
     data={rows}
     colHeaders={props.tab.query.headers.get()}
     rowHeaders={true}

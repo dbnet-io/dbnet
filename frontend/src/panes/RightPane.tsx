@@ -9,9 +9,7 @@ import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
 import { DbNet } from "../state/dbnet";
 
-interface Props {
-  dbnet: DbNet
-}
+interface Props {}
 
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -27,23 +25,21 @@ export const RightPane: React.FC<Props> = (props) => {
   const TabPanel = () => {
     const tab = useHS(getTabState(tabId?.get()))
     const childTab = useHS(getTabState(tab.selectedChild?.get()))
-    const aceEditor = React.useRef(null);
-    const hotTable = React.useRef(null);
 
     return (
       <Splitter id="work-pane" layout="vertical" onResizeEnd={(e) => tabId.set(jsonClone(tabId?.get()))}>
         <SplitterPanel className="p-d-flex" style={{overflowY: "scroll", height: "200px", minHeight:"110px"}}>
           <div id="work-input" style={{padding: '8px', width: '100%'}}>
-            <TabNames dbnet={props.dbnet}/>
-            <TabEditor aceEditor={aceEditor} tab={tab}/>
+            <TabNames/>
+            <TabEditor tab={tab}/>
           </div>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex" style={{overflowY: "scroll", height: "200px", minHeight:"100px"}}>
           <div id='result-panel' style={{paddingLeft: '8px', paddingTop: '3px', width: '100%'}}>
             
             <SubTabs tab={tab}/>
-            <TabToolbar aceEditor={aceEditor} hotTable={hotTable} tab={childTab}/>
-            <TabTable tab={childTab} hotTable={hotTable} dbnet={props.dbnet}/>
+            <TabToolbar tab={childTab}/>
+            <TabTable tab={childTab}/>
           </div>
         </SplitterPanel>
       </Splitter>

@@ -13,7 +13,7 @@ import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { WsQueue } from './store/websocket';
-import { accessStore, Connection, globalStore, useHS } from './store/state';
+import { accessStore, globalStore, useHS } from './store/state';
 import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import _ from "lodash";
@@ -24,6 +24,7 @@ import { JobPanel } from './components/JobPanel';
 import { DbNet } from './state/dbnet';
 import { ConnectionChooser } from './components/ConnectionChooser';
 import { getTabState } from './components/TabNames';
+import { Connection } from './state/connection';
 
 // this is to extends the window global functions
 declare global {
@@ -49,7 +50,11 @@ export const App = () => {
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
 
-  const state = React.useRef<DbNet>(new DbNet({}))
+  const aceEditorRef = React.useRef(null);
+  const resultTableRef = React.useRef(null);
+  const state = React.useRef<DbNet>(new DbNet({
+    aceEditorRef, resultTableRef,
+  }))
   window.dbnet = state.current
   var dbnet = state.current
   
@@ -64,7 +69,7 @@ export const App = () => {
     Init()
     return () => {
       dbnet.dispose()
-      state.current = new DbNet({});
+      state.current = new DbNet({aceEditorRef, resultTableRef});
     }
   }, [])// eslint-disable-line
 
@@ -73,8 +78,6 @@ export const App = () => {
   const Init = async () => {
     await dbnet.init()
 
-    store.connections.set(dbnet.connections as Connection[])
-    store.workspace.selectedConnection.set(dbnet.currentConnection)
     if(dbnet.connections.length === 0) {
       // need to create connections
       toastInfo('Did not find any connections.')
@@ -82,20 +85,19 @@ export const App = () => {
     }
 
     // choose conn if needed
-    if(!dbnet.currentConnection) return chooseConnection.set(true)
+    if(!dbnet.selectedConnection) return chooseConnection.set(true)
 
     // init load session
-    await globalStore.loadSession(dbnet.currentConnection)
+    // await globalStore.loadSession(dbnet.selectedConnection)
 
-    await dbnet.getDatabases(dbnet.currentConnection)
-    await dbnet.getAllSchemata(dbnet.currentConnection)
-
+    await dbnet.getDatabases(dbnet.selectedConnection)
+    await dbnet.getAllSchemata(dbnet.selectedConnection)
 
     // set init tab to current connection/database
     let tabs = store.queryPanel.tabs.get().filter(t => !t.parent && !t.hidden)
     if (tabs.length === 1 && !tabs[0].connection) {
       let tab = getTabState(tabs[0].id)
-      let conn = dbnet.getConnection(dbnet.currentConnection)
+      let conn = dbnet.getConnection(dbnet.selectedConnection)
       tab.set(t => {
         t.connection = conn.name
         t.database = conn.database
@@ -130,12 +132,11 @@ export const App = () => {
       onKeyDown={onKeyPress}
     >
       <Toast ref={toast} />
-      <JobPanel dbnet={dbnet}/>
+      <JobPanel/>
       <PreviewPanel />
       <RowViewPanel />
       <ConnectionChooser
         show={chooseConnection}
-        dbnet={dbnet}
         selectDb={false}
         onSelect={(connSelected: string) => {
           if(!connSelected) return toastError('Please select a connection')
@@ -145,15 +146,15 @@ export const App = () => {
         }}
       />
       <div style={{ paddingBottom: '7px' }}>
-        <TopMenuBar dbnet={dbnet}/>
+        <TopMenuBar/>
       </div>
       <div>
       <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
         <SplitterPanel className="p-d-flex">
-          <LeftPane dbnet={dbnet}/>
+          <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">
-          <RightPane dbnet={dbnet}/>
+          <RightPane/>
           {/* <Sessions/> */}
         </SplitterPanel>
       </Splitter>

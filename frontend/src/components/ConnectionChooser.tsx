@@ -7,17 +7,17 @@ import React from "react"
 import { DbNet } from "../state/dbnet"
 import { useHS } from "../store/state"
 
-export const ConnectionChooser = (props: { show: State<boolean>, dbnet: DbNet, selectDb: boolean, onSelect: (connName: string, dbName: string) => void}) => {
+export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boolean, onSelect: (connName: string, dbName: string) => void}) => {
   const connSelected = useHS('')
   const dbSelected = useHS('')
-  const dbtConns = () : string[] => props.dbnet.connections.filter(c => c.dbt).map(c => c.name)
+  const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name)
 
   React.useEffect(()=>{
     if(props.selectDb && connSelected.get()) {
-      let conn = props.dbnet.getConnection(connSelected.get())
+      let conn = window.dbnet.getConnection(connSelected.get())
 
       if(Object.keys(conn.databases).length === 0) {
-        props.dbnet.getDatabases(connSelected.get()).then(
+        window.dbnet.getDatabases(connSelected.get()).then(
           _ => {
             if(Object.keys(conn.databases).length > 0) connSelected.set(connSelected.get())
           }
@@ -61,7 +61,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, dbnet: DbNet, s
     >
       <ListBox 
         value={connSelected.get()}
-        options={props.dbnet.connections.map(c => c.name)} 
+        options={window.dbnet.connections.map(c => c.name)} 
         onChange={(e) => connSelected.set(e.value)} 
         listStyle={{fontFamily:'monospace'}}
         itemTemplate={itemTemplate}
@@ -73,7 +73,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, dbnet: DbNet, s
           value={dbSelected.get()}
           options={ _.sortBy(
                       Object.values(
-                        props.dbnet
+                        window.dbnet
                         .getConnection(connSelected.get())
                         .databases
                       ).map(d => d.name)

@@ -3,20 +3,24 @@ import { ObjectAny } from "../utilities/interfaces"
 import { sum } from "lodash";
 
 export class Editor {
-  instance: Ace.Editor
+  instanceRef: React.MutableRefObject<any>
   text: string
   selection: number[] // startRow, startCol, endRow, endCol
   highlight: number[] // startRow, startCol, endRow, endCol
   undoManager: any
   focus: number // to trigger focus
 
-  constructor(instance: Ace.Editor=null as any, data: ObjectAny = {}) {
-    this.instance = instance
+  constructor(instanceRef: React.MutableRefObject<any>, data: ObjectAny = {}) {
+    this.instanceRef = instanceRef
     this.text = data.text || ''
     this.selection = data.selection || [0, 0, 0, 0]
     this.highlight = data.highlight || [0, 0, 0, 0]
     this.undoManager = data.undoManager || {}
     this.focus = 0
+  }
+
+  get instance() {
+    return this.instanceRef.current?.editor as Ace.Editor
   }
 
   lines = () => {
@@ -37,6 +41,21 @@ export class Editor {
         }
       }
     }
+  }
+
+  focusSelection(scroll = false) {
+    if (!this.instance) return
+    let selection = this.selection
+
+    if (scroll) {
+      this.instance.scrollToLine(selection[0], true, true, () => { })
+    }
+
+    this.instance.selection.setRange(new Range(
+      selection[0], selection[1],
+      selection[2], selection[3],
+    ))
+    this.instance.focus()
   }
 
   getBlockPoints = (block: string) => {

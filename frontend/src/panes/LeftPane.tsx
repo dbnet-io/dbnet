@@ -10,15 +10,13 @@ import { DbNet } from "../state/dbnet";
 
 const store = accessStore()
 
-interface Props {
-  dbnet: DbNet
-}
+interface Props {}
 
 
 export const LeftPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const tabOptions = useState<string[]>(['Files', 'Schema', 'History'])
-  const tabValue = useHS(store.workspace.selectedMetaTab)
+  const tabValue = useHS(window.dbnet.state.workspace.selectedMetaTab)
   // const tabValue = useStore().selectedMetaTab
 
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -44,11 +42,11 @@ export const LeftPane: React.FC<Props> = (props) => {
       <div className="p-col-12 p-md-12" style={{paddingTop: '0px'}}>
           { 
             tabValue.get() === "Files" ?
-            <ProjectPanel dbnet={props.dbnet}/> : null
+            <ProjectPanel/> : null
           }
           { 
             tabValue.get() === "Schema" ?
-            <SchemaPanel dbnet={props.dbnet}/> : null
+            <SchemaPanel/> : null
           }
 
           {/* { 
@@ -58,7 +56,7 @@ export const LeftPane: React.FC<Props> = (props) => {
 
           { 
             tabValue.get() === 'History' ?
-            <HistoryPanel dbnet={props.dbnet}/> : null
+            <HistoryPanel/> : null
           }
       </div>
 

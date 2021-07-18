@@ -1,27 +1,31 @@
 import Dexie from "dexie";
 import _ from "lodash";
 import { apiGet, Response } from "../store/api";
-import { accessStore, Database, DatabaseRecord, getConnectionState, Variable } from "../store/state";
+import { accessStore, Variable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
 import { Connection } from "./connection";
 import { Editor } from "./editor";
-import { Schema, Table } from "./schema";
+import { Database, Schema, Table } from "./schema";
+import { DbNetState } from "./state";
+import { ResultTable } from "./table";
 import { Workspace } from "./workspace";
 
 const store = accessStore()
 
 export type DbNetOptions = {
-  // readonly uri: string;
-  // readonly editor: editor.IStandaloneCodeEditor;
-  readonly onConnected?: () => unknown;
-  readonly onDisconnected?: () => unknown;
-  readonly onDesynchronized?: () => unknown;
-  readonly onChangeLanguage?: (language: string) => unknown;
-  // readonly onChangeUsers?: (users: Record<number, UserInfo>) => unknown;
-  readonly reconnectInterval?: number;
+  resultTableRef: React.MutableRefObject<any>;
+  aceEditorRef: React.MutableRefObject<any>;
 
+  // uri: string;
+  // editor: editor.IStandaloneCodeEditor;
+  onConnected?: () => unknown;
+  onDisconnected?: () => unknown;
+  onDesynchronized?: () => unknown;
+  onChangeLanguage?: (language: string) => unknown;
+  // onChangeUsers?: (users: Record<number, UserInfo>) => unknown;
+  reconnectInterval?: number;
 };
 
 export type TriggerType = 'refreshSchemaPanel' | 'refreshJobPanel' | 'refreshTable' | 'onSelectConnection'
@@ -33,13 +37,14 @@ export class DbNet {
   private ws?: WebSocket;
   db: Dexie
   workspace: Workspace
-  currentConnection: string
+  selectedConnection: string
   connections: Connection[]
   editor: Editor
+  resultTable: ResultTable
   triggerMap: TriggerMapRecord
+  state: DbNetState
 
   // app: AppState
-  // connections: Connection[]
   // queryPanel: QueryPanelState
   // jobPanel: JobPanelState
   // projectPanel: ProjectPanelState
@@ -47,13 +52,15 @@ export class DbNet {
   // objectPanel: ObjectPanelState
   // historyPanel: HistoryPanelState
 
-  constructor(readonly options: DbNetOptions) {
+  constructor(options: DbNetOptions) {
     this.db = getDexieDb()
     this.workspace = new Workspace()
-    this.editor = new Editor()
+    this.editor = new Editor(options.aceEditorRef)
+    this.resultTable = new ResultTable(options.resultTableRef)
     this.connections = []
-    this.currentConnection = ''
+    this.selectedConnection = ''
     this.triggerMap = {} as TriggerMapRecord
+    this.state = new DbNetState()
   }
 
   async init() {
@@ -68,7 +75,7 @@ export class DbNet {
     if (!name || !this.connections.map(c => c.name).includes(name)) {
       return toastError(`Connection ${name} not found`)
     }
-    this.currentConnection = name
+    this.selectedConnection = name
     localStorage.setItem("_connection_name", name)
     this.trigger('onSelectConnection')
   }
@@ -147,7 +154,7 @@ export class DbNet {
     this.connections = conns.map(c => new Connection(c))
     this.workspace.connections = this.connections.map(c => c.name)
      // set current conn
-    if(!this.currentConnection) this.selectConnection(`${localStorage.getItem("_connection_name")}`)
+    if(!this.selectedConnection) this.selectConnection(`${localStorage.getItem("_connection_name")}`)
   }
 
   async loadWorkspace() {
@@ -163,23 +170,23 @@ export class DbNet {
 
   async getDatabases(connName: string) {
     try {
-      let connection = getConnectionState(connName)
+      let connection = this.currentConnection
 
       let resp = await apiGet(MsgType.GetDatabases, { conn: connName })
       if (resp.error) throw new Error(resp.error)
       let rows = data_req_to_records(resp.data)
       if (rows.length > 0) {
-        let databases = jsonClone<DatabaseRecord>(connection.databases.get())
+        let databases = jsonClone<Record<string, Database>>(connection.databases)
         rows.forEach((r) => {
           let name = (r.name as string)
           if (!(name.toLowerCase() in databases)) {
             databases[name.toLowerCase()] = new Database({ name: name.toUpperCase() })
           }
         })
-        connection.databases.set(databases)
+        connection.databases = databases
         this.getConnection(connName).databases = databases
-        if (connection.database.get() === '') {
-          connection.database.set(rows[0].name.toUpperCase())
+        if (connection.database === '') {
+          connection.database = rows[0].name.toUpperCase()
         }
         this.trigger('refreshSchemaPanel')
       } else {
@@ -261,6 +268,10 @@ export class DbNet {
     }
   }
 
+  get currentConnection() {
+    return this.getConnection(this.selectedConnection)
+  }
+
   getConnection(connName: string) {
     connName = connName.toLowerCase()
     let index = this.connections.map(c => c.name.toLowerCase()).indexOf(connName)
@@ -271,7 +282,6 @@ export class DbNet {
     return new Connection()
   }
 }
-
 
 class Query {
   constructor(data: ObjectAny = {}) {
@@ -304,4 +314,10 @@ export const getDexieDb = () => {
     jobs: '&id,time', // history of queries
   })
   return db
+}
+
+export const cleanupDexieDb = async () => {
+  let marker = (new Date()).getTime() - 7 * 24 * 60 * 60 * 1000
+  const db = getDexieDb()
+  await db.table('queries').where('time').below(marker).delete();
 }

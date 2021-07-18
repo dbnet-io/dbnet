@@ -1,5 +1,5 @@
 import * as React from "react";
-import { accessStore, cleanupDexieDb, getDexieDb, globalStore, Query, Tab, useHS } from "../store/state";
+import { accessStore, globalStore, Query, Tab, useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
@@ -13,6 +13,7 @@ import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Ace } from "ace-builds";
+import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 
 const store = accessStore()
 
@@ -51,6 +52,10 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   // if (!childTab) childTab = createTabChild(tab.get())
   if (!childTab) {
     childTab = getTabState(tab.selectedChild.get()).get()
+    if (childTab.pinned) {
+      childTab = createTabChild(tab.get())
+      tab.selectedChild.set(childTab.id)
+    }
   }
   // store.queryPanel.selectedTabId.set(tab.id.get())
   // tab.selectedChild.set(childTab.id)
@@ -125,7 +130,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
       )
 
       // cache results
-      getDexieDb().table('query').put(jsonClone(query))
+      getDexieDb().table('queries').put(jsonClone(query))
     }
   } catch (error) {
     toastError(error)
@@ -151,7 +156,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
 }
 
-export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRefObject<any>, hotTable: React.MutableRefObject<any> }) {
+export function TabToolbar(props: { tab: State<Tab> }) {
   const tab = props.tab;
   const filter = useHS(tab.filter);
   const resultLimit = useHS(tab.resultLimit);
@@ -187,7 +192,7 @@ export function TabToolbar(props: { tab: State<Tab>, aceEditor: React.MutableRef
                 tooltipOptions={{ position: 'top' }}
                 className="p-button-sm p-button-primary"
                 onClick={(e) => {
-                  let sql = (props.aceEditor.current.editor as Ace.Editor).getSelectedText()
+                  let sql = window.dbnet.editor.instance.getSelectedText()
                   let parentTab = getTabState(tab.parent.get() || '')
                   if (sql === '') { sql = parentTab.editor.get().getBlock() }
                   if (sql.trim() !== '') { submitSQL(parentTab, sql) }

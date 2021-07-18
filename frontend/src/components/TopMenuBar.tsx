@@ -2,56 +2,48 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, globalStore, lookupTable, useHS, useVariable } from "../store/state";
+import { accessStore, globalStore, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
 import { none } from "@hookstate/core";
 import { TauriGetCwd } from "../utilities/tauri";
-import { DbNet } from "../state/dbnet";
 import { Connection } from "../state/connection";
 import { Table } from "../state/schema";
 
 
 const store = accessStore()
 
-interface Props {
-  dbnet: DbNet
-}
+interface Props {}
 
 
 export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const connection = useHS<Connection>(new Connection())
-  const connName = useHS(store.workspace.selectedConnection)
-  const recentSearches = connection.recentOmniSearches
   const tableKeys = React.useRef<Record<string, Table>>({})
   const onSelectConnection = useVariable(0)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
-    let id2 = props.dbnet.subscribe('onSelectConnection', onSelectConnection)
+    let id2 = window.dbnet.subscribe('onSelectConnection', onSelectConnection)
     return () => {
-      props.dbnet.unsubscribe(id2)
+      window.dbnet.unsubscribe(id2)
     }
   }, [])
 
-  React.useEffect(() => {
-    connection.set(new Connection(props.dbnet.getConnection(props.dbnet.currentConnection)))
-  }, [onSelectConnection.get()])
+  React.useEffect(() => { }, [onSelectConnection.get()])
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const makeItems = () => {
     const loadConn = (conn: Connection) => {
       globalStore.loadSession(conn.name).then(async () => {
-        await props.dbnet.getDatabases(conn.name)
-        await props.dbnet.getSchemata(conn.name, conn.database)
+        await window.dbnet.getDatabases(conn.name)
+        await window.dbnet.getSchemata(conn.name, conn.database)
       })
-      props.dbnet.selectConnection(conn.name)
+      window.dbnet.selectConnection(conn.name)
     }
 
-    let connItems: MenuItem[] = props.dbnet.connections.map((c): MenuItem => {
+    let connItems: MenuItem[] = window.dbnet.connections.map((c): MenuItem => {
       return {
         label: c.name,
         command: () => { loadConn(c) },
@@ -106,12 +98,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   </div>
 
   const OmniBox = () => {
-    const allTables = useVariable<Table[]>([])
     const searchResults = useVariable<Table[]>([])
     const omniSearch = useVariable('')
     const removedRecent = useHS('') // little hack to prevent item clicking
-
-    const selectedMetaTab = store.workspace.selectedMetaTab
 
     const omniKeyPress = (e: any) => {
       // omni search
@@ -152,37 +141,33 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       );
     }
 
-    React.useEffect(() => {
-      allTables.set(connection.get().getAllTables())
-    }, []) // eslint-disable-line
-
     const searchTable = (e: any) => {
+      const connection = window.dbnet.currentConnection
       let queryStr = e.query.trim() as string
       if (!queryStr.length) {
         return []
       }
 
-      let recents = recentSearches.get()
       let queries = queryStr.split(' ')
       let results: Table[] = []
-      for (let key of Object.keys(recents)) {
+      for (let key of Object.keys(connection.recentOmniSearches)) {
         let found: boolean[] = queries.map(v => false)
         for (let i = 0; i < queries.length; i++) {
           const query = queries[i];
           found[i] = key.toString().includes(query.toLowerCase())
         }
         if (found.every(v => v)) {
-          let table = lookupTable(connection.name.get(), key.toString())
+          let table = connection.lookupTable(key.toString())
           if (table) results.push(new Table(table))
         }
       }
 
-      for (let table of connection.get().getAllTables()) {
+      for (let table of connection.getAllTables()) {
         let found: boolean[] = queries.map(_ => false)
         let fullName = `${table.schema}.${table.name}`
         for (let i = 0; i < queries.length; i++) {
           const query = queries[i];
-          found[i] = fullName.toLowerCase().includes(query.toLowerCase()) && !(fullName.toLowerCase() in recents)
+          found[i] = fullName.toLowerCase().includes(query.toLowerCase()) && !(fullName.toLowerCase() in connection.recentOmniSearches)
         }
         if (found.every(v => v)) {
           results.push(new Table(table))
@@ -206,10 +191,8 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       onChange={(e: any) => { omniSearch.set(e.target.value) }}
       onSelect={(e: any) => {
         let table = tableKeys.current[e.value]
-        console.log(table)
         if (table.fullName() === removedRecent.get()) return omniSearch.set('')
         loadMetaTable(table)
-        selectedMetaTab.set('Object')
         omniSearch.set('')
         setTimeout(
           () => document.getElementById('object-column-filter')?.focus(),
@@ -218,10 +201,10 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
         // save in recent searches
         setTimeout(() => {
-          recentSearches[table.fullName2()].set(v => (v || 0) + 1)
-          if (recentSearches.keys.length > 100) {
-            let key = recentSearches.keys[recentSearches.keys.length - 1]
-            recentSearches[key].set(none)
+          let keys = Object.keys(window.dbnet.currentConnection.recentOmniSearches)
+          if (keys.length > 100) {
+            let key = keys[keys.length - 1]
+            delete window.dbnet.currentConnection.recentOmniSearches[key]
           }
         }, 1000);
       }}
@@ -241,7 +224,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   }
 
   const end = () => <div style={{ paddingRight: "0px" }} className="p-inputgroup">
-    <h3 style={{ paddingRight: '8px', fontFamily: 'monospace' }}>{connName.get()}</h3>
+    <h3 style={{ paddingRight: '8px', fontFamily: 'monospace' }}>{window.dbnet.currentConnection.name}</h3>
 
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
@@ -259,7 +242,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Load session"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { globalStore.loadSession(connName.get()) }}
+      onClick={(e) => { globalStore.loadSession(window.dbnet.currentConnection.name) }}
     />
 
     <Button
