@@ -112,6 +112,7 @@ type Query struct {
 	UpdatedDt time.Time     `json:"-" gorm:"autoUpdateTime"`
 	Done      chan struct{} `json:"-" gorm:"-"`
 	Affected  int64         `json:"affected" gorm:"-"`
+	ProjDir   string        `json:"proj_dir" gorm:"-"`
 }
 
 // Job represents a job

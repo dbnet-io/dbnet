@@ -14,7 +14,7 @@ import { createTab } from "./TabNames";
 import yaml from 'yaml'
 import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
-import { DbNet } from "../state/dbnet";
+import { InputText } from "primereact/inputtext";
 
 const store = accessStore()
 
@@ -25,6 +25,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   const cm = React.useRef<ContextMenu>(null);
   const loading = useHS(false)
   const chooseProfile = useHS(false)
+  const chooseFolder = useHS(false)
   const projectPanel = useHS(store.projectPanel)
   const rootPath = useHS(projectPanel.rootPath)
   const fileNodes = useHS(projectPanel.fileNodes)
@@ -39,6 +40,12 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   }, []) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
+
+  const shortRoot = () => {
+    const arr = rootPath.get().split('/')
+    return arr[arr.length-1]
+  }
+
   const fileOp = (operation: 'list' | 'read' | 'write' | 'delete', file: FileItem, overwrite=false) => {
     let data = {
       operation,
@@ -137,7 +144,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     return items.filter(i => filter(i))
   }
 
-  const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name.toLowerCase())
+  const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name.toUpperCase())
   
   const loadDbtProject = async (file: FileItem) => {
     if(file.name?.toLowerCase() !== 'dbt_project.yml') return
@@ -149,16 +156,63 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     } catch (error) {
       toastError(error)
     }
-    if(!dbtConns().includes(dbtConn())) {
+    if(!dbtConns().includes(dbtConn().name.toUpperCase())) {
       chooseProfile.set(true)
     }
   }
 
   const dbtConn = () => {
-    return `${dbtProfile.get()?.toLowerCase()}/${dbtTarget.get().toLowerCase()}`
+    return window.dbnet.getConnection(`${dbtProfile.get()?.toUpperCase()}/${dbtTarget.get().toUpperCase()}`)
   }
 
   ///////////////////////////  JSX  ///////////////////////////
+
+  const FolderChooser = () => {
+    const newPath = useHS(jsonClone<string>(rootPath.get()))
+
+    const footer = () => {
+      return <div style={{textAlign: 'center'}}>
+        <Button
+          label="OK"
+          icon="pi pi-check"
+          className="p-button-outlined"
+          onClick={() => {
+            rootPath.set(jsonClone<string>(newPath.get()))
+            chooseFolder.set(false)
+            refreshRoot()
+          }}
+        />
+        <Button
+          label="Cancel"
+          icon="pi pi-check"
+          className="p-button-outlined p-button-warning"
+          onClick={() => { chooseFolder.set(false)  }} 
+        />
+      </div>
+    }
+    
+    return <>
+      <Dialog
+        header="Choose a Folder" visible={chooseFolder.get()}
+        footer={footer()}
+        onHide={() => chooseFolder.set(false)}
+        style={{width: '24rem'}} 
+      >
+        <div className="p-grid">
+          <div className="p-col-12">
+            <div className="p-inputgroup">
+              <InputText
+                value={newPath.get()}
+                onChange={(e) => newPath.set(e.target.value)}
+                style={{ fontFamily: 'monospace' }}
+                />
+            </div>
+          </div>
+        </div>
+      </Dialog>
+    </>
+  }
+
 
   const ProfileChooser = () => {
     const profileTargetSelected = useHS('')
@@ -247,8 +301,10 @@ export const ProjectPanel: React.FC<Props> = (props) => {
               loading.set(true)
               try {
                 let resp = await fileOp('read', {path: item.path})
-                if(resp.error) throw new Error(resp.error)
-                let tab = createTab(item.name, resp.data.file.body as string, '', '')
+                if (resp.error) throw new Error(resp.error)
+                let conn = dbtConn()
+                if (!conn.name) throw new Error('invalid connection')
+                let tab = createTab(item.name, resp.data.file.body as string, conn.name, conn.database)
                 tab.file.set(item)
               } catch (error) {
                 toastError(error)
@@ -283,12 +339,12 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   return (
     <div className="p-grid p-fluid" style={{textAlign:'center'}}>
       <div className="p-col-12 p-md-12" style={{paddingTop: '7px', paddingBottom: '7px'}}>
-        <b>{rootPath.get()}</b>
+        <b>{shortRoot()}</b>
         <span style={{paddingLeft: '10px'}}>
           <a href="#;">
             <i 
               className="pi pi-folder-open"
-              onClick={async () => {}}
+              onClick={async () => { chooseFolder.set(true) }}
             />
           </a>
         </span>
@@ -302,13 +358,14 @@ export const ProjectPanel: React.FC<Props> = (props) => {
         </span>
       </div>
 
+      <FolderChooser/>
       <ProfileChooser/>
       {
         dbtProject.get()?
         <div className="p-col-12 p-md-12" style={{color: 'green', fontSize: '0.7rem', paddingBottom: '7px'}}>
           <b>dbt project —  
             <span style={{color: 'teal', paddingLeft:'3px'}}>
-              { dbtConn() }
+              { dbtConn().name }
               <Tooltip target="#dbt-settings-profile" style={{fontSize: '0.6rem'}}/>
               <a id="dbt-settings-profile" href="#;" data-pr-tooltip="Change profile/target">
                 <i 

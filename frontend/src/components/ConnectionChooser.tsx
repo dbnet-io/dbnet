@@ -4,7 +4,6 @@ import { Button } from "primereact/button"
 import { Dialog } from "primereact/dialog"
 import { ListBox } from "primereact/listbox"
 import React from "react"
-import { DbNet } from "../state/dbnet"
 import { useHS } from "../store/state"
 
 export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boolean, onSelect: (connName: string, dbName: string) => void}) => {

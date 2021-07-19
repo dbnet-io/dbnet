@@ -72,6 +72,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     tab: childTab.id,
     limit: limit,
     wait: true,
+    proj_dir: store.projectPanel.rootPath.get(),
   }
 
   if (data1.text.endsWith(';')) {

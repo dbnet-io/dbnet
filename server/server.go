@@ -159,16 +159,13 @@ func (srv *Server) Cleanup() {
 func (srv *Server) Loop() {
 	ticker6Hours := time.NewTicker(6 * time.Hour)
 	defer ticker6Hours.Stop()
-	for {
-		select {
-		case <-ticker6Hours.C:
-		}
-	}
+	<-ticker6Hours.C
 }
 
 type DbtServer struct {
 	ProjDir string
 	Profile string
+	Target  string
 	Host    string
 	Port    int
 	Proc    *process.Proc
@@ -176,10 +173,21 @@ type DbtServer struct {
 	timer   *time.Timer
 }
 
-func NewDbtServer(projDir, profile string) *DbtServer {
-	s := &DbtServer{
+func GetOrCreateDbtServer(projDir, profile, target string) (s *DbtServer, err error) {
+
+	mux.Lock()
+	key := strings.ToLower(g.F("%s|%s", profile, projDir))
+	s, ok := DbtServers[key]
+	mux.Unlock()
+
+	if ok {
+		return
+	}
+
+	s = &DbtServer{
 		ProjDir: projDir,
 		Profile: profile,
+		Target:  target,
 		Host:    "0.0.0.0",
 	}
 
@@ -191,12 +199,18 @@ func NewDbtServer(projDir, profile string) *DbtServer {
 		mux.Unlock()
 	})
 
+	err = s.Launch()
+	if err != nil {
+		err = g.Error(err, "could not launch dbt server")
+		return
+	}
+
 	mux.Lock()
 	DbtServers[s.Key()] = s
 	mux.Unlock()
 
 	s.TouchTs()
-	return s
+	return
 }
 
 // Key returns the key
@@ -220,11 +234,56 @@ type dbtResponse struct {
 	ID      string `json:"id"`
 	JsonRPC string `json:"jsonrpc"`
 	Result  g.Map  `json:"result"`
+	Error   g.Map  `json:"error"`
 }
 
 // Submit submits a request to RPC
 func (s *DbtServer) Submit(req dbtRequest) (dbtResp dbtResponse, err error) {
 	s.TouchTs()
+
+	for {
+		dbtResp, err = s.doSubmit(req)
+		if err != nil {
+			err = g.Error(err)
+			return
+		}
+		// g.PP(dbtResp)
+
+		state := cast.ToString(dbtResp.Result["state"])
+		reqToken := cast.ToString(dbtResp.Result["request_token"])
+		errorCode := cast.ToInt(dbtResp.Error["code"])
+		errorMessage := cast.ToString(dbtResp.Error["message"])
+
+		if reqToken != "" {
+			// now poll
+			req = dbtRequest{
+				ID:      req.ID,
+				JsonRPC: "2.0",
+				Method:  "poll",
+				Params: g.Map{
+					"request_token": reqToken,
+					"logs":          false,
+					"logs_start":    0,
+				},
+			}
+			continue
+		} else if state == "running" || errorCode == 10010 {
+			// still running or compiling, wait 1 sec
+			time.Sleep(1 * time.Second)
+			continue
+		} else if errorCode > 0 || state != "success" {
+			err = g.Error("dbt request failed: %s", errorMessage)
+			return
+		}
+
+		// success
+		break
+	}
+
+	return
+}
+
+func (s *DbtServer) doSubmit(req dbtRequest) (dbtResp dbtResponse, err error) {
 
 	headers := map[string]string{"Content-Type": "application/json"}
 	url := g.F("http://%s:%d/jsonrpc", s.Host, s.Port)
@@ -277,6 +336,7 @@ func (s *DbtServer) Launch() (err error) {
 		"--host", s.Host,
 		"--port", cast.ToString(s.Port),
 		"--profile", s.Profile,
+		"--target", s.Target,
 		"--project-dir", s.ProjDir,
 	)
 
@@ -285,7 +345,7 @@ func (s *DbtServer) Launch() (err error) {
 	}
 
 	if err != nil {
-		err = g.Error(err, "error launching RPC server")
+		return g.Error(err, "error launching RPC server")
 	} else {
 		s.Proc.SetScanner(scanner)
 		go s.Proc.Start()

@@ -263,7 +263,7 @@ export const TabNames: React.FC<Props> = (props) => {
     items =  items.concat(
       tabs.get().filter(t => !t.parent && !t.hidden).map(tab => {
 
-        let id = `tab-${tab.name}`
+        let id = `tab-${tab.name.replaceAll('.', '-')}`
         return {
           label: tab.name,
           name: tab.name,

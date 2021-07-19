@@ -400,7 +400,9 @@ func PostSubmitQuery(c echo.Context) (err error) {
 		// submit
 		err = doSubmitSQL(query)
 		if err != nil {
-			return g.ErrJSON(http.StatusInternalServerError, err, "could not query conn %s", query.Conn)
+			result, _ := query.ProcessResult()
+			result["err"] = g.ErrMsgSimple(err)
+			return c.JSON(500, result)
 		}
 	}
 
@@ -516,23 +518,13 @@ func PostSubmitDbt(c echo.Context) (err error) {
 	}
 
 	profile := cast.ToString(m["profile"])
+	target := cast.ToString(m["target"])
 	projDir := cast.ToString(m["projDir"])
 
-	key := strings.ToLower(g.F("%s|%s", profile, projDir))
-
-	mux.Lock()
-	s, ok := DbtServers[key]
-	mux.Unlock()
-	if !ok {
-		s = NewDbtServer(projDir, profile)
-		err = s.Launch()
-		if err != nil {
-			err = g.Error(err, "could not launch dbt server")
-			return g.ErrJSON(http.StatusInternalServerError, err)
-		}
-	} else {
-		s.Refresh()
-		time.Sleep(1 * time.Second)
+	s, err := GetOrCreateDbtServer(projDir, profile, target)
+	if err != nil {
+		err = g.Error(err, "could not get or create dbt server")
+		return g.ErrJSON(http.StatusInternalServerError, err)
 	}
 
 	dbtReq := dbtRequest{}

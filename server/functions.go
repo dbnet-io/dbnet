@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -168,6 +169,8 @@ func ReadDbtConnections() (conns map[string]*Connection, err error) {
 		for target, data := range pc.Outputs {
 			connName := strings.ToUpper(pName + "/" + target)
 			data["dbt"] = true
+			data["profile"] = pName
+			data["target"] = target
 
 			conn, err := connection.NewConnectionFromMap(
 				g.M("name", connName, "data", data, "type", data["type"]),
@@ -311,23 +314,76 @@ func doSubmitSQL(query *store.Query) (err error) {
 	Queries[query.ID] = query
 	mux.Unlock()
 
+	err = processDbtQuery(query)
+	if err != nil {
+		err = g.Error(err, "could not compile dbt query")
+		query.Err = g.ErrMsg(err)
+		return err
+	}
+
 	go func() {
 		query.Submit(c)
 
 		// expire the query after 10 minutes
 		timer := time.NewTimer(time.Duration(10*60) * time.Second)
 		go func() {
-			select {
-			case <-timer.C:
-				query.Close(false)
-				mux.Lock()
-				delete(Queries, query.ID)
-				mux.Unlock()
-			}
+			<-timer.C
+			query.Close(false)
+			mux.Lock()
+			delete(Queries, query.ID)
+			mux.Unlock()
 		}()
 	}()
 
 	return
+}
+
+// processDbtQuery compiles the dbt query as needed
+func processDbtQuery(q *store.Query) (err error) {
+
+	conn, err := GetConnObject(q.Conn, q.Database)
+	if err != nil {
+		return g.Error(err, "could not get query connection")
+	}
+
+	if strings.Contains(q.Text, "{{") && strings.Contains(q.Text, "}}") && cast.ToBool(conn.Data["dbt"]) {
+		// Is DBT query, need to compile and submit
+
+		profile := cast.ToString(conn.Data["profile"])
+		target := cast.ToString(conn.Data["target"])
+
+		s, err := GetOrCreateDbtServer(q.ProjDir, profile, target)
+		if err != nil {
+			return g.Error(err, "could not get or create dbt server")
+		}
+
+		dbtReq := dbtRequest{
+			ID:      q.ID,
+			JsonRPC: "2.0",
+			Method:  "compile_sql",
+			Params: g.Map{
+				"timeout": 60,
+				"sql":     base64.StdEncoding.EncodeToString([]byte(q.Text)),
+				"name":    q.ID,
+			},
+		}
+
+		dbtResp, err := s.Submit(dbtReq)
+		if err != nil {
+			return g.Error(err, "error compiling dbt query %s", q.ID)
+		}
+
+		resultVal := cast.ToSlice(dbtResp.Result["results"])[0]
+		result := g.M()
+		err = g.Unmarshal(g.Marshal(resultVal), &result)
+		if err != nil {
+			return g.Error(err, "error parsing compiled sql for %s", q.ID)
+		}
+
+		q.Text = cast.ToString(result["compiled_sql"])
+	}
+
+	return nil
 }
 
 // GetConnInstance gets the connection object
