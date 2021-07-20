@@ -1,14 +1,12 @@
 import * as React from "react";
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
 import './TabTable.css'
-import { Tab, accessStore } from "../store/state";
 import { State } from "@hookstate/core";
 import "../../node_modules/jspreadsheet-ce/dist/jexcel.css";
-import { jsonClone, toastError, toastInfo } from "../utilities/methods";
-import { jsOptions, JSpreadsheet, ObjectAny } from "../utilities/interfaces";
+import { jsonClone, toastInfo } from "../utilities/methods";
+import { jsOptions, ObjectAny } from "../utilities/interfaces";
 import { useState } from "@hookstate/core";
 import _ from "lodash";
+import { Tab } from "../state/tab";
 const jspreadsheet = require("jspreadsheet-ce");
 
 interface Props {
@@ -40,7 +38,7 @@ export const TabTableOld: React.FC<Props> = React.memo((props) => {
     // tableWidth: '100%',
   })
 
-  const queryPanel = accessStore().queryPanel
+  const queryPanel = window.dbnet.state.queryPanel
   const tabs = queryPanel.tabs
   const selectedTab = useState(queryPanel.selectedTabId)
  

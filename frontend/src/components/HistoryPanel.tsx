@@ -1,6 +1,6 @@
 import * as React from "react";
 import { ListBox } from 'primereact/listbox';
-import { accessStore, Query, QueryStatus, useHS, useVariable } from "../store/state";
+import { useHS, useVariable } from "../store/state";
 import { apiGet } from "../store/api";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, get_duration, new_ts_id, relative_duration, toastError } from "../utilities/methods";
@@ -11,18 +11,17 @@ import { Tooltip } from "primereact/tooltip";
 import { InputTextarea } from 'primereact/inputtextarea';
 import { submitSQL } from "./TabToolbar";
 import { appendSqlToTab, getCurrentParentTabState, getTabState } from "./TabNames";
-import { DbNet } from "../state/dbnet";
+import { Query, QueryStatus } from "../state/query";
 
 interface Props {}
 
 export const HistoryPanel: React.FC<Props> = (props) => {
-  const store = accessStore()
   ///////////////////////////  HOOKS  ///////////////////////////
-  const selectedQuery = useHS(store.historyPanel.selectedQuery)
+  const selectedQuery = useHS(window.dbnet.state.historyPanel.selectedQuery)
   const options = useVariable<Query[]>([])
   const loading = useHS(false)
-  const filter = useHS(store.historyPanel.filter)
-  const tabId = store.queryPanel.selectedTabId
+  const filter = useHS(window.dbnet.state.historyPanel.filter)
+  const tabId = window.dbnet.state.queryPanel.selectedTabId
   const tabLoading = useHS(getTabState(tabId.get()).loading)
 
   ///////////////////////////  EFFECTS  ///////////////////////////

@@ -1,7 +1,7 @@
 import * as React from "react";
 import './TabTable.css'
-import {  accessStore, Query, QueryStatus, Tab, useHS, useVariable } from "../store/state";
-import { none, State } from "@hookstate/core";
+import { useVariable } from "../store/state";
+import { State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import _ from "lodash";
 
@@ -11,11 +11,12 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
-import { DbNet, getDexieDb } from "../state/dbnet";
+import { getDexieDb } from "../state/dbnet";
+import { Tab } from "../state/tab";
+import { Query, QueryStatus } from "../state/query";
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
-const store = accessStore()
 
 interface Props {
   tab: State<Tab>

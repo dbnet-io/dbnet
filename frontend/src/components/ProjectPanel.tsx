@@ -7,7 +7,7 @@ import { Tooltip } from "primereact/tooltip";
 import { Tree } from "primereact/tree";
 import * as React from "react";
 import { apiGet, apiPost } from "../store/api";
-import { accessStore, FileItem, globalStore, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { jsonClone, toastError } from "../utilities/methods";
 import { createTab } from "./TabNames";
@@ -15,8 +15,7 @@ import yaml from 'yaml'
 import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
 import { InputText } from "primereact/inputtext";
-
-const store = accessStore()
+import { FileItem } from "../state/workspace";
 
 interface Props {}
 
@@ -26,7 +25,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
   const loading = useHS(false)
   const chooseProfile = useHS(false)
   const chooseFolder = useHS(false)
-  const projectPanel = useHS(store.projectPanel)
+  const projectPanel = useHS(window.dbnet.state.projectPanel)
   const rootPath = useHS(projectPanel.rootPath)
   const fileNodes = useHS(projectPanel.fileNodes)
   const dbtProject = useHS(projectPanel.dbtProject)
@@ -224,7 +223,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
             if(arr.length !== 2) return toastError('Invalid Profile/Target')
             dbtProfile.set(arr[0])
             dbtTarget.set(arr[1])
-            await globalStore.saveSession()
+            await window.dbnet.state.save()
             Init()
           }} 
           className="p-button-text" />

@@ -1,7 +1,7 @@
 import * as React from "react";
 import AceEditor, { ICommand } from "react-ace";
 import { Ace, Range } from "ace-builds";
-import { Tab, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { State } from "@hookstate/core";
 import { ContextMenu } from 'primereact/contextmenu';
 import "ace-builds/src-noconflict/mode-pgsql";
@@ -12,6 +12,7 @@ import { sum } from "lodash";
 import { getTabState } from "./TabNames";
 import { Button } from "primereact/button";
 import { Table } from "../state/schema";
+import { Tab } from "../state/tab";
 
 
 export function TabEditor(props: { tab: State<Tab> }) {

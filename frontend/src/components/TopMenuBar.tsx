@@ -2,7 +2,7 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { globalStore, useHS, useVariable } from "../store/state";
+import { useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
@@ -35,7 +35,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
   const makeItems = () => {
     const loadConn = (conn: Connection) => {
-      globalStore.loadSession(conn.name).then(async () => {
+      window.dbnet.state.load(conn.name).then(async () => {
         await window.dbnet.getDatabases(conn.name)
         await window.dbnet.getSchemata(conn.name, conn.database)
       })
@@ -239,7 +239,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Load session"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { globalStore.loadSession(window.dbnet.currentConnection.name) }}
+      onClick={(e) => { window.dbnet.state.load(window.dbnet.currentConnection.name) }}
     />
 
     <Button
@@ -247,7 +247,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Save session"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { globalStore.saveSession() }}
+      onClick={(e) => { window.dbnet.state.save() }}
     />
 
     {/* <span className="p-inputgroup-addon">

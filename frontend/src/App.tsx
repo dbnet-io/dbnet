@@ -13,7 +13,7 @@ import { LeftPane } from './panes/LeftPane';
 import { RightPane } from './panes/RightPane';
 import { Toast } from 'primereact/toast';
 import { WsQueue } from './store/websocket';
-import { accessStore, globalStore, useHS } from './store/state';
+import { useHS } from './store/state';
 import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import _ from "lodash";
@@ -44,7 +44,6 @@ export const App = () => {
   window.table = useRef<JSpreadsheet>(null).current as JSpreadsheet;
   window.callbacks = {}
   const splitterHeight = `${Math.floor(window.innerHeight - 60)}px`
-  const store = accessStore()
   const chooseConnection = useHS(false)
 
   ///////////////////////////  HOOKS  ///////////////////////////
@@ -94,7 +93,8 @@ export const App = () => {
     await dbnet.getAllSchemata(dbnet.selectedConnection)
 
     // set init tab to current connection/database
-    let tabs = store.queryPanel.tabs.get().filter(t => !t.parent && !t.hidden)
+    const queryPanel = window.dbnet.state.queryPanel
+    let tabs = queryPanel.tabs.get().filter(t => !t.parent && !t.hidden)
     if (tabs.length === 1 && !tabs[0].connection) {
       let tab = getTabState(tabs[0].id)
       let conn = dbnet.getConnection(dbnet.selectedConnection)
@@ -108,7 +108,7 @@ export const App = () => {
     dbnet.trigger('refreshSchemaPanel')
   }
   
-  const refresh = () => store.queryPanel.selectedTabId.set(jsonClone(store.queryPanel.selectedTabId.get()))
+  const refresh = () => window.dbnet.state.queryPanel.selectedTabId.set(jsonClone(window.dbnet.state.queryPanel.selectedTabId.get()))
   const [debounceRefresh] = React.useState(() => _.debounce(() => refresh(), 400));
 
   const onKeyPress = (e: React.KeyboardEvent) => {

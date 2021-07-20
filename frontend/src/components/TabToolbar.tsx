@@ -1,5 +1,5 @@
 import * as React from "react";
-import { accessStore, globalStore, Query, Tab, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
@@ -13,8 +13,8 @@ import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
-
-const store = accessStore()
+import { Tab } from "../state/tab";
+import { Query } from "../state/query";
 
 const setFilter = _.debounce(
   (filter: State<string>, newVal: string) => filter.set(newVal), 400
@@ -71,7 +71,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
     tab: childTab.id,
     limit: limit,
     wait: true,
-    proj_dir: store.projectPanel.rootPath.get(),
+    proj_dir: window.dbnet.state.projectPanel.rootPath.get(),
   }
 
   if (data1.text.endsWith(';')) {
@@ -138,11 +138,11 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   }
   parentTab.loading.set(false)
   parentTab.editor.highlight.set([0, 0, 0, 0])
-  globalStore.saveSession()
+  window.dbnet.state.save()
 
 
   // to refresh
-  const queryPanel = store.queryPanel
+  const queryPanel = window.dbnet.state.queryPanel
   if (queryPanel.get().currTab().id === parentTab.id.get()) {
     window.dbnet.trigger('refreshTable')
   } else {

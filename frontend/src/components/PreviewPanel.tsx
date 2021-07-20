@@ -1,15 +1,13 @@
 import { Dialog } from "primereact/dialog";
 import * as React from "react";
-import { accessStore, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { MetaTablePanel } from "./MetaTablePanel";
-
-const store = accessStore()
 
 interface Props { }
 
 export const PreviewPanel: React.FC<Props> = (props) => {
-  const objectPanel = store.objectPanel
-  const objectView = objectPanel.table
+  const objectPanel = window.dbnet.state.objectPanel
+  
   ///////////////////////////  HOOKS  ///////////////////////////
 
   const show = useHS(objectPanel.show)

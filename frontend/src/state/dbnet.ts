@@ -1,7 +1,7 @@
 import Dexie from "dexie";
 import _ from "lodash";
 import { apiGet, Response } from "../store/api";
-import { accessStore, Variable } from "../store/state";
+import { Variable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
@@ -11,8 +11,6 @@ import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
 import { ResultTable } from "./table";
 import { Workspace } from "./workspace";
-
-const store = accessStore()
 
 export type DbNetOptions = {
   resultTableRef: React.MutableRefObject<any>;

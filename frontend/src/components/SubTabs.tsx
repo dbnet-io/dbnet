@@ -1,18 +1,19 @@
 import * as React from "react";
 import { none, State } from "@hookstate/core";
-import { accessStore, Tab, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
 import { createTabChild, getTabState } from "./TabNames";
 import { ContextMenu } from "primereact/contextmenu";
 import { jsonClone } from "../utilities/methods";
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
+import { Tab } from "../state/tab";
 
-const queryPanel = accessStore().queryPanel 
+const queryPanel = () => window.dbnet.state.queryPanel
 
 
 // getChildTabs returns the child tabs of a tab
 const getChildTabs = (tab: Tab) => {
-  return queryPanel.tabs.get().filter(t => t.parent === tab.id && !t.hidden)
+  return queryPanel().tabs.get().filter(t => t.parent === tab.id && !t.hidden)
 }
 
 export function SubTabs(props: { tab: State<Tab>; }) {
@@ -83,7 +84,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
             selectTabID = createTabChild(parentTab.get()).id
             props.tab.selectedChild.set(selectTabID)
           } else {
-            let oldIndex = queryPanel.get().getTabIndexByID(selectTabID)
+            let oldIndex = queryPanel().get().getTabIndexByID(selectTabID)
             let index = tabOptions().map(t => t.id).indexOf(selectTabID)
             let newIndex = index === 0 ? 1 : index - 1
 
@@ -92,7 +93,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
             props.tab.selectedChild.set(selectTabID)
 
             // delete old child tab
-            queryPanel.tabs[oldIndex].set(none)
+            queryPanel().tabs[oldIndex].set(none)
           }
         }
       },

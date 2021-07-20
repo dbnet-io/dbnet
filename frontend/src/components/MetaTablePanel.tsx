@@ -4,9 +4,7 @@ import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
-import {
-  accessStore, globalStore, useHS, useVariable
-} from "../store/state";
+import { useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
@@ -25,12 +23,10 @@ export const makeYAML = (data: ObjectAny) => {
 
 interface Props { }
 
-const store = accessStore()
-
 export const loadMetaTable = async (table: Table, refresh = false, fromHistory = false) => {
   // store.workspace.selectedMetaTab.set('Object')
 
-  const objectPanel = store.objectPanel
+  const objectPanel = window.dbnet.state.objectPanel
   const history = objectPanel.history
   const historyI = objectPanel.historyI
 
@@ -83,7 +79,7 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
   }
   objectPanel.loading.set(false)
   // objectPanel.table.show.set(true)
-  globalStore.saveSession()
+  window.dbnet.state.save()
 }
 
 const TableDropdown = (props: { value: State<string> }) => {
@@ -129,8 +125,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     }
 
     // createJSX = () : JSX.Element => {
-    //   const objectPanel = store.objectPanel
-    //   const selectedColumns = store.objectPanel.table.selectedColumns  
+    //   const objectPanel = window.dbnet.state.objectPanel
+    //   const selectedColumns = window.dbnet.state.objectPanel.table.selectedColumns  
     //   interface Input {
     //     schema: string
     //     table: string
@@ -193,11 +189,11 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   const height = window.innerHeight - 570 > 500 ? 500 : window.innerHeight - 570
   ///////////////////////////  HOOKS  ///////////////////////////
-  const objectPanel = useState(store.objectPanel)
+  const objectPanel = useState(window.dbnet.state.objectPanel)
   const table = useState<Table>(new Table())
   const selectedColumns = useVariable<any[]>([])
-  // const selectedColumns = useHS(store.objectPanel.selectedColumns)
-  const filter = useHS(store.objectPanel.search);
+  // const selectedColumns = useHS(window.dbnet.state.objectPanel.selectedColumns)
+  const filter = useHS(window.dbnet.state.objectPanel.search);
   const op = React.useRef(null);
   const history = objectPanel.history
   const historyI = objectPanel.historyI
@@ -218,7 +214,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   // React.useEffect(() => {
   //   // reset the selected columns
-  //   store.objectPanel.table.selectedColumns.set(jsonClone(selectedColumns.get()))
+  //   window.dbnet.state.objectPanel.table.selectedColumns.set(jsonClone(selectedColumns.get()))
   // }, [selectedColumns.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -244,7 +240,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   const CountOverTime = (props: { form: State<Form> }) => {
-    const objectPanel = store.objectPanel
+    const objectPanel = window.dbnet.state.objectPanel
     interface Input {
       schema: string
       table: string
@@ -295,7 +291,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
 
   const StatsByGroup = (props: { form: State<Form> }) => {
-    const objectPanel = store.objectPanel
+    const objectPanel = window.dbnet.state.objectPanel
     interface Input {
       schema: string
       table: string
@@ -341,7 +337,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   }
 
   const CompareColumns = (props: { form: State<Form> }) => {
-    const objectPanel = store.objectPanel
+    const objectPanel = window.dbnet.state.objectPanel
     interface Input {
       t1: string
       t1_field: string
@@ -464,7 +460,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             href="#"
             title="Search history of this object"
             onClick={() => {
-              store.historyPanel.filter.set(objectPanel.table.name.get())
+              window.dbnet.state.historyPanel.filter.set(objectPanel.table.name.get())
               window.dbnet.state.workspace.selectedMetaTab.set('History')
             }}
           >

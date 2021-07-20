@@ -2,7 +2,7 @@ import * as React from "react";
 import { Tree } from 'primereact/tree';
 import { copyToClipboard, jsonClone, toastError, zeroPad } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
-import { accessStore, Query, useHS, useVariable } from "../store/state";
+import { useHS, useVariable } from "../store/state";
 import { loadMetaTable, makeYAML } from "./MetaTablePanel";
 import { Tooltip } from "primereact/tooltip";
 import TreeNode from "primereact/components/treenode/TreeNode";
@@ -14,15 +14,14 @@ import { MenuItem } from "primereact/components/menuitem/MenuItem";
 import { Connection } from "../state/connection";
 import { Database, Schema, Table } from "../state/schema";
 import _ from "lodash";
+import { Query } from "../state/query";
 
 interface Props {}
-
-const store = accessStore()
 
 export const SchemaPanel: React.FC<Props> = (props) => {
   const cm = React.useRef<ContextMenu>(null);
   const tree = React.useRef<Tree>(null);
-  const schemaPanel = useHS(store.schemaPanel)
+  const schemaPanel = useHS(window.dbnet.state.schemaPanel)
   const connection = useHS<Connection>(new Connection())
   const loading = schemaPanel.loading
   const trigger = useVariable(0)
@@ -74,7 +73,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       await window.dbnet.getDatabases(name)
       await window.dbnet.getAllSchemata(name, refresh)
       connection.set(new Connection(window.dbnet.getConnection(name)))
-      // await globalStore.saveSession()
+      // await window.dbnet.state.save()
       loading.set(false)
     }, 10);
   }

@@ -1,21 +1,19 @@
-import { useState } from '@hookstate/core';
 import React from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { ObjectAny } from '../utilities/interfaces';
 import { new_ts_id } from '../utilities/methods';
-import { accessStore, globalStore } from './state';
 
 
 export const sendWsMsg = (msg : Message) => {
   window.queue.send.push(msg)
-  globalStore.ws.doRequest.set(v => v+1)
+  // globalStore.ws.doRequest.set(v => v+1)
 }
 
 export const sendWsMsgWait = (msg : Message) : Promise<Message> => {
   return new Promise(function(resolve) {
     msg.callback = (data2: Message) => resolve(data2)
     window.queue.send.push(msg)
-    globalStore.ws.doRequest.set(v => v+1)
+    // globalStore.ws.doRequest.set(v => v+1)
   });
 }
 
@@ -76,7 +74,7 @@ const socketOptions = {
 const socketUrl = 'ws://localhost:7788/ws'
 
 export const Websocket: React.FC<Props> = (props) => {
-  const doRequest = useState(globalStore.ws.doRequest)
+  // const doRequest = useState(globalStore.ws.doRequest)
 
   const {
     sendMessage,
@@ -106,40 +104,40 @@ export const Websocket: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useMemo(handleMsg, [lastJsonMessage]);
-  React.useEffect(() => {
-    if(connected) {
-      accessStore().ws.doRequest.set(v => v+1)
-    }
-  }, [connected]) // eslint-disable-line
+  // React.useEffect(() => {
+  //   if(connected) {
+  //     accessStore().ws.doRequest.set(v => v+1)
+  //   }
+  // }, [connected]) // eslint-disable-line
 
-  React.useMemo(() => {
-    let queue : Message[] = []
+  // React.useMemo(() => {
+  //   let queue : Message[] = []
 
-    const send = (req: Message) => { 
-      if(!connected) { 
-        console.log('queuing '+req.req_id)
-        queue.push(req)
-        return
-      }
+  //   const send = (req: Message) => { 
+  //     if(!connected) { 
+  //       console.log('queuing '+req.req_id)
+  //       queue.push(req)
+  //       return
+  //     }
 
-      if(req && req.type) { 
-        if(req.callback) { 
-          window.callbacks[req.req_id] = req.callback
-        }
-        sendMessage(JSON.stringify(req))
-      }
-    }
+  //     if(req && req.type) { 
+  //       if(req.callback) { 
+  //         window.callbacks[req.req_id] = req.callback
+  //       }
+  //       sendMessage(JSON.stringify(req))
+  //     }
+  //   }
 
-    while (window.queue.send.length > 0) {
-      let msg = window.queue.send.shift()
-      if(msg) send(msg)
-    }
+  //   while (window.queue.send.length > 0) {
+  //     let msg = window.queue.send.shift()
+  //     if(msg) send(msg)
+  //   }
 
-    for(let msg of queue) {
-      window.queue.send.push(msg)
-    }
+  //   for(let msg of queue) {
+  //     window.queue.send.push(msg)
+  //   }
 
-  }, [doRequest.get()]) // eslint-disable-line
+  // }, [doRequest.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   ///////////////////////////  JSX  ///////////////////////////

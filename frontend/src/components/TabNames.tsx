@@ -1,5 +1,5 @@
 import * as React from "react";
-import { accessStore, Tab, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { none } from "@hookstate/core";
 import { jsonClone, toastError } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
@@ -9,9 +9,9 @@ import { TabMenu } from 'primereact/tabmenu';
 import classNames from "classnames";
 import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
+import { Tab } from "../state/tab";
 
-const store = accessStore()
-const queryPanel = store.queryPanel
+const queryPanel = () => window.dbnet.state.queryPanel
 
 export const createTab = (name: string = '', sql = '', connName: string, dbName: string) => {
   name = newTabName(name)
@@ -19,13 +19,13 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
     let name_arr = name.split('.')
     name = name_arr[name_arr.length - 1]
   }
-  let index = queryPanel.get().getTabIndexByName(name)
+  let index = queryPanel().get().getTabIndexByName(name)
   if (index > -1) {
     // tab already exists, append sql to bottom, or focus on existing
-    let tab = queryPanel.tabs[index]
+    let tab = queryPanel().tabs[index]
     tab.hidden.set(false) // if was hidden
     appendSqlToTab(tab.id.get(), sql)
-    queryPanel.selectedTabId.set(tab.id.get());
+    queryPanel().selectedTabId.set(tab.id.get());
     return tab
   }
   let newTab = new Tab({
@@ -36,16 +36,16 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
   });
   let childTab = createTabChild(newTab)
   newTab.selectedChild = childTab.id
-  queryPanel.tabs.merge([newTab])
-  queryPanel.selectedTabId.set(newTab.id);
-  return queryPanel.tabs[queryPanel.tabs.length - 1]
+  queryPanel().tabs.merge([newTab])
+  queryPanel().selectedTabId.set(newTab.id);
+  return queryPanel().tabs[queryPanel().tabs.length - 1]
 }
 
 export const appendSqlToTab = (tabID: string, sql: string) => {
   if (!sql) return
-  let index = queryPanel.get().getTabIndexByID(tabID)
+  let index = queryPanel().get().getTabIndexByID(tabID)
 
-  let tab = queryPanel.tabs[index]
+  let tab = queryPanel().tabs[index]
 
   let text = tab.editor.text.get()
   // let pos = text.indexOf(sql) // try to find existing sql block
@@ -75,7 +75,7 @@ export const createTabChild = (parent: Tab) => {
   });
 
   // add new child tab
-  queryPanel.tabs.merge([newTab])
+  queryPanel().tabs.merge([newTab])
   getTabState(parent.id)?.selectedChild?.set(newTab.id)
   cleanupOtherChildTabs(newTab)
   return newTab
@@ -83,51 +83,51 @@ export const createTabChild = (parent: Tab) => {
 
 export const cleanupOtherChildTabs = (childTab: Tab) => {
   // delete existing non-pinned child tabs
-  let tabs = queryPanel.tabs.get()
+  let tabs = queryPanel().tabs.get()
   for (let i = 0; i < tabs.length; i++) {
     if (tabs[i].parent === childTab.parent &&
       !tabs[i].loading && !tabs[i].pinned &&
       tabs[i].id !== childTab.id) {
-      queryPanel.tabs[i].set(none)
+      queryPanel().tabs[i].set(none)
       i--
     }
   }
 }
 
 export const getTabState = (tabID: string) => {
-  let index = queryPanel.get().getTabIndexByID(tabID)
-  return queryPanel.tabs[index]
+  let index = queryPanel().get().getTabIndexByID(tabID)
+  return queryPanel().tabs[index]
 }
 
 export const getCurrentParentTabState = () => {
-  let index = queryPanel.get().currTabIndex()
-  let parent = queryPanel.tabs[index].parent.get()
-  if (parent) index = queryPanel.get().getTabIndexByID(parent)
-  return queryPanel.tabs[index]
+  let index = queryPanel().get().currTabIndex()
+  let parent = queryPanel().tabs[index].parent.get()
+  if (parent) index = queryPanel().get().getTabIndexByID(parent)
+  return queryPanel().tabs[index]
 }
 
 export const getOrCreateParentTabState = (connection: string, database: string) => {
   let currTab = getCurrentParentTabState()
   if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database.toUpperCase()) return currTab
 
-  let index = queryPanel.tabs.get()
+  let index = queryPanel().tabs.get()
               .map(t => `${t.connection}-${t.database}`.toUpperCase())
               .indexOf(`${connection}-${database}`.toUpperCase())
   if(index === -1) {
     let tab = createTab('', '', connection, database)
-    queryPanel.selectedTabId.set(tab.id.get())
+    queryPanel().selectedTabId.set(tab.id.get())
     return tab
   }
-  let parent = queryPanel.tabs[index].parent.get()
-  if (parent) index = queryPanel.get().getTabIndexByID(parent)
-  queryPanel.selectedTabId.set(queryPanel.tabs[index].id.get())
-  return queryPanel.tabs[index]
+  let parent = queryPanel().tabs[index].parent.get()
+  if (parent) index = queryPanel().get().getTabIndexByID(parent)
+  queryPanel().selectedTabId.set(queryPanel().tabs[index].id.get())
+  return queryPanel().tabs[index]
 }
 
 export const newTabName = (name: string) => {
   let prefix = 'Q'
   // add new tab
-  let tabNames = queryPanel.tabs.get()
+  let tabNames = queryPanel().tabs.get()
                 .filter(t => !t.parent).map(t => t.name)
   let i = tabNames.length + 1;
   let newName = name !== ''? name : `${prefix}${i}`
@@ -144,8 +144,8 @@ export const TabNames: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const cm = React.useRef<ContextMenu>(null);
-  const tabs = useHS(queryPanel.tabs)
-  const selectedTabId = useHS(queryPanel.selectedTabId)
+  const tabs = useHS(queryPanel().tabs)
+  const selectedTabId = useHS(queryPanel().selectedTabId)
   const contextTabId = useHS('')
   const nameEdit = useHS({ id: '', name: '' })
   const newTab = useHS({show: false, name: ''})
@@ -156,7 +156,7 @@ export const TabNames: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const getSelectedTabName = () => {
-    let index = queryPanel.get().tabs.map(t => t.id).indexOf(selectedTabId.get());
+    let index = queryPanel().get().tabs.map(t => t.id).indexOf(selectedTabId.get());
     return tabs[index].get().name
   }
 
@@ -196,7 +196,7 @@ export const TabNames: React.FC<Props> = (props) => {
       newTab.name.set(newName)
       newTab.show.set(true)
     } else {
-      let index = queryPanel.get().tabs.map(t => t.name).indexOf(name)
+      let index = queryPanel().get().tabs.map(t => t.name).indexOf(name)
       let tab = tabs[index].get()
       if (!tab.selectedChild) createTabChild(tab)
       selectedTabId.set(tab.id);
@@ -276,7 +276,7 @@ export const TabNames: React.FC<Props> = (props) => {
               const onKeyPress = (e: React.KeyboardEvent) => {
                 if (e.key === 'Escape' || e.key === 'Enter') {
                   let newName = jsonClone(nameEdit.name.get()) as string
-                  if (queryPanel.tabs.get().filter(t => t.id !== tab.id && !t.hidden).map(t => t.name).includes(newName)) {
+                  if (queryPanel().tabs.get().filter(t => t.id !== tab.id && !t.hidden).map(t => t.name).includes(newName)) {
                     return toastError(`Tab exists with name: ${newName}`)
                   }
                   editTab.name.set(jsonClone(nameEdit.name.get()))

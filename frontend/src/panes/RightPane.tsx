@@ -4,19 +4,16 @@ import { getTabState, TabNames } from "../components/TabNames";
 import { TabToolbar } from "../components/TabToolbar";
 import { TabEditor } from "../components/TabEditor";
 import { TabTable } from "../components/TabTable";
-import { useHS, accessStore } from "../store/state";
+import { useHS } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
-import { DbNet } from "../state/dbnet";
 
 interface Props {}
 
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
 
-  // const queryPanel = useHS(accessStore().queryPanel)
-  const queryPanel = accessStore().queryPanel
-  const tabId = queryPanel.selectedTabId
+  const tabId = window.dbnet.state.queryPanel.selectedTabId
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
