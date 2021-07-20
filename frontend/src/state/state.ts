@@ -3,13 +3,14 @@ import { apiGet, apiPost } from "../store/api"
 import { MsgType } from "../store/websocket"
 import { ObjectAny } from "../utilities/interfaces"
 import { jsonClone, toastError } from "../utilities/methods"
+import { Job } from "./job"
 
 
 export class DbNetState {
 
   workspace: State<WorkspaceState>
   // queryPanel: State<QueryPanelState>
-  // jobPanel: State<JobPanelState>
+  jobPanel: State<JobPanelState>
   // projectPanel: State<ProjectPanelState>
   // schemaPanel: State<SchemaPanelState>
   // objectPanel: State<ObjectPanelState>
@@ -20,7 +21,7 @@ export class DbNetState {
     // this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     // this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     // this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
-    // this.jobPanel = createState(new JobPanelState(data.queryPanel))
+    this.jobPanel = createState(new JobPanelState(data.queryPanel))
     // this.queryPanel = createState(new QueryPanelState(data.queryPanel))
     // this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
     // this.ws = createState(new Ws())
@@ -87,4 +88,17 @@ class WorkspaceState {
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
   }
   
+}
+
+class JobPanelState {
+  job: Job
+  show: boolean
+  step: string
+  dialogMode: 'new' | 'old' | undefined
+  constructor(data: ObjectAny = {}) {
+    this.job = new Job(data.job)
+    this.show = false
+    this.dialogMode = undefined
+    this.step = ''
+  }
 }

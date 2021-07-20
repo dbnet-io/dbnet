@@ -1,14 +1,10 @@
 import * as React from "react";
 import { SelectButton } from "primereact/selectbutton";
-import { accessStore, useHS } from "../store/state";
+import { useHS } from "../store/state";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
-import { MetaTablePanel } from "../components/MetaTablePanel";
 import { useState } from "@hookstate/core";
 import { ProjectPanel } from "../components/ProjectPanel";
-import { DbNet } from "../state/dbnet";
-
-const store = accessStore()
 
 interface Props {}
 

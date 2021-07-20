@@ -1,12 +1,11 @@
 import { ObjectAny } from "../utilities/interfaces";
-import { createState, useState, State, none } from '@hookstate/core';
+import { createState, useState, State } from '@hookstate/core';
 import * as React from "react";
-import { jsonClone, LogError, new_ts_id, toastError } from "../utilities/methods";
+import { jsonClone, new_ts_id, toastError } from "../utilities/methods";
 import { MsgType } from "./websocket";
 import { apiGet, apiPost } from "./api";
 import TreeNode from "primereact/components/treenode/TreeNode";
 import { Column, Schema, Table } from "../state/schema";
-import { Job } from "../state/job";
 
 
 export class Editor {
@@ -237,23 +236,6 @@ export class Query {
   }
 
 }
-
-
-
-
-class JobPanelState {
-  job: Job
-  show: boolean
-  step: string
-  dialogMode: 'new' | 'old' | undefined
-  constructor(data: ObjectAny = {}) {
-    this.job = new Job(data.job)
-    this.show = false
-    this.dialogMode = undefined
-    this.step = ''
-  }
-}
-
 
 export class Ws {
   doRequest: number
@@ -503,7 +485,6 @@ class QueryPanelState {
 
 class GlobalStore {
   queryPanel: State<QueryPanelState>
-  jobPanel: State<JobPanelState>
   projectPanel: State<ProjectPanelState>
   schemaPanel: State<SchemaPanelState>
   objectPanel: State<ObjectPanelState>
@@ -514,7 +495,6 @@ class GlobalStore {
     this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
-    this.jobPanel = createState(new JobPanelState(data.queryPanel))
     this.queryPanel = createState(new QueryPanelState(data.queryPanel))
     this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
     this.ws = createState(new Ws())
@@ -572,13 +552,11 @@ export const accessStore = () => {
   const schemaPanel = wrap<SchemaPanelState>(globalStore.schemaPanel)
   const objectPanel = wrap<ObjectPanelState>(globalStore.objectPanel)
   const queryPanel = wrap<QueryPanelState>(globalStore.queryPanel)
-  const jobPanel = wrap<JobPanelState>(globalStore.jobPanel)
   const historyPanel = wrap<HistoryPanelState>(globalStore.historyPanel)
   const ws = wrap<Ws>(globalStore.ws)
 
   return ({
     get projectPanel() { return projectPanel },
-    get jobPanel() { return jobPanel },
     get schemaPanel() { return schemaPanel },
     get objectPanel() { return objectPanel },
     get queryPanel() { return queryPanel },

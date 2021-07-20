@@ -5,20 +5,17 @@ import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
 import { Steps } from 'primereact/steps';
 import * as React from "react";
-import { DbNet } from "../state/dbnet";
 import { Job, JobRequestConn } from "../state/job";
-import { accessStore, useHS } from "../store/state";
-import { jsonClone } from "../utilities/methods";
+import { useHS } from "../store/state";
 
-const store = accessStore()
 
 interface Props {}
 
 export const JobPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const jobPanel = useHS(store.jobPanel)
-  const job = useHS(store.jobPanel.job)
-  const show = useHS(store.jobPanel.show)
+  const jobPanel = useHS(window.dbnet.state.jobPanel)
+  const job = useHS(jobPanel.job)
+  const show = useHS(jobPanel.show)
   const activeIndex = useHS(-1);
   const dialogWidth = useHS((window.innerWidth) * 4 / 7)
 

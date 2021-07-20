@@ -12,7 +12,6 @@ import { apiPost } from "../store/api";
 import { createTabChild, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
-import { Ace } from "ace-builds";
 import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 
 const store = accessStore()

@@ -2,17 +2,15 @@ import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
 import { MenuItem } from "primereact/components/menuitem/MenuItem";
-import { accessStore, globalStore, useHS, useVariable } from "../store/state";
+import { globalStore, useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { none } from "@hookstate/core";
 import { TauriGetCwd } from "../utilities/tauri";
 import { Connection } from "../state/connection";
 import { Table } from "../state/schema";
 
 
-const store = accessStore()
 
 interface Props {}
 
@@ -21,6 +19,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const tableKeys = React.useRef<Record<string, Table>>({})
   const onSelectConnection = useVariable(0)
+  const jobPanel = window.dbnet.state.jobPanel
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -77,9 +76,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       {
         label: 'Extract / Load',
         icon: 'pi pi-fw pi-cloud-upload',
-        command: () => {
-          store.jobPanel.show.set(true)
-        },
+        command: () => { jobPanel.show.set(true) },
       },
     ]
     return items
