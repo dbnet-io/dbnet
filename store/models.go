@@ -10,8 +10,8 @@ import (
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
+	"github.com/flarco/sling/core/sling"
 	"github.com/jmoiron/sqlx"
-	"github.com/slingdata-io/sling/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v2"
 )

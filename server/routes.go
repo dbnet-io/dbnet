@@ -12,8 +12,8 @@ import (
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
+	"github.com/flarco/sling/core/sling"
 	"github.com/labstack/echo/v4"
-	"github.com/slingdata-io/sling/core/sling"
 	"github.com/spf13/cast"
 )
 

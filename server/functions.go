@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/slingdata-io/sling/core/sling"
+	"github.com/flarco/sling/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 
