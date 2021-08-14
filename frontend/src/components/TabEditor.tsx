@@ -17,6 +17,13 @@ import { format } from 'sql-formatter';
 import { jsonClone } from "../utilities/methods";
 import _ from "lodash";
 
+export const formatSql = (sql: string) => {
+  return format(sql, {
+    language: 'sql', // see https://www.npmjs.com/package/sql-formatter for list of supported dialects
+    indent: '  ', // Defaults to two spaces
+    linesBetweenQueries: 2, // Defaults to 1
+  })
+}
 
 export function TabEditor(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
@@ -96,8 +103,8 @@ export function TabEditor(props: { tab: State<Tab> }) {
     let table = { name, schema, database: tab.database.get(), connection: tab.connection.get() } as Table
     if (word.trim() !== '') { loadMetaTable(table) }
   }
-
-  const formatSQL = () => {
+  
+  const formatSelection = () => {
     let editor = window.dbnet.editor.instance
     let parentTab = getTabState(tab.id.get() || '')
     let oldSql = (editor.getSelectedText() || parentTab.editor.get().getBlock()).trim()
@@ -170,7 +177,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
     {
       label: 'Format',
       icon: 'pi pi-fw pi-palette',
-      command: () => formatSQL(),
+      command: () => formatSelection(),
     },
     // {
     //   separator: true

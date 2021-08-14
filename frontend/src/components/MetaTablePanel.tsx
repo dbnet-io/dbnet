@@ -16,6 +16,7 @@ import YAML from 'yaml'
 import { Dropdown } from "primereact/dropdown";
 import { Tooltip } from "primereact/tooltip";
 import { Table } from "../state/schema";
+import { formatSql } from "./TabEditor";
 
 export const makeYAML = (data: ObjectAny) => {
   return '/*@\n' + YAML.stringify(data).trim() + '\n@*/'
@@ -578,7 +579,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
             let sql = `select ${cols.join(', ')} from ${table.get().fullName()};`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql, cols.length > 3)
+            sql = cols.length > 3 ? formatSql(sql) : sql
+            appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -593,7 +595,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
             let sql = `select count(1) cnt${colsCntStr} from ${table.get().fullName()};`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql, colsCnt.length > 2)
+            sql = colsCnt.length > 2 ? formatSql(sql) : sql
+            appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
           }}
         />
@@ -609,7 +612,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
             let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql, cols.length > 2)
+            sql = cols.length > 2 ? formatSql(sql) : sql
+            appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql)
             hideOverlay()
           }}
