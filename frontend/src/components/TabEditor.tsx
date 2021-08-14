@@ -13,6 +13,9 @@ import { getTabState } from "./TabNames";
 import { Button } from "primereact/button";
 import { Table } from "../state/schema";
 import { Tab } from "../state/tab";
+import { format } from 'sql-formatter';
+import { jsonClone } from "../utilities/methods";
+import _ from "lodash";
 
 
 export function TabEditor(props: { tab: State<Tab> }) {
@@ -24,8 +27,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
 
   React.useEffect(() => {
     return () => {
-      // save session & history
-      // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
+      // saveSession()
     }
   }, []) // eslint-disable-line
 
@@ -45,7 +47,46 @@ export function TabEditor(props: { tab: State<Tab> }) {
 
   React.useEffect(() => {
     focusSelection(true)
+    loadHistory()
   }, [tab.name.get(), tab.editor.focus.get()])
+
+
+  const filterHistory = function(deltas: any[]){ 
+    return deltas.filter(function (d) {
+        return d.group != "fold";
+    });
+  }
+  
+  const saveHistory = () => {
+    // save session & history
+    // https://stackoverflow.com/questions/28257566/ace-editor-save-send-session-on-server-via-post
+    // does not work
+    let editor = window.dbnet.editor.instance
+    let um = editor.session.getUndoManager() as any
+    let history = { undo: um.$undoStack, redo: um.$redoStack }
+    console.log(history)
+    tab.editor.history.set(history)
+  }
+
+  const loadHistory = () => {
+    console.log('loadHistory')
+    let editor = window.dbnet.editor.instance
+    if (!editor?.session) return
+
+    let um = editor.session.getUndoManager()
+    um.reset()
+    editor.session.setUndoManager(um)
+    return
+
+    // does not work
+    let um_ = um as any
+    let history = jsonClone(tab.editor.history.get())
+    console.log(history)
+    if (history?.undo) um_.$undoStack = history.undo
+    if (history?.redo) um_.$redoStack = history.redo
+    
+    editor.session.setUndoManager(um_)
+  }
 
   const getDefinition = () => {
     let editor = window.dbnet.editor.instance
@@ -54,6 +95,19 @@ export function TabEditor(props: { tab: State<Tab> }) {
     let [schema, name] = word.split('.')
     let table = { name, schema, database: tab.database.get(), connection: tab.connection.get() } as Table
     if (word.trim() !== '') { loadMetaTable(table) }
+  }
+
+  const formatSQL = () => {
+    let editor = window.dbnet.editor.instance
+    let parentTab = getTabState(tab.id.get() || '')
+    let oldSql = (editor.getSelectedText() || parentTab.editor.get().getBlock()).trim()
+    if (oldSql === '') { return }
+    
+    editor.find(oldSql)
+    let newSql = format(oldSql)
+    editor.session.replace(editor.selection.getRange(), newSql)
+    editor.focus()
+    saveHistory()
   }
 
   const executeText = () => {
@@ -113,6 +167,11 @@ export function TabEditor(props: { tab: State<Tab> }) {
       icon: 'pi pi-fw pi-file',
       command: () => getDefinition(),
     },
+    {
+      label: 'Format',
+      icon: 'pi pi-fw pi-palette',
+      command: () => formatSQL(),
+    },
     // {
     //   separator: true
     // },
@@ -159,11 +218,14 @@ export function TabEditor(props: { tab: State<Tab> }) {
       //     e.anchor.row, e.anchor.column,
       //   ])
       // }}
-      onCursorChange={(e) => {
+      onCursorChange={(e: any) => {
+        let editor = window.dbnet.editor.instance
         tab.editor.selection.set([
           e.cursor.row, e.cursor.column,
           e.cursor.row, e.cursor.column,
         ])
+        // save undo TODO: debounce
+        // saveHistory()
       }}
       setOptions={{
         // enableBasicAutocompletion: false,

@@ -46,7 +46,7 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
       o => {
         o.columns = data_req_to_records(resp.data).map((r, i) => Object.assign(r, {
           id: i + 1,
-          name: r?.column_name.toLowerCase(),
+          name: r?.column_name,
           type: r?.data_type.toLowerCase(),
         }))
         o.name = table.name
@@ -576,9 +576,9 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
-            let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 5000;`
+            let sql = `select ${cols.join(', ')} from ${table.get().fullName()};`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
+            appendSqlToTab(tab.id.get(), sql, cols.length > 3)
             submitSQL(tab, sql)
           }}
         />
@@ -593,7 +593,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
             let sql = `select count(1) cnt${colsCntStr} from ${table.get().fullName()};`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
+            appendSqlToTab(tab.id.get(), sql, colsCnt.length > 2)
             submitSQL(tab, sql)
           }}
         />
@@ -609,7 +609,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
             let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
+            appendSqlToTab(tab.id.get(), sql, cols.length > 2)
             submitSQL(tab, sql)
             hideOverlay()
           }}

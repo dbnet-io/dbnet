@@ -7,7 +7,7 @@ export class Editor {
   text: string
   selection: number[] // startRow, startCol, endRow, endCol
   highlight: number[] // startRow, startCol, endRow, endCol
-  undoManager: any
+  history: ObjectAny
   focus: number // to trigger focus
 
   constructor(instanceRef: React.MutableRefObject<any>, data: ObjectAny = {}) {
@@ -15,7 +15,7 @@ export class Editor {
     this.text = data.text || ''
     this.selection = data.selection || [0, 0, 0, 0]
     this.highlight = data.highlight || [0, 0, 0, 0]
-    this.undoManager = data.undoManager || {}
+    this.history = data.history || {}
     this.focus = 0
   }
 

@@ -193,7 +193,10 @@ func GetOrCreateDbtServer(projDir, profile, target string) (s *DbtServer, err er
 
 	s.timer = time.AfterFunc(1*time.Hour, func() {
 		g.Debug("killing dbt server after 1h idle -> %s", s.Key())
-		g.LogError(s.Proc.Cmd.Process.Kill())
+		p1 := s.Proc
+		c := p1.Cmd
+		p2 := c.Process
+		g.LogError(p2.Kill())
 		mux.Lock()
 		delete(DbtServers, s.Key())
 		mux.Unlock()

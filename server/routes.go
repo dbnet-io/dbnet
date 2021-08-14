@@ -82,7 +82,7 @@ func GetSchemata(c echo.Context) (err error) {
 
 	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
 		schemaTablesColumns := []store.TableColumn{}
-		dbQ := store.Db.Where("conn = ? and database = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database))
+		dbQ := store.Db.Where("lower(conn) = ? and lower(database) = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database))
 		load := func() error {
 			err := dbQ.Order("schema_name, table_name").Find(&schemaTablesColumns).Error
 			if err != nil {
@@ -177,7 +177,7 @@ func GetTables(c echo.Context) (err error) {
 
 		// delete old entries
 		err = store.Db.Where(
-			"conn = ? and database = ? and schema_name = ?",
+			"lower(conn) = ? and lower(database) = ? and lower(schema_name) = ?",
 			strings.ToLower(req.Conn), strings.ToLower(req.Database), strings.ToLower(req.Schema),
 		).Delete(&store.SchemaTable{}).Error
 
@@ -329,7 +329,7 @@ func GetHistory(c echo.Context) (err error) {
 		for _, orStr := range strings.Split(req.Name, ",") {
 			andWhere := []string{}
 			for _, word := range strings.Split(orStr, " ") {
-				andWhere = append(andWhere, g.F("lower(text) like ?"))
+				andWhere = append(andWhere, g.F("(lower(text || database) like ?)"))
 				whereValues = append(whereValues, g.F("%%%s%%", strings.ToLower(strings.TrimSpace(word))))
 			}
 			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")

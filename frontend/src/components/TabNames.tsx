@@ -10,6 +10,7 @@ import classNames from "classnames";
 import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
 import { Tab } from "../state/tab";
+import { format } from 'sql-formatter';
 
 const queryPanel = () => window.dbnet.state.queryPanel
 
@@ -41,7 +42,7 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
   return queryPanel().tabs[queryPanel().tabs.length - 1]
 }
 
-export const appendSqlToTab = (tabID: string, sql: string) => {
+export const appendSqlToTab = (tabID: string, sql: string, formatSql=false) => {
   if (!sql) return
   let index = queryPanel().get().getTabIndexByID(tabID)
 
@@ -55,6 +56,13 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
     let lines = upperBlock.split('\n')
     tab.editor.selection.set([lines.length - 1, 0, lines.length - 1, 0])
   } else {
+    if (formatSql) {
+      sql = format(sql, {
+        language: 'sql', // see https://www.npmjs.com/package/sql-formatter for list of supported dialects
+        indent: '  ', // Defaults to two spaces
+        linesBetweenQueries: 2, // Defaults to 1
+      })
+    }
     tab.editor.text.set(t => t + '\n\n' + sql)
 
     // set to last line

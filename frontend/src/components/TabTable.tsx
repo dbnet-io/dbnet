@@ -180,7 +180,7 @@ export const TabTable: React.FC<Props> = (props) => {
         }
         if(include.every(v => v === true)) { break }
       }
-      if(include.every(v => v === true)) { data2.push(row.map((v: any) => `${v}`)) }
+      if(include.every(v => v === true)) { data2.push(row.map((v: any) => v === null ? '[NULL]' : `${v}`)) }
     }
     filteredRows.current = data2
     return data2

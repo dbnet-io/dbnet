@@ -106,7 +106,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   const selectAll = (table: Table) => {
-    let sql = `${table.selectAll()} limit 5000;`
+    let sql = `${table.selectAll()};`
     let tab = getOrCreateParentTabState(table.connection, table.database)
     appendSqlToTab(tab.id.get(), sql)
     submitSQL(tab, sql)
@@ -119,6 +119,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     const selectedKeys = useHS(schemaPanel.selectedNodes);
     const [selectedNodeKey, setSelectedNodeKey] = React.useState<any>('');
     const lastClick = useHS<{ ts: number, key: any }>({ ts: 0, key: '' });
+
     const nodeTemplate = (node: TreeNode) => {
       let label = <></>
       let database_name = ''
@@ -140,10 +141,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         database_name = `${node.label}`
       }
 
-      let id = `schema-node-${node?.key?.toString().replaceAll('.', '-')}`
+      let id = `schema-node-${node?.key?.toString().replaceAll('.', '-').replaceAll(':', '-')}`
+      let namePx = node.data.data.name.length*9
+      let width =  node.data.type === 'table' && namePx > 250 ?  `${namePx}px` : `${250}px`
       return (
-        <span id={id} data-pr-position="right" data-pr-my="left+22">
-          <Tooltip target={`#${id}`} style={{ fontSize: '11px', minWidth: '250px', fontFamily: 'monospace' }}>
+        <span id={id} data-pr-position="right" data-pr-my="left+37">
+          <Tooltip target={`#${id}`} style={{ fontSize: '11px', minWidth: width, fontFamily: 'monospace' }}>
             <span><strong>Database:</strong> {database_name}</span>
             {
               node.data.type === 'schema' ?
@@ -442,7 +445,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onContextMenu={event => cm.current?.show(event.originalEvent as any)}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 230}px`,
+          height: `${window.innerHeight - 200}px`,
           fontSize: '0.8rem',
           padding: 0,
         }}
