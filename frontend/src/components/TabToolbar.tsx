@@ -82,7 +82,18 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   let parentTab = getTabState(`${tab_.parent.get()}`)
 
   // mark text
-  let points = parentTab.editor.get().getBlockPoints(sql)
+  let before = window.dbnet.editor.getRange()
+  let i = 0
+  while (true) {
+    let found = window.dbnet.editor.find(sql.trim())
+    let after = window.dbnet.editor.getRange()
+    if (after.containsRange(before)) break // if it's found, it will be selected
+    if(after.end.row > before.start.row || (after.end.row == before.start.row && after.end.column >= before.start.column)) break // if past
+    i++; if (i > 10) break // just in case
+    if(!found) break
+  }
+
+  let points = window.dbnet.editor.getPoints()
   if (points) parentTab.editor.highlight.set(points)
 
   tab_.set(

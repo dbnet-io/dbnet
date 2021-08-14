@@ -1,6 +1,6 @@
 import { Ace, Range } from "ace-builds"
 import { ObjectAny } from "../utilities/interfaces"
-import { sum } from "lodash";
+import _, { sum } from "lodash";
 
 export class Editor {
   instanceRef: React.MutableRefObject<any>
@@ -21,6 +21,22 @@ export class Editor {
 
   get instance() {
     return this.instanceRef.current?.editor as Ace.Editor
+  }
+
+  getRange() {
+    return this.instance?.selection.getRange()
+  }
+
+  getPoints() {
+    let range = this.getRange()
+    return [range.start.row, range.start.column, range.end.row, range.end.column]
+  }
+
+  find(text: string) {
+    let before = this.getRange()
+    this.instance?.find(text)
+    let after = this.getRange()
+    return !_.isEqual(before, after)
   }
 
   lines = () => {
