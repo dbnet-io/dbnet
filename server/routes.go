@@ -329,7 +329,7 @@ func GetHistory(c echo.Context) (err error) {
 		for _, orStr := range strings.Split(req.Name, ",") {
 			andWhere := []string{}
 			for _, word := range strings.Split(orStr, " ") {
-				andWhere = append(andWhere, g.F("(lower(text || database) like ?)"))
+				andWhere = append(andWhere, g.F("(lower(conn || text || database) like ?)"))
 				whereValues = append(whereValues, g.F("%%%s%%", strings.ToLower(strings.TrimSpace(word))))
 			}
 			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")
@@ -435,7 +435,7 @@ func GetLoadSession(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "could not unmarshal request")
 	}
 
-	session := store.Session{Conn: req.Conn, Name: req.Name}
+	session := store.Session{Name: req.Name}
 	err = store.Db.First(&session).Error
 	if err != nil {
 		if !strings.Contains(err.Error(), "record not found") {
@@ -462,9 +462,7 @@ func PostSaveSession(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusInternalServerError, err, "could not unmarshal session data")
 	}
 
-	session := store.Session{
-		Conn: req.Conn, Name: req.Name, Data: data,
-	}
+	session := store.Session{Name: req.Name, Data: data}
 	err = Sync("sessions", &session)
 	if err != nil {
 		return g.ErrJSON(http.StatusInternalServerError, err, "could not save session")

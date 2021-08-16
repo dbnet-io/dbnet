@@ -20,7 +20,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
   const childTab = useHS(getTabState(props.tab.selectedChild.get()))
 
   ///////////////////////////  HOOKS  ///////////////////////////
-  const activeIndex = useHS(getChildTabs(props.tab.get()).map(t => t.id).indexOf(childTab.id.get()))
+  const activeIndex = useHS(getChildTabs(props.tab?.get()).map(t => t.id).indexOf(childTab.id?.get()))
   const cm = React.useRef<ContextMenu>(null);
   const contextTabId = useHS('')
 

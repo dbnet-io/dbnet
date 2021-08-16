@@ -457,7 +457,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   return (
     <div id='schema-panel' className="p-grid p-fluid" style={{ textAlign: 'center' }}>
       <div className="p-col-12 p-md-12">
-        <h4 style={{ textAlign: 'center', margin: '-5px' }}>
+        <h4 style={{ textAlign: 'center', margin: '-0px' }}>
           {connection.name.get().toUpperCase()}
           <a href="#;">
             <i

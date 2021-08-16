@@ -33,16 +33,14 @@ export class DbNetState {
 
   save = async () => {
     // localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
-    return
     
     let payload = {
       name: this.workspace.name.get(),
-      conn: this.workspace.selectedConnection.get(),
 
       data: {
         workspace: jsonClone(this.workspace.get()),
         // projectPanel: jsonClone(this.projectPanel.get()),
-        // queryPanel: jsonClone(this.queryPanel.get().payload()),
+        queryPanel: jsonClone(this.queryPanel.get().payload()),
         // schemaPanel: jsonClone(this.schemaPanel.get()),
         // objectPanel: jsonClone(this.objectPanel.get()),
         // historyPanel: jsonClone(this.historyPanel.get()),
@@ -56,11 +54,9 @@ export class DbNetState {
     }
   }
 
-  load = async (connName: string) => {
-    if (connName === '') return
+  load = async () => {
     let payload = {
-      name: 'default',
-      conn: connName,
+      name: this.workspace.name.get(),
     }
 
     try {
@@ -72,7 +68,7 @@ export class DbNetState {
       // this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       // this.projectPanel.set(new ProjectPanelState(data.projectPanel))
       // this.objectPanel.set(new ObjectPanelState(data.objectPanel))
-      // this.queryPanel.set(new QueryPanelState(data.queryPanel))
+      this.queryPanel.set(new QueryPanelState(data.queryPanel))
       // this.historyPanel.set(new HistoryPanelState(data.historyPanel))
     } catch (error) {
       toastError('Could not load session', error)
@@ -249,7 +245,7 @@ class QueryPanelState {
     }
 
     for (let tab of this.tabs) {
-      let tab_ = jsonClone<Tab>(tab)
+      let tab_ = jsonClone<Tab>(tab.payload())
       tab_.query.rows = []
       // clean up rogue child tabs
       if (tab_.parent && !(tab_.parent in parentTabs)) continue

@@ -1,5 +1,5 @@
 import { ObjectAny } from "../utilities/interfaces"
-import { new_ts_id } from "../utilities/methods"
+import { jsonClone, new_ts_id } from "../utilities/methods"
 import { Editor } from "./editor"
 import { Query } from "./query"
 import { FileItem } from "./workspace"
@@ -66,5 +66,31 @@ export class Tab {
       parent_name = (this.parent || '').split('.')[0].split('-')[1]
     } catch (error) { }
     return parent_name
+  }
+
+  payload = () => {
+    return jsonClone({
+      id: this.id,
+      name: this.name,
+      editor: {
+        text: this.editor.text,
+        selection: this.editor.selection,
+        history: this.editor.history,
+      },
+      query: this.query,
+      loading: this.loading,
+      filter: this.filter,
+      limit: this.limit,
+      resultLimit: this.resultLimit,
+      parent: this.parent,
+      selectedChild: this.selectedChild,
+      hidden: this.hidden,
+      file: this.file,
+      connection: this.connection,
+      database: this.database,
+      showSql: this.showSql,
+      showText: this.showText,
+      pinned: this.pinned,
+    })
   }
 }

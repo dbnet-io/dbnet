@@ -135,8 +135,7 @@ type Job struct {
 
 // Session represents a connection session
 type Session struct {
-	Conn      string    `gorm:"primaryKey"`
-	Name      string    `gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"primaryKey"`
 	Data      g.Map     `json:"data" gorm:"type:json not null default '{}'"`
 	CreatedDt time.Time `json:"created_dt" gorm:"autoCreateTime"`
 	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`

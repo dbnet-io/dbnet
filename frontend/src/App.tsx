@@ -104,7 +104,7 @@ export const App = () => {
         return t
       })
     }
-
+    window.dbnet.state.load()
     dbnet.trigger('refreshSchemaPanel')
   }
   

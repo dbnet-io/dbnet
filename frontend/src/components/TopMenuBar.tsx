@@ -35,7 +35,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
 
   const makeItems = () => {
     const loadConn = (conn: Connection) => {
-      window.dbnet.state.load(conn.name).then(async () => {
+      window.dbnet.state.load().then(async () => {
         await window.dbnet.getDatabases(conn.name)
         await window.dbnet.getSchemata(conn.name, conn.database)
       })
@@ -239,7 +239,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Load session"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { window.dbnet.state.load(window.dbnet.currentConnection.name) }}
+      onClick={(e) => { window.dbnet.state.load() }}
     />
 
     <Button

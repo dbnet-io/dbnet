@@ -42,7 +42,7 @@ func InitDB() {
 	for _, table := range allTables {
 		dryDB := Db.Session(&gorm.Session{DryRun: true})
 		tableName := dryDB.Find(table).Statement.Table
-		if DropAll == true {
+		if DropAll {
 			Db.Exec(g.F(`drop table if exists "%s"`, tableName))
 		}
 		g.Debug("Creating table: " + tableName)
@@ -60,7 +60,7 @@ func Sync(table string, obj interface{}, fields ...string) (err error) {
 		"table_columns": {"conn", "database", "schema_name", "table_name", "name"},
 		"queries":       {"id"},
 		"jobs":          {"id"},
-		"sessions":      {"conn", "name"},
+		"sessions":      {"name"},
 	}
 
 	conflictClause := clause.OnConflict{UpdateAll: true}

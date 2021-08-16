@@ -327,7 +327,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
         // onExpand={(e)=>{console.log(e)}}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 230}px`,
+          height: `${window.innerHeight - 200}px`,
           fontSize: '0.8rem',
           padding: 0,
         }}
