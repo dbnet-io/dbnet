@@ -3,6 +3,7 @@
   "productName": "dbNet",
   "version": "0.1.0",
   "main": "public/electron.js",
+  "renderer": "public/renderer.js",
   "private": true,
   "dependencies": {
     "@handsontable/react": "2.1.0",

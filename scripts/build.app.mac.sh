@@ -15,7 +15,6 @@ go build -o dbnet-x86_64-apple-darwin
 
 # build app
 cd frontend
-# yarn tauri build
 yarn dist
 cd -
 
