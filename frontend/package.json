@@ -1,6 +1,8 @@
 {
   "name": "dbnet",
+  "productName": "dbNet",
   "version": "0.1.0",
+  "main": "public/electron.js",
   "private": true,
   "dependencies": {
     "@handsontable/react": "2.1.0",
@@ -57,7 +59,9 @@
     "winBuild": "set \"GENERATE_SOURCEMAP=false\" && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dist": "electron-builder"
+    "dist": "electron-packager . --overwrite --platform=darwin --prune=true --arch=x64 --icon=src-tauri/icons/icon.icns --ignore=\"src-tauri|node_modules\"",
+    "dev": "APP_DEV=true concurrently -k \"BROWSER=none yarn start\" \"yarn electron\"",
+    "electron": "wait-on tcp:3000 && electron ."
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -79,12 +83,23 @@
     "appId": "io.dbnet",
     "mac": {
       "category": "public.app-category.productivity"
-    }
+    },
+    "extraFiles": [
+      {
+        "from": "resources/mac/bin",
+        "to": "Resources/bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "devDependencies": {
     "@tauri-apps/api": "^1.0.0-beta.1",
     "@tauri-apps/cli": "^1.0.0-beta.2",
-    "electron": "^12.0.9",
-    "electron-builder": "^22.10.5"
+    "concurrently": "^6.2.1",
+    "electron": "^13.1.9",
+    "electron-packager": "^15.3.0",
+    "wait-on": "^6.0.0"
   }
 }
