@@ -106,7 +106,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   const selectAll = (table: Table) => {
-    let sql = `${table.selectAll()};`
+    let sql = `${table.selectAll()} limit 100;`
     let tab = getOrCreateParentTabState(table.connection, table.database)
     appendSqlToTab(tab.id.get(), sql)
     submitSQL(tab, sql)

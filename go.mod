@@ -4,13 +4,13 @@ go 1.16
 
 require (
 	github.com/flarco/dbio v0.0.7
-	github.com/flarco/g v0.0.4
+	github.com/flarco/g v0.0.5
+	github.com/flarco/sling v0.79.0
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/labstack/echo/v4 v4.2.2
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/flarco/sling v0.79.0
 	github.com/spf13/cast v1.3.1
 	github.com/stretchr/testify v1.7.0
 	gopkg.in/yaml.v2 v2.4.0

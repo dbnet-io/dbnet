@@ -60,7 +60,7 @@
     "winBuild": "set \"GENERATE_SOURCEMAP=false\" && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dist": "electron-packager . --overwrite --platform=darwin --prune=true --arch=x64 --icon=src-tauri/icons/icon.icns --ignore=\"src-tauri|node_modules\"",
+    "dist": "electron-packager . --overwrite --prune=true --arch=x64 --icon=src-tauri/icons/icon.icns --ignore=\"src-tauri|node_modules\"",
     "dev": "APP_DEV=true concurrently -k \"BROWSER=none yarn start\" \"yarn electron\"",
     "electron": "wait-on tcp:3000 && electron ."
   },
