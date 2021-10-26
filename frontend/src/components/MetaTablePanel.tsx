@@ -577,7 +577,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
-            let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 100;`
+            let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 500;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             sql = cols.length > 3 ? formatSql(sql) : sql
             appendSqlToTab(tab.id.get(), sql)
@@ -610,7 +610,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
             let cols = selectedColumns.get()?.map(v => v.name) || []
             if (cols.length === 0) return toastError('need to select columns')
             let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc limit 100;`
+            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc limit 500;`
             let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             sql = cols.length > 2 ? formatSql(sql) : sql
             appendSqlToTab(tab.id.get(), sql)

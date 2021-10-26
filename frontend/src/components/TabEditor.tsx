@@ -226,11 +226,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
       //   ])
       // }}
       onCursorChange={(e: any) => {
-        let editor = window.dbnet.editor.instance
-        tab.editor.selection.set([
-          e.cursor.row, e.cursor.column,
-          e.cursor.row, e.cursor.column,
-        ])
+        tab.editor.selection.set(window.dbnet.editor.getPoints())
         // save undo TODO: debounce
         // saveHistory()
       }}

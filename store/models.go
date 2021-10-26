@@ -165,10 +165,6 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 		q.Duration = (float64(time.Now().UnixNano()/1000000) - float64(q.Time)) / 1000
 	}
 
-	if q.Limit == 0 || q.Limit > 5000 {
-		q.Limit = 5000
-	}
-
 	q.Text = strings.TrimSuffix(q.Text, ";")
 
 	err = q.ProcessCustomReq(conn)
@@ -283,7 +279,9 @@ func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
 
 	nextFunc := func(it *iop.Iterator) bool {
 		if q.Limit > 0 && it.Counter >= cast.ToUint64(q.Limit) {
+			g.Debug("reached limit of %d", q.Limit)
 			q.Status = QueryStatusCompleted
+			q.Close(true) // some drivers pull the whole resultset, so let's close
 			return false
 		}
 
@@ -300,7 +298,7 @@ func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
 
 		// if any error occurs during iteration
 		if q.Result.Err() != nil || it.Context.Err() != nil {
-			q.Context.Cancel()
+			q.Close(true)
 			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration"))
 		}
 

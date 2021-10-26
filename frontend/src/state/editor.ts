@@ -27,6 +27,13 @@ export class Editor {
     return this.instance?.selection.getRange()
   }
 
+  setRange(selection: number[]) {
+    this.instance.selection.setRange(new Range(
+      selection[0], selection[1],
+      selection[2], selection[3],
+    ))
+  }
+
   getPoints() {
     let range = this.getRange()
     return [range.start.row, range.start.column, range.end.row, range.end.column]
@@ -67,10 +74,7 @@ export class Editor {
       this.instance.scrollToLine(selection[0], true, true, () => { })
     }
 
-    this.instance.selection.setRange(new Range(
-      selection[0], selection[1],
-      selection[2], selection[3],
-    ))
+    this.setRange(selection)
     this.instance.focus()
   }
 

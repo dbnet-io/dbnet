@@ -60,7 +60,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   // tab.selectedChild.set(childTab.id)
 
   // set limit to fetch, and save in cache
-  const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 ? 500 : childTab.resultLimit
+  const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 && childTab.resultLimit > -1 ? 500 : childTab.resultLimit
 
   let data1 = {
     id: new_ts_id('query.'),
@@ -249,7 +249,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
           <Dropdown
             id='limit-input'
             value={resultLimit.get()}
-            options={[100, 250, 500, 1000, 2500, 5000]}
+            options={[100, 250, 500, 1000, 2500, 5000, -1]}
             onChange={(e) => resultLimit.set(e.value)}
             placeholder="Limit..."
             maxLength={50}
@@ -348,7 +348,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             tooltipOptions={{ position: 'top' }}
           />
 
-          <span className="p-inputgroup-addon">{Math.min(tab.query.rows.length, tab.resultLimit.get())} rows</span>
+          <span className="p-inputgroup-addon">{Math.min(tab.query.rows.length, tab.resultLimit.get() > -1 ? 99999999999 : tab.resultLimit.get())} rows</span>
           <span className="p-inputgroup-addon">{get_duration(Math.floor(tab.query.duration.get() * 10) / 10).replace('s', 's').replace('m', 'm ')}</span>
 
           <Button

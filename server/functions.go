@@ -245,7 +245,10 @@ func LoadSchemata(connName, DbName string) (err error) {
 		return
 	}
 
-	for schemaName, schema := range schemata.Schemas {
+	g.Info("Got %d tables for database %s", len(schemata.Tables()), DbName)
+	g.Info("Got %d columns for database %s", len(schemata.Columns()), DbName)
+
+	for schemaName, schema := range schemata.Databases[strings.ToLower(DbName)].Schemas {
 		// g.Info("%s - %s - %d", DbName, schema.Name, len(schema.Tables))
 		// to store
 		schemaTables := make([]store.SchemaTable, len(schema.Tables))
@@ -267,6 +270,7 @@ func LoadSchemata(connName, DbName string) (err error) {
 			Sync("schema_tables", &schemaTables, "conn", "database", "schema_name", "table_name", "is_view")
 		}
 
+		totalColumns := 0
 		for _, table := range schema.Tables {
 			tableColumns := make([]store.TableColumn, len(table.Columns))
 			for i, col := range table.Columns {
@@ -288,7 +292,9 @@ func LoadSchemata(connName, DbName string) (err error) {
 				"database", "schema_name", "table_name",
 				"name", "id", "type", "precision", "scale",
 			)
+			totalColumns = totalColumns + len(tableColumns)
 		}
+		g.Debug("Loaded %d columns in %d tables for schema %s.%s", totalColumns, len(schema.Tables), DbName, schemaName)
 
 		if totColumns == 0 {
 			err = g.Error("No columns found for conn %s", connName)

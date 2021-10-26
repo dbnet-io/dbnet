@@ -324,7 +324,7 @@ func GetHistory(c echo.Context) (err error) {
 			Where("conn in (?)", conns).Find(&entries).Error
 
 	case "search":
-		whereValues := []interface{}{conns}
+		whereValues := []interface{}{}
 		orArr := []string{}
 		for _, orStr := range strings.Split(req.Name, ",") {
 			andWhere := []string{}
@@ -334,7 +334,7 @@ func GetHistory(c echo.Context) (err error) {
 			}
 			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")
 		}
-		whereStr := g.F("conn in (?) and (%s)", strings.Join(orArr, " or "))
+		whereStr := strings.Join(orArr, " or ")
 		err = store.Db.Order("time desc").Limit(100).
 			Where(whereStr, whereValues...).Find(&entries).Error
 	}

@@ -106,7 +106,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   }
 
   const selectAll = (table: Table) => {
-    let sql = `${table.selectAll()} limit 100;`
+    let sql = `${table.selectAll()} limit 500;`
     let tab = getOrCreateParentTabState(table.connection, table.database)
     appendSqlToTab(tab.id.get(), sql)
     submitSQL(tab, sql)
@@ -141,7 +141,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         database_name = `${node.label}`
       }
 
-      let id = `schema-node-${node?.key?.toString().replaceAll('.', '-').replaceAll(':', '-')}`
+      let id = `schema-node-${node?.key?.toString().replaceAll(new RegExp('[^-#_a-zA-Z0-9]', "gm"), '-')}`
       let namePx = node.data.data.name.length*9
       let width =  node.data.type === 'table' && namePx > 250 ?  `${namePx}px` : `${250}px`
       return (

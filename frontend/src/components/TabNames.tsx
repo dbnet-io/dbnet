@@ -55,14 +55,15 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
     let lines = upperBlock.split('\n')
     tab.editor.selection.set([lines.length - 1, 0, lines.length - 1, 0])
   } else {
-    tab.editor.text.set(t => t + '\n\n' + sql)
-
-    // set to last line
-    let lines = tab.editor.text.get().split('\n')
-    tab.editor.selection.set([lines.length - 1, 0, lines.length - 1, 0])
-    // window.dbnet.editor.focusSelection(true)
+    tab.editor.set(e => {
+      e.text = e.text + '\n\n' + sql
+      let lines = e.text.split('\n') 
+      e.selection = [lines.length, 0, lines.length, 0] // set to last line
+      // window.dbnet.editor.focusSelection(true)
+      e.focus = e.focus + 1
+      return e
+    })
   }
-  tab.editor.focus.set(v => v + 1)
 }
 
 export const createTabChild = (parent: Tab) => {

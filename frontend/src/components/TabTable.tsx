@@ -166,8 +166,9 @@ export const TabTable: React.FC<Props> = (props) => {
     }
     let data = jsonClone<any[]>(props.tab.query.rows.get())
     let filters = props.tab.filter.get().toLowerCase().split(' ')
-    let data2 : any[] = []
-    for (let ri = 0; ri < data.length && ri < tab.resultLimit.get(); ri++) {
+    let data2: any[] = []
+    let limit = tab.resultLimit.get() > -1 ? tab.resultLimit.get() : 9999999999999
+    for (let ri = 0; ri < data.length && ri < limit; ri++) {
       const row = data[ri];
       let include = filters.map(v => false)
       for(let val of row) {
