@@ -188,7 +188,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     }
   }
 
-  const height = window.innerHeight - 570 > 500 ? 500 : window.innerHeight - 570
+  const height = document.body.scrollHeight - 620 > 500 ? 500 : document.body.scrollHeight - 620
   ///////////////////////////  HOOKS  ///////////////////////////
   const objectPanel = useState(window.dbnet.state.objectPanel)
   const table = useState<Table>(new Table())
