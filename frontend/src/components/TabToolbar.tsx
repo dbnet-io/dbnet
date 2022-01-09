@@ -179,6 +179,15 @@ export function TabToolbar(props: { tab: State<Tab> }) {
     localFilter.set(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
   }, [tab.id.get()]) // eslint-disable-line
 
+  const overlaySubmit = (e: any) => { 
+    let sql = tab.query.text.get()
+    let parentTab = getTabState(tab.parent.get() || '')
+    if (sql.trim() !== '') {
+      submitSQL(parentTab, sql)
+      sqlOp.current.hide(e)
+    }
+  }
+
   return (
     <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
       <div className="p-col-12">
@@ -218,24 +227,36 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             className="p-button-sm p-button-info"
             onClick={(e) => refreshResult(tab)}
           />
-          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{ width: '450px' }} className="overlaypanel-demo">
-            <InputTextarea
-              style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px' }}
-              rows={20}
-              value={tab.query.text.get()}
-            />
-            <span
-              style={{
-                position: 'absolute',
-                marginLeft: '-50px',
-              }}
-            >
-              <Button
-                icon="pi pi-copy"
-                className="p-button-rounded p-button-text p-button-info"
-                onClick={() => copyToClipboard(tab.query.text.get())}
+          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{ width: '550px' }} className="overlaypanel-demo">
+            <div
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') overlaySubmit(e)
+              }}>
+              <InputTextarea
+                style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px' }}
+                rows={20}
+                value={tab.query.text.get()}
+                onChange={(e) => tab.query.text.set(e.target.value)}
               />
-            </span>
+              <span
+                style={{
+                  position: 'absolute',
+                  marginLeft: '-50px',
+                }}
+              >
+                <Button
+                  icon="pi pi-copy"
+                  className="p-button-rounded p-button-text p-button-info"
+                  onClick={() => copyToClipboard(tab.query.text.get())}
+                />
+                <Button
+                  icon="pi pi-play"
+                  tooltip="Execute"
+                  tooltipOptions={{ position: 'top' }}
+                  className="p-button-rounded p-button-text p-button-info"
+                  onClick={(e) => { overlaySubmit(e) }} />
+              </span>
+            </div>
           </OverlayPanel>
 
           <Button
