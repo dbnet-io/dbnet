@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -306,7 +307,8 @@ func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
 		return false
 	}
 
-	ds = iop.NewDatastreamIt(q.Context.Ctx, q.Columns, nextFunc)
+	ctx := g.NewContext(context.Background())
+	ds = iop.NewDatastreamIt(ctx.Ctx, q.Columns, nextFunc)
 	ds.NoTrace = true
 	ds.Inferred = true
 
