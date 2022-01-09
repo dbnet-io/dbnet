@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Menubar } from 'primereact/menubar';
 import { Button } from 'primereact/button';
-import { MenuItem } from "primereact/components/menuitem/MenuItem";
+import { MenuItem } from "primereact/menuitem";
 import { useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';

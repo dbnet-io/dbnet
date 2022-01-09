@@ -1,4 +1,4 @@
-import TreeNode from "primereact/components/treenode/TreeNode"
+import TreeNode from "primereact/treenode"
 import { ObjectAny } from "../utilities/interfaces"
 import { jsonClone } from "../utilities/methods"
 import { getDexieDb } from "./dbnet"

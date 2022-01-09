@@ -1,7 +1,6 @@
 import { State } from "@hookstate/core";
 import _ from "lodash";
 import { Button } from "primereact/button";
-import TreeNode from "primereact/components/treenode/TreeNode";
 import { ContextMenu } from "primereact/contextmenu";
 import { Tooltip } from "primereact/tooltip";
 import { Tree } from "primereact/tree";
@@ -16,6 +15,7 @@ import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
 import { InputText } from "primereact/inputtext";
 import { FileItem } from "../state/workspace";
+import TreeNode from "primereact/treenode";
 
 interface Props {}
 
@@ -88,8 +88,10 @@ export const ProjectPanel: React.FC<Props> = (props) => {
     let node : State<TreeNode> = {} as State<TreeNode>
     for (let i = 0; i < nodes.length; i++) {
       node = nodes[i];
-      if (node.children.length > 0) {
-        node = findNode(node.children, key)
+      let children = node.children.get();
+      if(children === undefined) continue
+      if (children.length > 0) {
+        node = findNode(node.children as State<TreeNode[]>, key)
       }
       if(node.key.get() === key) return node
     }

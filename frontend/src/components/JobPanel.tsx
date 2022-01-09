@@ -1,8 +1,8 @@
 import { State } from "@hookstate/core";
 import { Button } from "primereact/button";
-import { MenuItem } from "primereact/components/menuitem/MenuItem";
 import { Dialog } from "primereact/dialog";
 import { ListBox } from "primereact/listbox";
+import { MenuItem } from "primereact/menuitem";
 import { Steps } from 'primereact/steps';
 import * as React from "react";
 import { Job, JobRequestConn } from "../state/job";
@@ -141,15 +141,7 @@ export const JobPanel: React.FC<Props> = (props) => {
     return <></>
   }
 
-  const StepExecute = (props: { stepsModel: State<MenuItem[]> }) => {
-    const submit = () => { // eslint-disable-line
-      let len = props.stepsModel.length
-      for (let i = 0; i < len - 1; i++) {
-        const step = props.stepsModel[i]; // eslint-disable-line
-        props.stepsModel[0].disabled.set(true)
-      }
-      props.stepsModel[len - 1].disabled.set(false) // last is progress
-    }
+  const StepExecute = () => {
     return <></>
   }
 
@@ -182,7 +174,7 @@ export const JobPanel: React.FC<Props> = (props) => {
       { activeIndex.get() === 0 ? <StepChooseConnections /> : null}
       { activeIndex.get() === 1 ? <StepChooseSourceStream /> : null}
       { activeIndex.get() === 2 ? <StepChooseTargetObject /> : null}
-      { activeIndex.get() === 3 ? <StepExecute stepsModel={stepsModel} /> : null}
+      { activeIndex.get() === 3 ? <StepExecute /> : null}
       { activeIndex.get() === 4 ? <StepProgress /> : null}
     </>
   }
@@ -204,7 +196,7 @@ export const JobPanel: React.FC<Props> = (props) => {
         style={{ paddingTop: '10px', paddingBottom: '10px' }}
       />
       { activeIndex.get() === 0 ? <StepJob /> : null}
-      { activeIndex.get() === 1 ? <StepExecute stepsModel={stepsModel} /> : null}
+      { activeIndex.get() === 1 ? <StepExecute /> : null}
       { activeIndex.get() === 2 ? <StepProgress /> : null}
     </>
   }

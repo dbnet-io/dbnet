@@ -4,12 +4,12 @@ import { none } from "@hookstate/core";
 import { jsonClone, toastError } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
 import { ContextMenu } from "primereact/contextmenu";
-import { MenuItem, MenuItemOptions } from "primereact/components/menuitem/MenuItem";
 import { TabMenu } from 'primereact/tabmenu';
 import classNames from "classnames";
 import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
 import { Tab } from "../state/tab";
+import { MenuItem, MenuItemOptions } from "primereact/menuitem";
 
 const queryPanel = () => window.dbnet.state.queryPanel
 

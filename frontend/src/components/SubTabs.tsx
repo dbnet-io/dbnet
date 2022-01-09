@@ -5,8 +5,8 @@ import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabv
 import { createTabChild, getTabState } from "./TabNames";
 import { ContextMenu } from "primereact/contextmenu";
 import { jsonClone } from "../utilities/methods";
-import { MenuItem } from "primereact/components/menuitem/MenuItem";
 import { Tab } from "../state/tab";
+import { MenuItem } from "primereact/menuitem";
 
 const queryPanel = () => window.dbnet.state.queryPanel
 

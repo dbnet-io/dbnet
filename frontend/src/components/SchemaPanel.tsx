@@ -5,16 +5,16 @@ import { ContextMenu } from 'primereact/contextmenu';
 import { useHS, useVariable } from "../store/state";
 import { loadMetaTable, makeYAML } from "./MetaTablePanel";
 import { Tooltip } from "primereact/tooltip";
-import TreeNode from "primereact/components/treenode/TreeNode";
 import { appendSqlToTab, createTabChild, getCurrentParentTabState, getOrCreateParentTabState, getTabState } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
 import { Menu } from 'primereact/menu';
 import { Button } from "primereact/button";
-import { MenuItem } from "primereact/components/menuitem/MenuItem";
+import { MenuItem } from "primereact/menuitem";
 import { Connection } from "../state/connection";
 import { Database, Schema, Table } from "../state/schema";
 import _ from "lodash";
 import { Query } from "../state/query";
+import TreeNode from "primereact/treenode";
 
 interface Props {}
 
@@ -264,8 +264,10 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             let databaseNodes = connection.get().databaseNodes()
 
             for (let databaseNode of databaseNodes) {
-              for (let schemaNode of databaseNode.children) {
-                for (let tableNode of schemaNode.children) {
+              let dbChildren = databaseNode.children || [];
+              for (let schemaNode of dbChildren) {
+                let schemaChildren = schemaNode.children || [];
+                for (let tableNode of schemaChildren) {
                   if (tableNode.key === keys[0]) {
                     schemaTable = tableNode.data.data as Table
                   }

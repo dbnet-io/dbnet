@@ -1,4 +1,4 @@
-import TreeNode from "primereact/components/treenode/TreeNode"
+import TreeNode from "primereact/treenode"
 import { ObjectAny, ObjectString } from "../utilities/interfaces"
 import { LogError, toastError } from "../utilities/methods"
 import { Database, Schema, Table } from "./schema"
