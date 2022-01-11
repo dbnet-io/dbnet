@@ -99,12 +99,20 @@ export class Editor {
     let lineI = this.selection[0]
     let line = lines[lineI]
     let pos = this.selection[1]
-    let in_quote = false
+    let in_quote_start = false
 
     let i = pos
     let l = lineI
 
+    // determine if in quote in cursor line
+    for (let p = 0; p < line.length; p++) {
+      const char = line[p];
+      if (char === "'") { in_quote_start = !in_quote_start }
+      if (p == pos-1) break
+    }
+
     // after cursor
+    let in_quote = in_quote_start
     while (true) {
       if (i >= line.length) {
         if (l >= lines.length - 1) {
@@ -127,7 +135,7 @@ export class Editor {
     i = pos - 1
     l = lineI
     line = lines[l]
-    in_quote = false
+    in_quote = in_quote_start
     while (true) {
       if (i < 0) {
         if (l <= 0) {
