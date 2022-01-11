@@ -144,11 +144,6 @@ export function TabEditor(props: { tab: State<Tab> }) {
 
   const commands: ICommand[] = [
     {
-      name: 'object',
-      bindKey: { win: "F4", mac: "F4" },
-      exec: (editor: Ace.Editor, args?: any) => getDefinition(),
-    },
-    {
       name: 'duplicate',
       bindKey: { win: "Ctrl-D", mac: "Command-D" },
       exec: (editor: Ace.Editor, args?: any) => {
@@ -158,19 +153,20 @@ export function TabEditor(props: { tab: State<Tab> }) {
   ]
 
   const onKeyPress = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === '`') getDefinition()
     // execute
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') executeText()
+    else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') executeText()
   }
 
 
   const contextItems = [
     {
-      label: 'Execute',
+      label: 'Execute (Ctrl + Enter)',
       icon: 'pi pi-fw pi-play',
       command: () => executeText(),
     },
     {
-      label: 'Definition',
+      label: 'Definition (Ctrl + `)',
       icon: 'pi pi-fw pi-file',
       command: () => getDefinition(),
     },
@@ -199,7 +195,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
     onKeyDown={onKeyPress}
   >
 
-    <ContextMenu model={contextItems} ref={cm}></ContextMenu>
+    <ContextMenu model={contextItems} ref={cm} style={{width: '250px'}}></ContextMenu>
     <AceEditor
       ref={window.dbnet.editor.instanceRef}
       width="100%"
