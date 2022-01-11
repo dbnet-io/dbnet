@@ -99,9 +99,12 @@ export class Editor {
     let lineI = this.selection[0]
     let line = lines[lineI]
     let pos = this.selection[1]
+    let in_quote = false
 
     let i = pos
     let l = lineI
+
+    // after cursor
     while (true) {
       if (i >= line.length) {
         if (l >= lines.length - 1) {
@@ -114,14 +117,17 @@ export class Editor {
 
       line = lines[l]
       const char = line[i]
-      if (char === ';') { break }
+      if (char === "'") { in_quote = !in_quote }
+      if (char === ';' && !in_quote) { break }
       if (char) { block += char }
       i++
     }
 
+    // before cursor
     i = pos - 1
     l = lineI
     line = lines[l]
+    in_quote = false
     while (true) {
       if (i < 0) {
         if (l <= 0) {
@@ -134,7 +140,8 @@ export class Editor {
       }
 
       const char = line[i]
-      if (char === ';') { break }
+      if (char === "'") { in_quote = !in_quote }
+      if (char === ';' && !in_quote) { break }
       if (char) { block = char + block }
       i--
     }
