@@ -14,7 +14,7 @@ import { Button } from "primereact/button";
 import { Table } from "../state/schema";
 import { Tab } from "../state/tab";
 import { format } from 'sql-formatter';
-import { jsonClone } from "../utilities/methods";
+import { jsonClone, toastError } from "../utilities/methods";
 import _ from "lodash";
 
 export const formatSql = (sql: string) => {
@@ -98,9 +98,20 @@ export function TabEditor(props: { tab: State<Tab> }) {
   const getDefinition = () => {
     let editor = window.dbnet.editor.instance
     let word = editor.getSelectedText()
-    if (word === '') { word = tab.editor.get().getWord() }
-    let [schema, name] = word.split('.')
-    let table = { name, schema, database: tab.database.get(), connection: tab.connection.get() } as Table
+    if (word === '') { word = tab.editor.get().getWord(true) }
+    let wordArr = word.split('.')
+    let [database, schema, name] = [tab.database.get(), '', '']
+    if (wordArr.length == 2) {
+      schema = wordArr[0]
+      name = wordArr[1]
+    } else if (wordArr.length == 3) {
+      database = wordArr[0]
+      schema = wordArr[1]
+      name = wordArr[2]
+    } else { 
+      return toastError(`Invalid selection for definition: ${word}`)
+    }
+    let table = { name, schema, database, connection: tab.connection.get() } as Table
     if (word.trim() !== '') { loadMetaTable(table) }
   }
   

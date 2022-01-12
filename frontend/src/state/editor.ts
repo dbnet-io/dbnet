@@ -157,7 +157,7 @@ export class Editor {
     return block
   }
 
-  getWord = () => {
+  getWord = (selectWord=false) => {
     let word = ''
     let lines = this.lines()
     let line = lines[this.selection[0]]
@@ -165,15 +165,26 @@ export class Editor {
 
     for (let i = pos; i < line.length; i++) {
       const char = line[i];
-      if (char === ' ' || char === '\t') { break }
+      if (char === ' ' || char === '\t' || char === '\n') {
+        if(selectWord) this.selection[3] = i
+        break
+      } else if (i == line.length - 1) { 
+        word += char
+        if(selectWord) this.selection[3] = i+1
+      }
       else { word += char }
     }
 
     for (let i = pos - 1; i >= 0; i--) {
       const char = line[i];
-      if (char === ' ' || char === '\t') { break }
+      if (char === ' ' || char === '\t' || char === '\n' || i == 0) {
+        if(selectWord) this.selection[1] = i+1
+        break
+      }
       else { word = char + word }
     }
+
+    if(selectWord) this.setRange(this.selection)
 
     return word
   }
