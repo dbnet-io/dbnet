@@ -1,7 +1,8 @@
 import TreeNode from "primereact/treenode"
 import { ObjectAny, ObjectString } from "../utilities/interfaces"
-import { LogError, toastError } from "../utilities/methods"
-import { Database, Schema, Table } from "./schema"
+import { data_req_to_records, LogError, toastError } from "../utilities/methods"
+import { QueryRequest } from "./query"
+import { Column, Database, Schema, Table } from "./schema"
 
 
 export enum ConnType {
@@ -48,6 +49,18 @@ export class Connection {
       this.databases[k] = new Database(this.databases[k])
     }
     this.recentOmniSearches = data.recentOmniSearches || {}
+  }
+
+  getAllSchemas = () => {
+    let schemas: Schema[] = []
+    try {
+      for (let database of Object.values(this.databases)) {
+        schemas = schemas.concat(database.schemas)
+      }
+    } catch (error) {
+      LogError(error)
+    }
+    return schemas
   }
 
   getAllTables = () => {
@@ -160,6 +173,16 @@ export class Connection {
     }
   }
 
+
+  lookupSchemaIndex(key: string) {
+    let [tableDb, tableSchema] = key.toLowerCase().split('.')
+    for (let i = 0; i < this.databases[tableDb]?.schemas.length; i++) {
+      const schema = this.databases[tableDb].schemas[i];
+      if (schema.name.toLowerCase() === tableSchema) return i
+    }
+    return -1
+  }
+
   lookupTable(key: string) {
     let [tableDb, tableSchema, tableName] = key.toLowerCase().split('.')
     for (let database of Object.values(this.databases)) {
@@ -174,5 +197,22 @@ export class Connection {
       }
     }
   }
+
+  lookupTableIndex(key: string) {
+    let [tableDb, tableSchema, tableName] = key.toLowerCase().split('.')
+    for (let database of Object.values(this.databases)) {
+      for (let schema of database.schemas) {
+        for (let i = 0; i < schema.tables.length; i++) {
+          const table = schema.tables[i];
+          if (
+            schema.name.toLowerCase() === tableDb &&
+            schema.name.toLowerCase() === tableSchema &&
+            table.name.toLowerCase() === tableName
+          ) return i
+        }
+      }
+    }
+    return -1
+  }  
 }
 

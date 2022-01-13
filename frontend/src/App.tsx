@@ -25,6 +25,7 @@ import { DbNet } from './state/dbnet';
 import { ConnectionChooser } from './components/ConnectionChooser';
 import { getTabState } from './components/TabNames';
 import { Connection } from './state/connection';
+import { MetaExplorer } from './components/MetaExplorer';
 
 // this is to extends the window global functions
 declare global {
@@ -134,6 +135,7 @@ export const App = () => {
       <Toast ref={toast} />
       <JobPanel/>
       <PreviewPanel />
+      <MetaExplorer/>
       <RowViewPanel />
       <ConnectionChooser
         show={chooseConnection}

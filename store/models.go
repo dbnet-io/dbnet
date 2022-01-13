@@ -40,12 +40,26 @@ type TableColumn struct {
 	Type        string    `json:"column_type"`
 	Precision   int       `json:"column_precision"`
 	Scale       int       `json:"column_scale"`
-	NumRows     int64     `json:"num_rows"`
-	NumDistinct int64     `json:"num_distinct"`
-	NumNulls    int64     `json:"num_nulls"`
-	MinLen      int       `json:"min_len"`
-	MaxLen      int       `json:"max_len"`
 	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+// TableColumnStats is a table/view column statistics record
+// is separate from TableColumn to keep analysis values
+// when hard refreshing
+type TableColumnStats struct {
+	Conn         string    `json:"conn" gorm:"primaryKey"`
+	Database     string    `json:"database"  gorm:"primaryKey"`
+	SchemaName   string    `json:"schema_name" gorm:"primaryKey"`
+	TableName    string    `json:"table_name" gorm:"primaryKey"`
+	ColumnName   string    `json:"column_name" gorm:"primaryKey"`
+	NumRows      int64     `json:"num_rows"`
+	NumValues    int64     `json:"num_values"`
+	NumDistinct  int64     `json:"num_distinct"`
+	NumNulls     int64     `json:"num_nulls"`
+	MinLen       int       `json:"min_len"`
+	MaxLen       int       `json:"max_len"`
+	LastAnalyzed time.Time `json:"last_analyzed"`
+	UpdatedDt    time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
 
 type QueryStatus string
@@ -94,26 +108,27 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Query represents a query
 type Query struct {
-	ID        string        `json:"id" query:"id" gorm:"primaryKey"`
-	Conn      string        `json:"conn" query:"conn" gorm:"index"`
-	Database  string        `json:"database" query:"database" gorm:"index"`
-	Tab       string        `json:"tab" query:"tab"`
-	Text      string        `json:"text" query:"text"`
-	Time      int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
-	Duration  float64       `json:"duration" query:"duration"`
-	Status    QueryStatus   `json:"status" query:"status"`
-	Err       string        `json:"err" query:"err"`
-	Headers   Headers       `json:"headers" query:"headers" gorm:"headers"`
-	Rows      Rows          `json:"rows" query:"rows" gorm:"-"`
-	Context   g.Context     `json:"-" gorm:"-"`
-	Result    *sqlx.Rows    `json:"-" gorm:"-"`
-	Columns   []iop.Column  `json:"-" gorm:"-"`
-	Limit     int           `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
-	Wait      bool          `json:"wait" query:"wait" gorm:"-"`
-	UpdatedDt time.Time     `json:"-" gorm:"autoUpdateTime"`
-	Done      chan struct{} `json:"-" gorm:"-"`
-	Affected  int64         `json:"affected" gorm:"-"`
-	ProjDir   string        `json:"proj_dir" gorm:"-"`
+	ID              string        `json:"id" query:"id" gorm:"primaryKey"`
+	Conn            string        `json:"conn" query:"conn" gorm:"index"`
+	Database        string        `json:"database" query:"database" gorm:"index"`
+	Tab             string        `json:"tab" query:"tab"`
+	Text            string        `json:"text" query:"text"`
+	Time            int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
+	Duration        float64       `json:"duration" query:"duration"`
+	Status          QueryStatus   `json:"status" query:"status"`
+	Err             string        `json:"err" query:"err"`
+	Headers         Headers       `json:"headers" query:"headers" gorm:"headers"`
+	Rows            Rows          `json:"rows" query:"rows" gorm:"-"`
+	Context         g.Context     `json:"-" gorm:"-"`
+	Result          *sqlx.Rows    `json:"-" gorm:"-"`
+	Columns         []iop.Column  `json:"-" gorm:"-"`
+	Limit           int           `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
+	Wait            bool          `json:"wait" query:"wait" gorm:"-"`
+	UpdatedDt       time.Time     `json:"-" gorm:"autoUpdateTime"`
+	Done            chan struct{} `json:"-" gorm:"-"`
+	Affected        int64         `json:"affected" gorm:"-"`
+	ProjDir         string        `json:"proj_dir" gorm:"-"`
+	IsFieldAnalysis bool          `json:"-" gorm:"-"`
 }
 
 // Job represents a job
@@ -253,6 +268,7 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 		switch {
 		case req.Analysis != "":
 			sql, err = conn.GetAnalysis(req.Analysis, req.Data)
+			q.IsFieldAnalysis = g.In(req.Analysis, "field_stat", "field_stat_deep")
 		case req.Metadata != "":
 			template, ok := conn.Template().Metadata[req.Metadata]
 			if !ok {
@@ -382,10 +398,46 @@ func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 	}
 
 	Sync("queries", q)
+	q.syncFieldAnalysisResult()
 
 	q.TrimRows(1) // only store 1 row in mem
 
 	return
+}
+
+func (q *Query) syncFieldAnalysisResult() {
+	if !q.IsFieldAnalysis {
+		return
+	}
+
+	tableColumnStats := make([]TableColumnStats, len(q.Rows))
+	for i, row := range q.Rows {
+		rec := map[string]interface{}{}
+		for j, header := range q.Headers {
+			rec[strings.ToLower(header)] = row[j]
+		}
+
+		tableColumnStats[i] = TableColumnStats{
+			Conn:         strings.ToLower(q.Conn),
+			Database:     strings.ToLower(q.Database),
+			SchemaName:   strings.ToLower(cast.ToString(rec["schema_nm"])),
+			TableName:    strings.ToLower(cast.ToString(rec["table_nm"])),
+			ColumnName:   strings.ToLower(cast.ToString(rec["field"])),
+			NumRows:      cast.ToInt64(rec["tot_cnt"]),
+			NumValues:    cast.ToInt64(rec["f_cnt"]),
+			NumDistinct:  cast.ToInt64(rec["f_dstct_cnt"]),
+			NumNulls:     cast.ToInt64(rec["f_null_cnt"]),
+			LastAnalyzed: time.Now(),
+			MinLen:       cast.ToInt(rec["f_min_len"]),
+			MaxLen:       cast.ToInt(rec["f_max_len"]),
+		}
+	}
+
+	Sync(
+		"table_column_stats", &tableColumnStats,
+		"num_rows", "num_values", "num_distinct", "num_nulls",
+		"min_len", "max_len", "last_analyzed",
+	)
 }
 
 func (j *Job) MakeResult() (result map[string]interface{}) {

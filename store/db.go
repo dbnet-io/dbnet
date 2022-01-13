@@ -34,6 +34,7 @@ func InitDB() {
 	allTables := []interface{}{
 		&SchemaTable{},
 		&TableColumn{},
+		&TableColumnStats{},
 		&Job{},
 		&Query{},
 		&Session{},
@@ -56,11 +57,12 @@ func InitDB() {
 // Sync syncs to the store
 func Sync(table string, obj interface{}, fields ...string) (err error) {
 	pks := map[string][]string{
-		"schema_tables": {"conn", "database", "schema_name", "table_name"},
-		"table_columns": {"conn", "database", "schema_name", "table_name", "name"},
-		"queries":       {"id"},
-		"jobs":          {"id"},
-		"sessions":      {"name"},
+		"schema_tables":      {"conn", "database", "schema_name", "table_name"},
+		"table_columns":      {"conn", "database", "schema_name", "table_name", "name"},
+		"table_column_stats": {"conn", "database", "schema_name", "table_name", "column_name"},
+		"queries":            {"id"},
+		"jobs":               {"id"},
+		"sessions":           {"name"},
 	}
 
 	conflictClause := clause.OnConflict{UpdateAll: true}
@@ -75,9 +77,10 @@ func Sync(table string, obj interface{}, fields ...string) (err error) {
 				cols[i] = clause.Column{Name: k}
 			}
 			conflictClause.Columns = cols
+		} else {
+			return g.Error("did not find PK table %s", table)
 		}
 	}
-
 	err = Db.Clauses(conflictClause).Create(obj).Error
 	if err != nil {
 		err = g.Error(err)

@@ -3,6 +3,7 @@ import { ObjectAny, ObjectString } from "./interfaces";
 import { Toast, ToastMessage } from 'primereact/toast';
 import { FormEvent, RefObject, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/react";
+import { State } from "@hookstate/core";
 
 export const alpha  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const alphanumeric  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -77,9 +78,13 @@ export const title_case = function(str : string) {
   return str.replace(/(^|\s)\S/g, function(t) { return t.toUpperCase() });
 }
 
-export const data_req_to_records = function(data: any){
-  let records : any[] = []
-  if(data == null || Object.keys(data).length === 0 || data.rows.length === 0 || data.headers.length === 0) return records
+export const data_req_to_records = function(data: any, lower_header = false){
+  let records : ObjectAny[] = []
+  if (data == null || Object.keys(data).length === 0 || data.rows.length === 0 || data.headers.length === 0) return records
+  
+  if (lower_header) { 
+    for (let i = 0; i < data.headers.length; i++) data.headers[i] = (data.headers[i] as string).toLowerCase()
+  }
 
   for (let row of data.rows) {
     let rec : ObjectAny = {}
@@ -339,3 +344,46 @@ export function zeroPad(num: number, len: number) {
      str = '0' + str;
   return str;
 }
+
+export const setFilter = _.debounce(
+  (filter: State<string>, newVal: string) => filter.set(newVal), 400
+)
+
+// parseFilterString returns the filter string split into tokens
+// where words inside quotes represent one token
+// filterStr = 'hello dear brother' => ['hello', 'dear', 'brother']
+// filterStr = 'hello "dear brother"' => ['hello', '"dear brother"']
+export let parseFilterString = (filterStr: string) => { 
+  let filters : string[] = [];
+  let inQuote = false;
+  let token = ""
+  for (let i = 0; i < filterStr.length; i++) {
+    const char = filterStr[i];
+    if (char == '"') inQuote = !inQuote 
+    token = token + char
+    if ((!inQuote && char == ' ') || i == filterStr.length - 1) {
+      token = token.trim()
+      if(token.length > 0) filters.push(token)
+      token = ''
+    }
+  }
+  return filters
+}
+
+export const filterAndMatched = (row: any[], filters: string[]) => { 
+  filters = filters.filter(v => v.trim() !== '')
+  if(filters.length == 0) return true
+  let include = filters.map(v => false)
+  for(let val of row) {
+    for (let i = 0; i < filters.length; i++) {
+      const filter = filters[i].toLowerCase().trim()
+      if (filter.startsWith('"') && filter.endsWith('"')) {
+        if (`${val}`.toLowerCase() == filter.replaceAll('"', '')) include[i] = true
+      } else {
+        if (`${val}`.toLowerCase().includes(filter)) include[i] = true
+      }
+    }
+    if(include.every(v => v === true)) { return true }
+  }
+  return include.every(v => v === true)
+} 

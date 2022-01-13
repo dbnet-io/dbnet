@@ -1,12 +1,13 @@
 import Dexie from "dexie";
 import _ from "lodash";
-import { apiGet, Response } from "../store/api";
+import { apiGet, apiPost, Response } from "../store/api";
 import { Variable } from "../store/state";
 import { MsgType } from "../store/websocket";
 import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
 import { Connection } from "./connection";
 import { Editor } from "./editor";
+import { Query, QueryRequest } from "./query";
 import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
 import { ResultTable } from "./table";
@@ -112,7 +113,7 @@ export class DbNet {
   }
 
   async getQuery(id: string) {
-    return new Query(
+    return new DexieQuery(
       await this.db.table('queries').where('id').equals(id).first()
     )
   }
@@ -140,7 +141,7 @@ export class DbNet {
         tries++
         resp = await apiGet(MsgType.GetConnections, {})
         break
-      } catch (error) {
+      } catch (error: any) {
         resp.error = error
         if (tries >= 5) break
         await Sleep(1000)
@@ -209,11 +210,11 @@ export class DbNet {
     for (let promise of promises) await promise
   }
 
-  async getSchemata(connName: string, dbName: string, refresh = false) {
+  async getSchemata(connName: string, database: string, refresh = false) {
 
     let data = {
       conn: connName,
-      database: dbName,
+      database: database,
       procedure: refresh ? 'refresh' : null
     }
 
@@ -227,13 +228,13 @@ export class DbNet {
       for (let row of rows) {
         row.schema_name = row.schema_name.toLowerCase()
         if (!(row.schema_name in schemas)) {
-          schemas[row.schema_name] = new Schema({ name: row.schema_name, database: dbName, tables: [] })
+          schemas[row.schema_name] = new Schema({ name: row.schema_name, database: database, tables: [] })
         }
         let tableKey = `${row.schema_name}.${row.table_name}`
         if (!(tableKey in tables)) {
           tables[tableKey] = new Table({
             connection: connName,
-            database: dbName.toUpperCase(),
+            database: database.toUpperCase(),
             schema: row.schema_name,
             name: row.table_name,
             isView: row.table_is_view,
@@ -245,6 +246,13 @@ export class DbNet {
           id: row.column_id,
           name: row.column_name,
           type: row.column_type,
+          num_rows: row.num_rows,
+          num_values: row.num_values,
+          num_distinct: row.num_distinct,
+          num_nulls: row.num_nulls,
+          min_len: row.min_len,
+          max_len: row.max_len,
+          last_analyzed: row.last_analyzed != '0001-01-01T00:00:00Z' ? row.last_analyzed : null
         }
         tables[tableKey].columns.push(column)
       }
@@ -252,14 +260,14 @@ export class DbNet {
         schemas[tables[key].schema].tables.push(tables[key])
       }
 
-      dbName = dbName.toLowerCase()
+      database = database.toLowerCase()
       let conn = this.getConnection(connName)
-      if (!Object.keys(conn.databases).includes(dbName)) {
-        conn.databases[dbName] = new Database({ name: dbName.toUpperCase(), schemas: schemas })
+      if (!Object.keys(conn.databases).includes(database)) {
+        conn.databases[database] = new Database({ name: database.toUpperCase(), schemas: schemas })
         return
       }
 
-      conn.databases[dbName].schemas = Object.values(schemas)
+      conn.databases[database].schemas = Object.values(schemas)
       this.trigger('refreshSchemaPanel')
     } catch (error) {
       toastError(error)
@@ -279,9 +287,47 @@ export class DbNet {
     console.log(`did not find connection ${connName}`)
     return new Connection()
   }
+
+  async submitQuery(req: QueryRequest) { 
+    let data1 = {
+      id: new_ts_id('query.'),
+      conn: req.conn,
+      database: req.database,
+      text: req.text.trim(),
+      time: (new Date()).getTime(),
+      tab: req.tab,
+      limit: req.limit,
+      wait: true,
+      proj_dir: window.dbnet.state.projectPanel.rootPath.get(),
+    }
+    
+    let query = new Query(data1)
+
+    try {
+      let done = false
+      let headers = {}
+      while (!done) {
+        let resp = await apiPost(MsgType.SubmitSQL, data1, headers)
+        query = new Query(resp.data)
+        if (resp.error) throw new Error(resp.error)
+        if (query.err) throw new Error(query.err)
+        if (resp.status === 202) {
+          headers = { "DbNet-Continue": "true" }
+          continue
+        }
+        done = true
+      }
+    } catch (error) {
+      toastError(error)
+      query.err = `${error}`
+    }
+
+    return query
+  }
 }
 
-class Query {
+
+class DexieQuery {
   constructor(data: ObjectAny = {}) {
   }
 

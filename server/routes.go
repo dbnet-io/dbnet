@@ -81,10 +81,51 @@ func GetSchemata(c echo.Context) (err error) {
 	}
 
 	rf := func(c database.Connection, req Request) (iop.Dataset, error) {
-		schemaTablesColumns := []store.TableColumn{}
-		dbQ := store.Db.Where("lower(conn) = ? and lower(database) = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database))
+		type ColumnRec struct {
+			SchemaName   string    `json:"schema_name" gorm:"primaryKey"`
+			TableName    string    `json:"table_name" gorm:"primaryKey"`
+			TableIsView  bool      `json:"table_is_view"`
+			ColumnName   string    `json:"column_name" gorm:"primaryKey"`
+			ColumnID     int       `json:"column_id"`
+			ColumnType   string    `json:"column_type"`
+			NumRows      int64     `json:"num_rows"`
+			NumValues    int64     `json:"num_values"`
+			NumDistinct  int64     `json:"num_distinct"`
+			NumNulls     int64     `json:"num_nulls"`
+			MinLen       int       `json:"min_len"`
+			MaxLen       int       `json:"max_len"`
+			LastAnalyzed time.Time `json:"last_analyzed"`
+		}
+
+		schemaTablesColumns := []ColumnRec{}
 		load := func() error {
-			err := dbQ.Order("schema_name, table_name").Find(&schemaTablesColumns).Error
+			err := store.Db.Raw(
+				`select
+					tc.schema_name,
+					tc.table_name,
+					tc.table_is_view,
+					tc.name as column_name,
+					tc.id as column_id,
+					tc.type as column_type,
+					tcs.num_rows,
+					tcs.num_values,
+					tcs.num_distinct,
+					tcs.num_nulls,
+					tcs.min_len,
+					tcs.max_len,
+					tcs.last_analyzed
+				from table_columns tc
+				left join table_column_stats tcs
+					on tc.conn = tcs.conn
+					and tc.database = tcs.database
+					and tc.schema_name = tcs.schema_name
+					and tc.table_name = tcs.table_name
+					and tc.name = tcs.column_name
+				where lower(tc.conn) = ? and lower(tc.database) = ?
+				order by tc.schema_name, tc.table_name`,
+				strings.ToLower(req.Conn),
+				strings.ToLower(req.Database),
+			).Scan(&schemaTablesColumns).Error
 			if err != nil {
 				return g.Error(err, "could not query schemata")
 			}
@@ -93,8 +134,8 @@ func GetSchemata(c echo.Context) (err error) {
 
 		err = load()
 		if len(schemaTablesColumns) == 0 || req.Procedure == "refresh" {
-			// delete old entries
-			err = dbQ.Delete(&store.SchemaTable{}).Error
+			// delete old entries on TableColumns
+			err = store.Db.Where("lower(conn) = ? and lower(database) = ?", strings.ToLower(req.Conn), strings.ToLower(req.Database)).Delete(&store.TableColumn{}).Error
 			g.LogError(err, "could not delete old schemata for %s/%s", strings.ToLower(req.Conn), strings.ToLower(req.Database))
 
 			err = LoadSchemata(req.Conn, req.Database)
@@ -108,14 +149,19 @@ func GetSchemata(c echo.Context) (err error) {
 			}
 		}
 
-		columns := []string{"schema_name", "table_name", "table_is_view", "column_id", "column_name", "column_type"}
+		columns := []string{"schema_name", "table_name", "table_is_view", "column_id", "column_name", "column_type", "num_rows", "num_values", "num_distinct", "num_nulls", "min_len", "max_len", "last_analyzed"}
+
 		data := iop.NewDataset(iop.NewColumnsFromFields(columns...))
 
-		for _, tableColumn := range schemaTablesColumns {
+		for _, colRec := range schemaTablesColumns {
 			row := []interface{}{
-				tableColumn.SchemaName, tableColumn.TableName,
-				tableColumn.TableIsView, tableColumn.ID,
-				tableColumn.Name, tableColumn.Type,
+				colRec.SchemaName, colRec.TableName,
+				colRec.TableIsView, colRec.ColumnID,
+				colRec.ColumnName, colRec.ColumnType,
+				colRec.NumRows, colRec.NumValues,
+				colRec.NumDistinct, colRec.NumNulls,
+				colRec.MinLen, colRec.MaxLen,
+				colRec.LastAnalyzed,
 			}
 			data.Rows = append(data.Rows, row)
 		}

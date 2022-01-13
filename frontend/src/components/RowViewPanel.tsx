@@ -52,13 +52,27 @@ export const RowViewPanel: React.FC<Props> = (props) => {
         scrollHeight={`${(window.innerHeight)/3*2}px`}
         resizableColumns={true}
         className="p-datatable-sm p-datatable-gridlines"
-        style={{fontSize:'12px'}} 
+        style={{fontSize:'11px'}} 
         dataKey="column_name"
         globalFilter={childTab.rowView.filter.get()}
       >
-        <Column field="n" header="N" headerStyle={{width: '2em', textAlign: 'left'}}/>
-        <Column field="name" header="Name" headerStyle={{maxWidth: '10em', textAlign: 'center'}}/>
-        <Column field="value" header="Value" headerStyle={{maxWidth: '10em', textAlign: 'center'}}/>
+        <Column
+          field="n" header="N"
+          headerStyle={{ maxWidth: '2.5em', textAlign: 'left' }}
+          bodyStyle={{ maxWidth: '2.5em', textAlign: 'left' }}
+        />
+
+        <Column
+          field="name" header="Name"
+          headerStyle={{  textAlign: 'center' }}
+          bodyStyle={{  textAlign: 'center' }}
+        />
+        
+        <Column
+          field="value" header="Value"
+          headerStyle={{  textAlign: 'center' }}
+          bodyStyle={{ textAlign: 'center' }}
+        />
       </DataTable>
     </Dialog>
   );

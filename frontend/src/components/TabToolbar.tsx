@@ -5,7 +5,7 @@ import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
 import _ from "lodash";
-import { copyToClipboard, get_duration, jsonClone, new_ts_id, showNotification, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, get_duration, jsonClone, new_ts_id, setFilter, showNotification, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 import { apiPost } from "../store/api";
@@ -15,10 +15,6 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 import { Tab } from "../state/tab";
 import { Query } from "../state/query";
-
-const setFilter = _.debounce(
-  (filter: State<string>, newVal: string) => filter.set(newVal), 400
-)
 
 export const cancelSQL = async (tab: State<Tab>) => {
   let data1 = {
@@ -93,8 +89,8 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   //   if(!found) break
   // }
 
-  let points = window.dbnet.editor.getPoints()
-  if (points) parentTab.editor.highlight.set(points)
+  // let points = window.dbnet.editor.getPoints()
+  // if (points) parentTab.editor.highlight.set(points)
 
   tab_.set(
     t => {

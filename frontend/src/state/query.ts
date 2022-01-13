@@ -14,6 +14,14 @@ export enum QueryStatus {
   Errored = 'errorred',
 }
 
+export interface QueryRequest { 
+  conn: string;
+  database: string;
+  text: string;
+  tab?: string;
+  limit?: number;
+}
+
 export class Query {
   id: string
   conn: string

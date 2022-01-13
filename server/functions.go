@@ -275,14 +275,14 @@ func LoadSchemata(connName, DbName string) (err error) {
 			tableColumns := make([]store.TableColumn, len(table.Columns))
 			for i, col := range table.Columns {
 				tableColumns[i] = store.TableColumn{
-					Conn:        connName,
-					Database:    DbName,
-					SchemaName:  schemaName,
-					TableName:   table.Name,
+					Conn:        strings.ToLower(connName),
+					Database:    strings.ToLower(DbName),
+					SchemaName:  strings.ToLower(schemaName),
+					TableName:   strings.ToLower(table.Name),
 					TableIsView: table.IsView,
-					Name:        col.Name,
+					Name:        strings.ToLower(col.Name),
 					ID:          col.Position,
-					Type:        col.Type,
+					Type:        strings.ToLower(col.Type),
 					Precision:   0,
 					Scale:       0,
 				}

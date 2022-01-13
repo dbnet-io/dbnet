@@ -176,7 +176,6 @@ export const TabTable: React.FC<Props> = (props) => {
           const filter = filters[i].toLowerCase().trim()
           if(`${val}`.toLowerCase().includes(filter)) {
             include[i] = true
-            break
           }
         }
         if(include.every(v => v === true)) { break }

@@ -15,7 +15,7 @@ import { apiGet } from "../store/api";
 import YAML from 'yaml'
 import { Dropdown } from "primereact/dropdown";
 import { Tooltip } from "primereact/tooltip";
-import { Table } from "../state/schema";
+import { Table, Column as Column2 } from "../state/schema";
 import { formatSql } from "./TabEditor";
 
 export const makeYAML = (data: ObjectAny) => {
@@ -106,6 +106,7 @@ const TableDropdown = (props: { value: State<string> }) => {
     style={{ fontSize: '10px' }}
   />
 }
+
 export const MetaTablePanel: React.FC<Props> = (props) => {
 
   class Form {
@@ -192,7 +193,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const objectPanel = useState(window.dbnet.state.objectPanel)
   const table = useState<Table>(new Table())
-  const selectedColumns = useVariable<any[]>([])
+  const selectedColumns = useVariable<Column2[]>([])
   // const selectedColumns = useHS(window.dbnet.state.objectPanel.selectedColumns)
   const filter = useHS(window.dbnet.state.objectPanel.search);
   const op = React.useRef(null);
@@ -237,6 +238,12 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   const onEnterSubmit = (e: any, submit: () => void) => {
     if (e.key === 'Enter') submit()
   }
+
+  const appendAndSubmit = (connection: string, database: string, sql: string) => {
+    let tab = getOrCreateParentTabState(connection, database)
+    appendSqlToTab(tab.id.get(), sql)
+    submitSQL(tab, sql)
+   }
 
   ///////////////////////////  JSX  ///////////////////////////
 
@@ -578,10 +585,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
             let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 500;`
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
             sql = cols.length > 3 ? formatSql(sql) : sql
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            appendAndSubmit(table.get().connection, table.get().database, sql)
           }}
         />
         <Button
@@ -590,14 +595,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
-            let colsCnt = (selectedColumns.get()?.map(v => v.name) || [])
-              .map(c => `count(${c}) cnt_${c}`)
-            let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
-            let sql = `select count(1) cnt${colsCntStr} from ${table.get().fullName()};`
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            sql = colsCnt.length > 2 ? formatSql(sql) : sql
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let sql = table.get().countRows(selectedColumns.get())
+            appendAndSubmit(table.get().connection, table.get().database, sql)
           }}
         />
 
@@ -607,14 +606,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            let cols = selectedColumns.get()?.map(v => v.name) || []
-            if (cols.length === 0) return toastError('need to select columns')
-            let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-            let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${table.get().fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc limit 500;`
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            sql = cols.length > 2 ? formatSql(sql) : sql
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let sql = table.get().columnDistro(selectedColumns.get())
+            appendAndSubmit(table.get().connection, table.get().database, sql)
             hideOverlay()
           }}
         />
@@ -625,18 +618,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-warning"
           onClick={(e) => {
-            let data = {
-              analysis: 'field_stat',
-              data: {
-                schema: objectPanel.table.schema.get(),
-                table: objectPanel.table.name.get(),
-                fields: selectedColumns.get()?.map(v => v.name) || [],
-              },
-            }
-            let sql = makeYAML(data) + ';'
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let sql = table.get().columnStats(selectedColumns.get())
+            appendAndSubmit(table.get().connection, table.get().database, sql)
           }}
         />
 
@@ -646,18 +629,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-warning"
           onClick={(e) => {
-            let data = {
-              analysis: 'field_stat_deep',
-              data: {
-                schema: objectPanel.table.schema.get(),
-                table: objectPanel.table.name.get(),
-                fields: selectedColumns.get()?.map(v => v.name) || [],
-              },
-            }
-            let sql = makeYAML(data) + ';'
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let sql = table.get().columnStatsDeep(selectedColumns.get())
+            appendAndSubmit(table.get().connection, table.get().database, sql)
             hideOverlay()
           }}
         />
@@ -668,21 +641,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           tooltipOptions={{ position: 'top' }}
           className="p-button-sm p-button-info"
           onClick={(e) => {
-            if (selectedColumns.get().length !== 1) {
-              return toastError('select only one field')
-            }
-            let data = {
-              analysis: 'distro_field_date',
-              data: {
-                schema: objectPanel.table.schema.get(),
-                table: objectPanel.table.name.get(),
-                field: selectedColumns.get().map(v => v.name)[0],
-              },
-            }
-            let sql = makeYAML(data) + ';'
-            let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let sql = table.get().columnDateDistro(selectedColumns.get())
+            appendAndSubmit(table.get().connection, table.get().database, sql)
             hideOverlay()
           }}
         />
@@ -728,8 +688,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           globalFilter={filter.get()}
         // onFilter={(e: DataTableFilterParams) => {console.log(e.filters)}}
         >
-          <Column selectionMode="multiple" headerStyle={{ width: '3em' }} bodyStyle={{ width: '3em', fontSize: '0.5em' }}></Column>
-          <Column field="id" header="#" headerStyle={{ width: '3em', textAlign: 'center' }} bodyStyle={{ width: '3em', textAlign: "center" }} />
+          <Column selectionMode="multiple" headerStyle={{ maxWidth: '7.4em', fontSize: '0.5em' }} bodyStyle={{ maxWidth: '7.4em', fontSize: '0.5em' }}></Column>
+          <Column field="id" header="#" headerStyle={{ maxWidth: '3em', textAlign: 'center' }} bodyStyle={{ maxWidth: '3em', textAlign: "center" }} />
           <Column field="name" header="Name" />
           <Column field="data_type" header="Type" />
           {/* <Column field="length" header="Length"/> */}

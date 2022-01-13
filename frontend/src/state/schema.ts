@@ -1,5 +1,8 @@
+import { makeYAML } from "../components/MetaTablePanel"
+import { formatSql } from "../components/TabEditor"
 import { ObjectAny } from "../utilities/interfaces"
-import { LogError } from "../utilities/methods"
+import { data_req_to_records, LogError, toastError } from "../utilities/methods"
+import { QueryRequest } from "./query"
 
 
 export class Database {
@@ -61,6 +64,98 @@ export class Table {
   fullName2 = () => `${this.database}.${this.schema}.${this.name}`.toLowerCase()
   key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
   selectAll = () => `select * from ${this.schema}.${this.name}`
+  countRows = (columns: Column[] = []) => { 
+    let colsCnt = (columns.map(v => v.name) || []).map(c => `count(${c}) cnt_${c}`)
+    let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
+    let sql = `select count(1) cnt${colsCntStr} from ${this.fullName()};`
+    sql = colsCnt.length > 2 ? formatSql(sql) : sql
+    return sql
+  }
+
+  columnDistro = (columns: Column[] = []) => {
+    let cols = columns.map(v => v.name) || []
+    if (cols.length === 0) {
+      toastError('need to select columns')
+      return ''
+    }
+    let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
+    let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${this.fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc limit 500;`
+    sql = cols.length > 2 ? formatSql(sql) : sql
+    return sql
+  }
+
+  columnStats = (columns: Column[] = []) => {
+    let data = {
+      analysis: 'field_stat',
+      data: {
+        schema: this.schema,
+        table: this.name,
+        fields: columns.map(v => v.name) || [],
+      },
+    }
+    let sql = makeYAML(data) + ';'
+    return sql
+  }
+
+  columnStatsDeep = (columns: Column[] = []) => {
+    let data = {
+      analysis: 'field_stat_deep',
+      data: {
+        schema: this.schema,
+        table: this.name,
+        fields: columns.map(v => v.name) || [],
+      },
+    }
+    let sql = makeYAML(data) + ';'
+    return sql
+  }
+
+  columnDateDistro = (columns: Column[] = []) => {
+    if (columns.length !== 1) {
+      toastError('select only one field')
+      return ''
+    }
+    
+    let data = {
+      analysis: 'distro_field_date',
+      data: {
+        schema: this.schema,
+        table: this.name,
+        fields: columns.map(v => v.name) || [],
+      },
+    }
+    let sql = makeYAML(data) + ';'
+    return sql
+  }
+
+  lookupColumnIndex = (name: string) => { 
+    for (let i = 0; i < this.columns.length; i++) {
+      const col = this.columns[i];
+      if(col.name.toLowerCase() === name.toLowerCase()) return i
+    }
+    return -1
+  }
+
+  updateColumnStats = async (columns: Column[] = []) => {
+    let sql = this.columnStats(columns) || ''
+    let req : QueryRequest = {
+      conn: this.connection,
+      database: this.database,
+      text: sql,
+    }
+    let query = await window.dbnet.submitQuery(req)
+    let records = data_req_to_records(query, true)
+    for (let record of records) {
+      let col_i = this.lookupColumnIndex(record.field)
+      this.columns[col_i].num_rows = record.tot_cnt
+      this.columns[col_i].num_values = record.f_cnt
+      this.columns[col_i].num_distinct = record.f_dstct_cnt
+      this.columns[col_i].num_nulls = record.f_null_cnt
+      this.columns[col_i].min_len = record.f_min_len
+      this.columns[col_i].max_len = record.f_max_len
+      this.columns[col_i].last_analyzed = new Date().toString()
+    }
+  }
 }
 
 
@@ -71,4 +166,11 @@ export interface Column {
   length?: number
   scale?: number
   precision?: number
+  num_rows?: number
+  num_values?: number
+  num_distinct?: number
+  num_nulls?: number
+  min_len?: number
+  max_len?: number
+  last_analyzed?: string
 }

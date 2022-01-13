@@ -435,7 +435,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             }, 320);
           }
         }}
-        onSelectionChange={e => selectedKeys.set(e.value)}
+        onSelectionChange={e => selectedKeys.set(e.value as any)}
         contextMenuSelectionKey={selectedNodeKey}
         onContextMenuSelectionChange={event => {
           let contextKey = `${event.value}`
@@ -456,41 +456,49 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     </>
   }
 
+  const Bar = () => { 
+    return <div>
+      <h4 style={{ textAlign: 'center', margin: '-0px' }}>
+        {connection.name.get().toUpperCase()}
+        {/* refresh */}
+        <a href="#;" title="Refresh All">
+          <i
+            style={{ color: 'orange', fontSize: '0.9em', paddingLeft: '5px' }}
+            className="pi pi-refresh"
+            onClick={async () => {
+              await loadConnection(connection.name.get(), true)
+            }}
+          />
+        </a>
+
+        <span
+          id="schema-databases"
+          style={{
+            position: 'absolute',
+            marginLeft: '20px',
+            fontSize: '0.5rem',
+          }}
+        >
+          <Menu model={getConnectionItems()} popup ref={databasesMenu} id="popup_menu" style={{ fontSize: '0.7rem' }} />
+          <Button
+            icon="pi pi-bars"
+            className="p-button-sm p-button-secondary"
+            aria-controls="popup_menu"
+            onClick={(event) => databasesMenu.current.toggle(event)}
+            tooltip="Connections"
+            aria-haspopup
+          />
+        </span>
+      </h4>
+    </div>
+  }
+
   return (
     <div id='schema-panel' className="p-grid p-fluid" style={{ textAlign: 'center' }}>
-      <div className="p-col-12 p-md-12">
-        <h4 style={{ textAlign: 'center', margin: '-0px' }}>
-          {connection.name.get().toUpperCase()}
-          <a href="#;">
-            <i
-              style={{ color: 'orange', fontSize: '0.9em', paddingLeft: '5px' }}
-              className="pi pi-refresh"
-              onClick={async () => {
-                await loadConnection(connection.name.get(), true)
-              }}
-            />
-          </a>
-          <span
-            id="schema-databases"
-            style={{
-              position: 'absolute',
-              marginLeft: '20px',
-              fontSize: '0.5rem',
-            }}
-          >
-            <Menu model={getConnectionItems()} popup ref={databasesMenu} id="popup_menu" style={{ fontSize: '0.7rem' }} />
-            <Button
-              icon="pi pi-bars"
-              className="p-button-sm p-button-secondary"
-              aria-controls="popup_menu"
-              onClick={(event) => databasesMenu.current.toggle(event)}
-              tooltip="Connections"
-              aria-haspopup
-            />
-          </span>
-        </h4>
-      </div>
       {/* <FilterBox filter={schemaFilter} loading={loading} onClick={() => GetSchemas(connection.name.get())} /> */}
+      <div className="p-col-12 p-md-12">
+        <Bar />
+      </div>
       <div className="p-col-12 p-md-12">
         <SchemaTree />
       </div>

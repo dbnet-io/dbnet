@@ -20,6 +20,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   const tableKeys = React.useRef<Record<string, Table>>({})
   const onSelectConnection = useVariable(0)
   const jobPanel = window.dbnet.state.jobPanel
+  const metaPanel = window.dbnet.state.metaPanel
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -72,6 +73,11 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         label: 'Connections',
         icon: 'pi pi-fw pi-sitemap',
         items: connItems,
+      },
+      {
+        label: 'Meta Explorer',
+        icon: 'pi pi-fw pi-microsoft',
+        command: () => { metaPanel.show.set(true) },
       },
       {
         label: 'Extract / Load',

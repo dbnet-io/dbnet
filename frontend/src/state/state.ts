@@ -17,6 +17,7 @@ export class DbNetState {
   jobPanel: State<JobPanelState>
   projectPanel: State<ProjectPanelState>
   schemaPanel: State<SchemaPanelState>
+  metaPanel: State<MetaPanelState>
   objectPanel: State<ObjectPanelState>
   historyPanel: State<HistoryPanelState>
 
@@ -24,6 +25,7 @@ export class DbNetState {
     this.workspace = createState(new WorkspaceState(data.workspace))
     this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
+    this.metaPanel = createState(new MetaPanelState(data.metaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))
     this.jobPanel = createState(new JobPanelState(data.queryPanel))
     this.queryPanel = createState(new QueryPanelState(data.queryPanel))
@@ -130,6 +132,22 @@ class SchemaPanelState {
   }
 }
 
+export type MetaViewType = 'Schemas' | 'Tables' | 'Columns';
+class MetaPanelState {
+  selectedConnection: string
+  selectedView: MetaViewType
+  filter: string
+  show: boolean
+  loading: boolean
+
+  constructor(data: ObjectAny = {}) {
+    this.selectedConnection = data.selectedConnection || ''
+    this.selectedView = data.selectedView || 'Schemas'
+    this.filter = data.filter || ''
+    this.show = data.show || false
+    this.loading = data.loading || false
+  }
+}
 
 class ObjectPanelState {
   table: Table
