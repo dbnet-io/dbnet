@@ -74,7 +74,7 @@ func NewServer() *Server {
 
 	// CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "tauri://localhost", "https://custom-protocol-taurilocalhost"},
+		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "http://localhost:3001", "tauri://localhost", "https://custom-protocol-taurilocalhost"},
 		// AllowCredentials: true,
 		// AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.He`aderAccept},
 		// AllowOriginFunc: func(origin string) (bool, error) {

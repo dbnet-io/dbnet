@@ -442,12 +442,16 @@ func GetConnInstance(connName, databaseName string) (conn database.Connection, e
 		err = g.Error(err, "could not initialize database connection '%s' / '%s' with provided credentials/url.", connName, databaseName)
 		return
 	}
+
 	err = conn.Connect()
 	if err != nil {
 		err = g.Error(err, "could not connect with provided credentials/url")
 		return
 	}
 	c.Props = conn.Props()
+
+	// set SetMaxIdleConns
+	conn.Db().SetMaxIdleConns(2)
 
 	return
 }
