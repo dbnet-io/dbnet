@@ -249,6 +249,13 @@ font-size: 9px !important;
   padding: 0px;
 }
 
+#preview-panel > div.p-dialog-content {
+  padding-top: 0px;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-bottom: 15px;
+}
+
 #meta-explorer .even-background {
   background-color: rgba(57, 40, 58, 0.048) !important;
 }
