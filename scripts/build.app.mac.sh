@@ -10,8 +10,14 @@ rm -rf server/app
 cp -r frontend/build server/app
 
 # back backend 
-go build -o dbnet-x86_64-apple-darwin
-/bin/cp -f dbnet-x86_64-apple-darwin frontend/resources/mac/bin/
+mkdir -p frontend/resources/mac/bin/
+name=dbnet-x86_64-apple-darwin
+if [ "$(arch)" == "arm64" ]; then
+  name=dbnet-arm64-apple-darwin
+fi
+
+go build -o $name
+/bin/cp -f $name frontend/resources/mac/bin/
 
 # build app
 cd frontend

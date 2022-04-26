@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/flarco/sling/core/sling"
+	"github.com/slingdata-io/sling-cli/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v3"
 
@@ -120,7 +120,6 @@ func ReadConnections() (conns map[string]*Connection, err error) {
 					Conn:  &conn,
 					Props: map[string]string{},
 				}
-				g.Trace("found connection from YAML: " + name)
 			default:
 				g.Warn("did not handle %s", name)
 			}
@@ -154,8 +153,8 @@ func ReadDbtConnections() (conns map[string]*Connection, err error) {
 	}
 
 	type ProfileConn struct {
-		Target  string           `json:"target" yaml:"target"`
-		Outputs map[string]g.Map `json:"outputs" yaml:"outputs"`
+		Target  string                            `json:"target" yaml:"target"`
+		Outputs map[string]map[string]interface{} `json:"outputs" yaml:"outputs"`
 	}
 
 	dbtProfile := map[string]ProfileConn{}
@@ -367,7 +366,7 @@ func processDbtQuery(q *store.Query) (err error) {
 			ID:      q.ID,
 			JsonRPC: "2.0",
 			Method:  "compile_sql",
-			Params: g.Map{
+			Params: map[string]interface{}{
 				"timeout": 60,
 				"sql":     base64.StdEncoding.EncodeToString([]byte(q.Text)),
 				"name":    q.ID,
@@ -433,7 +432,7 @@ func GetConnInstance(connName, databaseName string) (conn database.Connection, e
 	}
 
 	// connect or use pool
-	os.Setenv("DBIO_USE_POOL", "TRUE")
+	os.Setenv("USE_POOL", "TRUE")
 
 	// init connection
 	props := append(g.MapToKVArr(c.Props), g.MapToKVArr(connObj.DataS())...)
@@ -451,7 +450,7 @@ func GetConnInstance(connName, databaseName string) (conn database.Connection, e
 	c.Props = conn.Props()
 
 	// set SetMaxIdleConns
-	conn.Db().SetMaxIdleConns(2)
+	// conn.Db().SetMaxIdleConns(2)
 
 	return
 }
@@ -467,7 +466,7 @@ func NewJob(ctx context.Context) *store.Job {
 	return &j
 }
 
-func submitJob(req JobRequest, cfg sling.Config) (job *store.Job, err error) {
+func submitJob(req JobRequest, cfg *sling.Config) (job *store.Job, err error) {
 
 	task := sling.NewTask(req.idNumber(), cfg)
 	if task.Err != nil {
@@ -478,7 +477,7 @@ func submitJob(req JobRequest, cfg sling.Config) (job *store.Job, err error) {
 	job = NewJob(context.Background())
 	job.ID = req.ID
 	job.Type = string(task.Type)
-	job.Task = &task
+	job.Task = task
 	job.Status = job.Task.Status
 	g.Unmarshal(g.Marshal(req), &job.Request)
 	job.Time = time.Now().Unix()

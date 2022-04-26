@@ -19,7 +19,7 @@ import { Table, Column as Column2 } from "../state/schema";
 import { formatSql } from "./TabEditor";
 
 export const makeYAML = (data: ObjectAny) => {
-  return '/*@\n' + YAML.stringify(data).trim() + '\n@*/'
+  return '/*--\n' + YAML.stringify(data).trim() + '\n--*/'
 }
 
 interface Props { }

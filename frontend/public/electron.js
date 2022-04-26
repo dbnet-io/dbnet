@@ -149,6 +149,7 @@ if (!fs.existsSync(binariesFolder)) {
   binariesFolder = path.join(rootPath, 'Resources', 'app', 'resources', getPlatform(), 'bin')
 }
 
-var execPath = path.resolve(
-  path.join(binariesFolder, './dbnet-x86_64-apple-darwin')
-);
+var execPath = process.arch == 'arm64' ?
+  path.resolve(path.join(binariesFolder, './dbnet-arm64-apple-darwin')) :
+  path.resolve(path.join(binariesFolder, './dbnet-arm64-apple-darwin'))
+  ;

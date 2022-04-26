@@ -64,14 +64,14 @@ export const RowViewPanel: React.FC<Props> = (props) => {
 
         <Column
           field="name" header="Name"
-          headerStyle={{  textAlign: 'center' }}
-          bodyStyle={{  textAlign: 'center' }}
+          headerStyle={{  maxWidth: `${(window.innerWidth)/8}px`, textAlign: 'center' }}
+          bodyStyle={{  maxWidth: `${(window.innerWidth)/8}px`, textAlign: 'center' }}
         />
         
         <Column
           field="value" header="Value"
-          headerStyle={{  textAlign: 'center' }}
-          bodyStyle={{ textAlign: 'center' }}
+          headerStyle={{  maxWidth: `${(window.innerWidth)/8}px`, textAlign: 'center' }}
+          bodyStyle={{ maxWidth: `${(window.innerWidth)/8}px`, textAlign: 'center' }}
         />
       </DataTable>
     </Dialog>

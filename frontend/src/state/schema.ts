@@ -121,7 +121,7 @@ export class Table {
       data: {
         schema: this.schema,
         table: this.name,
-        fields: columns.map(v => v.name) || [],
+        field: columns[0].name,
       },
     }
     let sql = makeYAML(data) + ';'

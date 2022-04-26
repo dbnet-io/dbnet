@@ -7,7 +7,7 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import _ from "lodash";
-import { data_req_to_records, filterAndMatched, jsonClone, parseFilterString, relative_duration, setFilter } from "../utilities/methods";
+import { data_req_to_records, filterAndMatched, jsonClone, parseFilterString, relative_duration, setFilter, toastInfo, toastSuccess } from "../utilities/methods";
 import { SelectButton } from 'primereact/selectbutton';
 import { Dropdown } from 'primereact/dropdown';
 import { ObjectAny } from "../utilities/interfaces";
@@ -270,6 +270,8 @@ export const MetaExplorer: React.FC<Props> = (props) => {
     await table?.updateColumnStats(columns)
     loadingState[rec.key].set(none)
     refreshData(metaPanel.filter.get())
+    if (instanceOfMetaColumnRecord(rec)) toastInfo(`Stats Computed for ${rec.column}`)
+    else toastInfo(`Stats Computed for ${rec.table}`)
   }
 
   const updateFilter = (val: string, debounce=true) => { 
@@ -280,12 +282,16 @@ export const MetaExplorer: React.FC<Props> = (props) => {
 
   const getSample = async (e: any, rec: MetaColumnRecord) => { 
     let tableFullName = `${rec.database}.${rec.schema}.${rec.table}`
-    let sql = `select ${rec.column} from ${tableFullName} limit 100`
-    if (rec.recs_cnt > 0 && rec.distincts_cnt < 100) { 
+    let sql = `select ${rec.column} from ${tableFullName} 
+                where ${rec.column} is not null limit 100`
+    if (rec.recs_cnt > 0 && rec.distincts_cnt < 100) {
       sql = `select ${rec.column}, count(1) cnt
               from ${tableFullName}
               group by ${rec.column}
               order by count(1) desc`
+    } else if (rec.recs_cnt > 0 && rec.recs_cnt > 100000 && rec.distincts_cnt > 50) {
+      sql = `select distinct ${rec.column} from ${tableFullName} 
+                where ${rec.column} is not null limit 50`
     }
     let req : QueryRequest = {
       conn: window.dbnet.currentConnection.name,
@@ -294,7 +300,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
     }
     loadingState[rec.key].set(true)
     let query = await window.dbnet.submitQuery(req)
-    let records = data_req_to_records(query, true)
+    let records = data_req_to_records(query, true, true)
     sampleRecords.set(records)
     sampleColumnName.set(rec.column.toLowerCase())
     loadingState[rec.key].set(none)
@@ -347,7 +353,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       scrollHeight={`300px`}
       responsiveLayout="scroll"
     >
-      <Column field={sampleColumnName.get()} header={sampleColumnName.get()} sortable />
+      <Column field={sampleColumnName.get()} header={sampleColumnName.get()} headerStyle={{ maxWidth: '30.7em' }}  bodyStyle={{ maxWidth: '30.7em' }} sortable />
       <Column field="cnt" header="Cnt" headerStyle={{ maxWidth: '5.7em' }}  bodyStyle={{ maxWidth: '5.7em' }} />
     </DataTable>
   </OverlayPanel>

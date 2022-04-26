@@ -227,17 +227,17 @@ func (s *DbtServer) Hostname() string {
 }
 
 type dbtRequest struct {
-	ID      string `json:"id"`
-	JsonRPC string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  g.Map  `json:"params"`
+	ID      string                 `json:"id"`
+	JsonRPC string                 `json:"jsonrpc"`
+	Method  string                 `json:"method"`
+	Params  map[string]interface{} `json:"params"`
 }
 
 type dbtResponse struct {
-	ID      string `json:"id"`
-	JsonRPC string `json:"jsonrpc"`
-	Result  g.Map  `json:"result"`
-	Error   g.Map  `json:"error"`
+	ID      string                 `json:"id"`
+	JsonRPC string                 `json:"jsonrpc"`
+	Result  map[string]interface{} `json:"result"`
+	Error   map[string]interface{} `json:"error"`
 }
 
 // Submit submits a request to RPC
@@ -263,7 +263,7 @@ func (s *DbtServer) Submit(req dbtRequest) (dbtResp dbtResponse, err error) {
 				ID:      req.ID,
 				JsonRPC: "2.0",
 				Method:  "poll",
-				Params: g.Map{
+				Params: map[string]interface{}{
 					"request_token": reqToken,
 					"logs":          false,
 					"logs_start":    0,

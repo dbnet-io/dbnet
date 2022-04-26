@@ -11,8 +11,8 @@ import (
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
-	"github.com/flarco/sling/core/sling"
 	"github.com/jmoiron/sqlx"
+	"github.com/slingdata-io/sling-cli/core/sling"
 	"github.com/spf13/cast"
 	"gopkg.in/yaml.v2"
 )
@@ -143,10 +143,10 @@ type Job struct {
 	Result    g.Map            `json:"result" gorm:"type:json default '{}'"`
 	UpdatedDt time.Time        `json:"updated_dt" gorm:"autoUpdateTime"`
 
-	Context g.Context     `json:"-" gorm:"-"`
-	Task    *sling.Task   `json:"-" gorm:"-"`
-	Wait    bool          `json:"wait" gorm:"-"`
-	Done    chan struct{} `json:"-" gorm:"-"`
+	Context g.Context            `json:"-" gorm:"-"`
+	Task    *sling.TaskExecution `json:"-" gorm:"-"`
+	Wait    bool                 `json:"wait" gorm:"-"`
+	Done    chan struct{}        `json:"-" gorm:"-"`
 }
 
 // Session represents a connection session
@@ -246,10 +246,10 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 
 	// see if analysis req
-	if strings.HasPrefix(q.Text, "/*@") && strings.HasSuffix(q.Text, "@*/") {
+	if strings.HasPrefix(q.Text, "/*--") && strings.HasSuffix(q.Text, "--*/") {
 		// is data request in yaml or json
-		// /*@{"analysis":"field_count", "data": {...}} @*/
-		// /*@{"metadata":"ddl_table", "data": {...}} @*/
+		// /*--{"analysis":"field_count", "data": {...}} --*/
+		// /*--{"metadata":"ddl_table", "data": {...}} --*/
 		type analysisReq struct {
 			Analysis string                 `json:"analysis" yaml:"analysis"`
 			Metadata string                 `json:"metadata" yaml:"metadata"`
@@ -257,7 +257,7 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 		}
 
 		req := analysisReq{}
-		body := strings.TrimSuffix(strings.TrimPrefix(q.Text, "/*@"), "@*/")
+		body := strings.TrimSuffix(strings.TrimPrefix(q.Text, "/*--"), "--*/")
 		err = yaml.Unmarshal([]byte(body), &req)
 		if err != nil {
 			err = g.Error(err, "could not parse yaml/json request")
@@ -316,7 +316,7 @@ func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
 		// if any error occurs during iteration
 		if q.Result.Err() != nil || it.Context.Err() != nil {
 			q.Close(true)
-			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration"))
+			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration in ResultStream nextFunc"))
 		}
 
 		q.Status = QueryStatusCompleted
@@ -442,13 +442,15 @@ func (q *Query) syncFieldAnalysisResult() {
 
 func (j *Job) MakeResult() (result map[string]interface{}) {
 	task := j.Task
+	rowRate, byteRate := task.GetRate(10)
 	return g.M(
 		"id", j.Request["id"],
 		"type", task.Type,
 		"status", task.Status,
 		"error", g.ErrMsg(task.Err),
 		"rows", task.GetCount(),
-		"rate", task.GetRate(10),
+		"row_rate", rowRate,
+		"byte_rate", byteRate,
 		"progress", task.Progress,
 		"progress_hist", task.ProgressHist,
 		"start_time", j.Time,
@@ -456,18 +458,18 @@ func (j *Job) MakeResult() (result map[string]interface{}) {
 		"bytes", task.Bytes,
 		"config", g.M(
 			"source", sling.Source{
-				Conn:    task.Cfg.Source.Conn,
-				Stream:  task.Cfg.Source.Stream,
-				Limit:   task.Cfg.Source.Limit,
-				Options: task.Cfg.Source.Options,
+				Conn:    task.Config.Source.Conn,
+				Stream:  task.Config.Source.Stream,
+				Limit:   task.Config.Source.Limit,
+				Options: task.Config.Source.Options,
 			},
 			"target", sling.Target{
-				Conn:       task.Cfg.Target.Conn,
-				Object:     task.Cfg.Target.Object,
-				Mode:       task.Cfg.Target.Mode,
-				Options:    task.Cfg.Target.Options,
-				PrimaryKey: task.Cfg.Target.PrimaryKey,
-				UpdateKey:  task.Cfg.Target.UpdateKey,
+				Conn:       task.Config.Target.Conn,
+				Object:     task.Config.Target.Object,
+				Mode:       task.Config.Target.Mode,
+				Options:    task.Config.Target.Options,
+				PrimaryKey: task.Config.Target.PrimaryKey,
+				UpdateKey:  task.Config.Target.UpdateKey,
 			},
 		),
 	)

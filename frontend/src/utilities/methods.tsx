@@ -78,7 +78,7 @@ export const title_case = function(str : string) {
   return str.replace(/(^|\s)\S/g, function(t) { return t.toUpperCase() });
 }
 
-export const data_req_to_records = function(data: any, lower_header = false){
+export const data_req_to_records = function(data: any, lower_header = false, to_string = false){
   let records : ObjectAny[] = []
   if (data == null || Object.keys(data).length === 0 || data.rows.length === 0 || data.headers.length === 0) return records
   
@@ -88,7 +88,7 @@ export const data_req_to_records = function(data: any, lower_header = false){
 
   for (let row of data.rows) {
     let rec : ObjectAny = {}
-    for (let i = 0; i < data.headers.length; i++) rec[data.headers[i]] = row[i]
+    for (let i = 0; i < data.headers.length; i++) rec[data.headers[i]] = to_string ? `${row[i]}` : row[i]
     records.push(rec)
   }
   return records

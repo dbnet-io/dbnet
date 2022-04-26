@@ -281,7 +281,7 @@ export const TabTable: React.FC<Props> = (props) => {
   }
 
   return (
-    <div style={{fontSize:'11.5px'}}>
+    <div style={{fontSize:'11.5px', fontFamily: 'monospace'}}>
       {output}
     </div>
   );

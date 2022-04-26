@@ -12,8 +12,8 @@ import (
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
-	"github.com/flarco/sling/core/sling"
 	"github.com/labstack/echo/v4"
+	"github.com/slingdata-io/sling-cli/core/sling"
 	"github.com/spf13/cast"
 )
 
@@ -53,12 +53,7 @@ func GetDatabases(c echo.Context) (err error) {
 	}
 
 	rf := func(c database.Connection, req Request) (data iop.Dataset, err error) {
-		sql, ok := c.Template().Metadata["databases"]
-		if !ok {
-			err = g.Error("no template found for getting databases for %s", c.GetType())
-			return
-		}
-		data, err = c.Query(sql)
+		data, err = c.GetDatabases()
 		if err != nil {
 			err = g.Error(err, "could not query databases")
 			return
@@ -462,6 +457,7 @@ func PostSubmitQuery(c echo.Context) (err error) {
 		case <-query.Done:
 			result, err = query.ProcessResult()
 			if err != nil {
+				g.LogError(err)
 				result["err"] = g.ErrMsgSimple(err)
 				return c.JSON(500, result)
 			}
@@ -593,14 +589,14 @@ type JobRequestConn struct {
 }
 
 type JobRequest struct {
-	ID     string         `json:"id"`
-	Source JobRequestConn `json:"source"`
-	Target JobRequestConn `json:"target"`
-	Config g.Map          `json:"config"`
+	ID     string                 `json:"id"`
+	Source JobRequestConn         `json:"source"`
+	Target JobRequestConn         `json:"target"`
+	Config map[string]interface{} `json:"config"`
 }
 
 // idNumber return the id as a number
-func (jr *JobRequest) idNumber() int {
+func (jr *JobRequest) idNumber() int64 {
 	var result strings.Builder
 	for i := 0; i < len(jr.ID); i++ {
 		b := jr.ID[i]
@@ -608,7 +604,7 @@ func (jr *JobRequest) idNumber() int {
 			result.WriteByte(b)
 		}
 	}
-	return cast.ToInt(result.String())
+	return cast.ToInt64(result.String())
 }
 
 // PostSubmitExtractLoadJob submits an extract / load job
