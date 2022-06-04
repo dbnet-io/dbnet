@@ -128,6 +128,7 @@ type Query struct {
 	Done            chan struct{} `json:"-" gorm:"-"`
 	Affected        int64         `json:"affected" gorm:"-"`
 	ProjDir         string        `json:"proj_dir" gorm:"-"`
+	Error           error         `json:"-" gorm:"-"`
 	IsFieldAnalysis bool          `json:"-" gorm:"-"`
 }
 
@@ -177,6 +178,7 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 
 	setError := func(err error) {
 		q.Status = QueryStatusErrorred
+		q.Error = err
 		q.Err = g.ErrMsg(err)
 		q.Duration = (float64(time.Now().UnixNano()/1000000) - float64(q.Time)) / 1000
 	}
@@ -289,8 +291,8 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 
 // ResultStream returns the query result as a datastream
 func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
-	if q.Err != "" {
-		err = g.Error(q.Err)
+	if q.Error != nil {
+		err = q.Error
 		return
 	}
 
@@ -351,8 +353,8 @@ func (q *Query) Close(cancel bool) {
 // ProcessResult fetches all rows in query and stores in sqlite
 // for further retrieval
 func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
-	if q.Err != "" {
-		err = g.Error(q.Err)
+	if q.Error != nil {
+		err = q.Error
 		return g.ToMap(q), err
 	}
 
@@ -458,19 +460,19 @@ func (j *Job) MakeResult() (result map[string]interface{}) {
 		"bytes", task.Bytes,
 		"config", g.M(
 			"source", sling.Source{
-				Conn:    task.Config.Source.Conn,
-				Stream:  task.Config.Source.Stream,
-				Limit:   task.Config.Source.Limit,
-				Options: task.Config.Source.Options,
+				Conn:       task.Config.Source.Conn,
+				Stream:     task.Config.Source.Stream,
+				Limit:      task.Config.Source.Limit,
+				Options:    task.Config.Source.Options,
+				PrimaryKey: task.Config.Source.PrimaryKey,
+				UpdateKey:  task.Config.Source.UpdateKey,
 			},
 			"target", sling.Target{
-				Conn:       task.Config.Target.Conn,
-				Object:     task.Config.Target.Object,
-				Mode:       task.Config.Target.Mode,
-				Options:    task.Config.Target.Options,
-				PrimaryKey: task.Config.Target.PrimaryKey,
-				UpdateKey:  task.Config.Target.UpdateKey,
+				Conn:    task.Config.Target.Conn,
+				Object:  task.Config.Target.Object,
+				Options: task.Config.Target.Options,
 			},
+			"mode", task.Config.Mode,
 		),
 	)
 }

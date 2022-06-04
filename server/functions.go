@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/slingdata-io/sling-cli/core/sling"
 	"github.com/spf13/cast"
-	"gopkg.in/yaml.v3"
 
 	"github.com/flarco/dbio/connection"
 	"github.com/flarco/dbio/database"
@@ -29,13 +27,32 @@ var (
 	mux          sync.Mutex
 	defaultLimit = 100
 	// Sync syncs to store
-	Sync    = store.Sync
-	HomeDir = os.Getenv("DBNET_DIR")
+	Sync            = store.Sync
+	HomeDir         = os.Getenv("DBNET_HOME_DIR")
+	SlingDir        = os.Getenv("SLING_HOME_DIR")
+	HomeDirEnvFile  = ""
+	SlingDirEnvFile = ""
 )
+
+func init() {
+	if HomeDir == "" {
+		HomeDir = g.UserHomeDir() + "/.dbnet"
+		os.Setenv("DBNET_HOME_DIR", HomeDir)
+	}
+	if SlingDir == "" {
+		SlingDir = g.UserHomeDir() + "/.sling"
+	}
+	os.MkdirAll(HomeDir, 0755)
+
+	HomeDirEnvFile = HomeDir + "/env.yaml"
+	SlingDirEnvFile = SlingDir + "/env.yaml"
+
+	// os.Setenv("PROFILE_PATHS", g.F("%s,%s", HomeDirEnvFile, DbNetDirEnvFile))
+}
 
 // Connection is a connection
 type Connection struct {
-	Conn  *connection.Connection
+	Conn  connection.Connection
 	Props map[string]string // to cache vars
 }
 
@@ -56,139 +73,87 @@ func (c *Connection) DefaultDB() string {
 }
 
 func LoadConnections() (err error) {
-	eG := g.ErrorGroup{}
-	HomeDir = os.Getenv("DBNET_DIR")
-
 	Connections, err = ReadConnections()
-	eG.Capture(err)
-
-	DbtConnections, err := ReadDbtConnections()
-	eG.Capture(err)
-
-	for k, conn := range DbtConnections {
-		Connections[k] = conn
+	if err != nil {
+		return err
 	}
 
-	if eG.Err() != nil {
-		return eG.Err()
-	}
+	g.PP(Connections)
 
 	return
 }
 
 // ReadConnections loads the connections
 func ReadConnections() (conns map[string]*Connection, err error) {
-	conns = map[string]*Connection{}
-	path := HomeDir + "/.dbnet.yaml"
+	connsMap := map[string]*Connection{}
 
-	profile := map[string]map[string]interface{}{}
-	file, err := os.Open(path)
-	if err != nil {
-		err = g.Error(err, "error reading from yaml")
-		return
-	}
-
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		err = g.Error(err, "error reading bytes from yaml")
-		return
-	}
-
-	err = yaml.Unmarshal(bytes, profile)
-	if err != nil {
-		err = g.Error(err, "error parsing yaml string")
-		return
-	}
-
-	if connections, ok := profile["connections"]; ok {
-		for name, v := range connections {
-			switch v.(type) {
-			case map[string]interface{}:
-				data := v.(map[string]interface{})
-				if n := cast.ToString(data["name"]); n != "" {
-					data["name"] = name
-				}
-
-				conn, err := connection.NewConnectionFromMap(g.M("name", name, "data", data, "type", data["type"]))
-				if err != nil {
-					g.Warn("could not load connection %s", name)
-					g.LogError(err)
-					continue
-				}
-
-				conns[name] = &Connection{
-					Conn:  &conn,
-					Props: map[string]string{},
-				}
-			default:
-				g.Warn("did not handle %s", name)
-			}
-		}
-	}
-	return
-}
-
-func ReadDbtConnections() (conns map[string]*Connection, err error) {
-	conns = map[string]*Connection{}
-
-	profileDir := strings.TrimSuffix(os.Getenv("DBT_PROFILES_DIR"), "/")
-	if profileDir == "" {
-		profileDir = g.UserHomeDir() + "/.dbt"
-	}
-	path := profileDir + "/profiles.yml"
-	if !g.PathExists(path) {
-		return
-	}
-
-	file, err := os.Open(path)
-	if err != nil {
-		err = g.Error(err, "error reading from yaml: %s", path)
-		return
-	}
-
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		err = g.Error(err, "error reading bytes from yaml: %s", path)
-		return
-	}
-
-	type ProfileConn struct {
-		Target  string                            `json:"target" yaml:"target"`
-		Outputs map[string]map[string]interface{} `json:"outputs" yaml:"outputs"`
-	}
-
-	dbtProfile := map[string]ProfileConn{}
-	err = yaml.Unmarshal(bytes, &dbtProfile)
-	if err != nil {
-		err = g.Error(err, "error parsing yaml string")
-		return
-	}
-
-	for pName, pc := range dbtProfile {
-		for target, data := range pc.Outputs {
-			connName := strings.ToUpper(pName + "/" + target)
-			data["dbt"] = true
-			data["profile"] = pName
-			data["target"] = target
-
-			conn, err := connection.NewConnectionFromMap(
-				g.M("name", connName, "data", data, "type", data["type"]),
-			)
-			if err != nil {
-				g.Warn("could not load dbt connection %s", connName)
-				g.LogError(err)
-				continue
-			}
-
-			conns[connName] = &Connection{
-				Conn:  &conn,
+	// get dbt connections
+	dbtConns, err := connection.ReadDbtConnections()
+	if !g.LogError(err) {
+		for name, conn := range dbtConns {
+			connsMap[name] = &Connection{
+				Conn:  conn,
 				Props: map[string]string{},
 			}
-			g.Trace("found connection from dbt profiles YAMML: " + connName)
 		}
 	}
 
-	return
+	// get sling connection
+	if g.PathExists(SlingDirEnvFile) {
+		profileConns, err := connection.ReadConnections(SlingDirEnvFile)
+		if !g.LogError(err) {
+			for _, conn := range profileConns {
+				if !conn.Info().Type.IsDb() {
+					continue
+				}
+				connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
+					Conn:  conn,
+					Props: map[string]string{},
+				}
+			}
+		}
+	}
+
+	// get dbnet connections
+	if g.PathExists(HomeDirEnvFile) {
+		profileConns, err := connection.ReadConnections(HomeDirEnvFile)
+		if !g.LogError(err) {
+			for _, conn := range profileConns {
+				if !conn.Info().Type.IsDb() {
+					continue
+				}
+				connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
+					Conn:  conn,
+					Props: map[string]string{},
+				}
+			}
+		}
+	}
+
+	// Environment variables
+	for key, val := range g.KVArrToMap(os.Environ()...) {
+		if !strings.Contains(val, ":/") || strings.Contains(val, "{") {
+			continue
+		}
+
+		key = strings.ToUpper(key)
+		conn, err := connection.NewConnectionFromURL(key, val)
+		if err != nil {
+			e := g.F("could not parse %s: %s", key, g.ErrMsgSimple(err))
+			g.Warn(e)
+			continue
+		}
+
+		if !conn.Info().Type.IsDb() {
+			continue
+		}
+
+		connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
+			Conn:  conn,
+			Props: map[string]string{},
+		}
+	}
+	return connsMap, nil
 }
 
 // NewQuery creates a Query object
@@ -321,9 +286,9 @@ func doSubmitSQL(query *store.Query) (err error) {
 
 	err = processDbtQuery(query)
 	if err != nil {
-		err = g.Error(err, "could not compile dbt query")
-		query.Err = g.ErrMsg(err)
-		return err
+		query.Error = g.Error(err, "could not compile dbt query")
+		query.Err = g.ErrMsg(query.Error)
+		return query.Error
 	}
 
 	go func() {

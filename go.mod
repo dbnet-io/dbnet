@@ -3,8 +3,8 @@ module github.com/flarco/scruto
 go 1.16
 
 require (
-	github.com/flarco/dbio v0.3.15
-	github.com/flarco/g v0.1.7
+	github.com/flarco/dbio v0.3.28
+	github.com/flarco/g v0.1.15
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/jmoiron/sqlx v1.2.0

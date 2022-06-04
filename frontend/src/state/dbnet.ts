@@ -63,6 +63,7 @@ export class DbNet {
   }
 
   async init() {
+    await this.state.load()
     await this.loadWorkspace() // load last workspace or use default
     await this.loadConnections() // get all connections or create TODO:
     await this.loadHistoryQueries()
