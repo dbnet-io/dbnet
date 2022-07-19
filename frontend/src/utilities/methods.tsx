@@ -359,9 +359,9 @@ export let parseFilterString = (filterStr: string) => {
   let token = ""
   for (let i = 0; i < filterStr.length; i++) {
     const char = filterStr[i];
-    if (char == '"') inQuote = !inQuote 
+    if (char === '"') inQuote = !inQuote 
     token = token + char
-    if ((!inQuote && char == ' ') || i == filterStr.length - 1) {
+    if ((!inQuote && char === ' ') || i === filterStr.length - 1) {
       token = token.trim()
       if(token.length > 0) filters.push(token)
       token = ''
@@ -372,13 +372,13 @@ export let parseFilterString = (filterStr: string) => {
 
 export const filterAndMatched = (row: any[], filters: string[]) => { 
   filters = filters.filter(v => v.trim() !== '')
-  if(filters.length == 0) return true
+  if(filters.length === 0) return true
   let include = filters.map(v => false)
   for(let val of row) {
     for (let i = 0; i < filters.length; i++) {
       const filter = filters[i].toLowerCase().trim()
       if (filter.startsWith('"') && filter.endsWith('"')) {
-        if (`${val}`.toLowerCase() == filter.replaceAll('"', '')) include[i] = true
+        if (`${val}`.toLowerCase() === filter.replaceAll('"', '')) include[i] = true
       } else {
         if (`${val}`.toLowerCase().includes(filter)) include[i] = true
       }

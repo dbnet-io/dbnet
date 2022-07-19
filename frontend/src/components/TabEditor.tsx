@@ -14,8 +14,7 @@ import { Button } from "primereact/button";
 import { Table } from "../state/schema";
 import { Tab } from "../state/tab";
 import { format } from 'sql-formatter';
-import { jsonClone, toastError } from "../utilities/methods";
-import _ from "lodash";
+import { toastError } from "../utilities/methods";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -55,14 +54,8 @@ export function TabEditor(props: { tab: State<Tab> }) {
   React.useEffect(() => {
     focusSelection(true)
     loadHistory()
-  }, [tab.name.get(), tab.editor.focus.get()])
+  }, [tab.name.get(), tab.editor.focus.get()]) // eslint-disable-line
 
-
-  const filterHistory = function(deltas: any[]){ 
-    return deltas.filter(function (d) {
-        return d.group != "fold";
-    });
-  }
   
   const saveHistory = () => {
     // save session & history
@@ -83,16 +76,6 @@ export function TabEditor(props: { tab: State<Tab> }) {
     let um = editor.session.getUndoManager()
     um.reset()
     editor.session.setUndoManager(um)
-    return
-
-    // does not work
-    let um_ = um as any
-    let history = jsonClone(tab.editor.history.get())
-    console.log(history)
-    if (history?.undo) um_.$undoStack = history.undo
-    if (history?.redo) um_.$redoStack = history.redo
-    
-    editor.session.setUndoManager(um_)
   }
 
   const getDefinition = () => {
@@ -101,10 +84,10 @@ export function TabEditor(props: { tab: State<Tab> }) {
     if (word === '') { word = tab.editor.get().getWord(true) }
     let wordArr = word.split('.')
     let [database, schema, name] = [tab.database.get(), '', '']
-    if (wordArr.length == 2) {
+    if (wordArr.length === 2) {
       schema = wordArr[0]
       name = wordArr[1]
-    } else if (wordArr.length == 3) {
+    } else if (wordArr.length === 3) {
       database = wordArr[0]
       schema = wordArr[1]
       name = wordArr[2]

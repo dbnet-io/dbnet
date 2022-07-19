@@ -77,7 +77,6 @@ export const Websocket: React.FC<Props> = (props) => {
   // const doRequest = useState(globalStore.ws.doRequest)
 
   const {
-    sendMessage,
     lastJsonMessage,
     readyState,
   } = useWebSocket(socketUrl, socketOptions);
@@ -98,8 +97,6 @@ export const Websocket: React.FC<Props> = (props) => {
     [ReadyState.CLOSED]: 'Closed',
     [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
   }[readyState];
-
-  const connected = readyState === ReadyState.OPEN
 
   ///////////////////////////  HOOKS  ///////////////////////////
   ///////////////////////////  EFFECTS  ///////////////////////////

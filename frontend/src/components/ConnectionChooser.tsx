@@ -23,7 +23,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
         )
       }
     }
-  },[connSelected.get()])
+  },[connSelected.get()]) // eslint-disable-line
 
   const footer = () => {
     return <div style={{textAlign: 'center'}}>

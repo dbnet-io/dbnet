@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"time"
@@ -108,28 +107,29 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Query represents a query
 type Query struct {
-	ID              string        `json:"id" query:"id" gorm:"primaryKey"`
-	Conn            string        `json:"conn" query:"conn" gorm:"index"`
-	Database        string        `json:"database" query:"database" gorm:"index"`
-	Tab             string        `json:"tab" query:"tab"`
-	Text            string        `json:"text" query:"text"`
-	Time            int64         `json:"time" query:"time" gorm:"index:idx_query_time"`
-	Duration        float64       `json:"duration" query:"duration"`
-	Status          QueryStatus   `json:"status" query:"status"`
-	Err             string        `json:"err" query:"err"`
-	Headers         Headers       `json:"headers" query:"headers" gorm:"headers"`
-	Rows            Rows          `json:"rows" query:"rows" gorm:"-"`
-	Context         g.Context     `json:"-" gorm:"-"`
-	Result          *sqlx.Rows    `json:"-" gorm:"-"`
-	Columns         []iop.Column  `json:"-" gorm:"-"`
-	Limit           int           `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
-	Wait            bool          `json:"wait" query:"wait" gorm:"-"`
-	UpdatedDt       time.Time     `json:"-" gorm:"autoUpdateTime"`
-	Done            chan struct{} `json:"-" gorm:"-"`
-	Affected        int64         `json:"affected" gorm:"-"`
-	ProjDir         string        `json:"proj_dir" gorm:"-"`
-	Error           error         `json:"-" gorm:"-"`
-	IsFieldAnalysis bool          `json:"-" gorm:"-"`
+	ID              string          `json:"id" query:"id" gorm:"primaryKey"`
+	Conn            string          `json:"conn" query:"conn" gorm:"index"`
+	Database        string          `json:"database" query:"database" gorm:"index"`
+	Tab             string          `json:"tab" query:"tab"`
+	Text            string          `json:"text" query:"text"`
+	Time            int64           `json:"time" query:"time" gorm:"index:idx_query_time"`
+	Duration        float64         `json:"duration" query:"duration"`
+	Status          QueryStatus     `json:"status" query:"status"`
+	Err             string          `json:"err" query:"err"`
+	Headers         Headers         `json:"headers" query:"headers" gorm:"headers"`
+	Rows            Rows            `json:"rows" query:"rows" gorm:"-"`
+	Context         g.Context       `json:"-" gorm:"-"`
+	Result          *sqlx.Rows      `json:"-" gorm:"-"`
+	Columns         []iop.Column    `json:"-" gorm:"-"`
+	Stream          *iop.Datastream `json:"-" gorm:"-"`
+	Limit           int             `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
+	Wait            bool            `json:"wait" query:"wait" gorm:"-"`
+	UpdatedDt       time.Time       `json:"-" gorm:"autoUpdateTime"`
+	Done            chan struct{}   `json:"-" gorm:"-"`
+	Affected        int64           `json:"affected" gorm:"-"`
+	ProjDir         string          `json:"proj_dir" gorm:"-"`
+	Error           error           `json:"-" gorm:"-"`
+	IsFieldAnalysis bool            `json:"-" gorm:"-"`
 }
 
 // Job represents a job
@@ -201,21 +201,15 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 
 	sqls := database.ParseSQLMultiStatements(q.Text)
 	if len(sqls) == 1 {
-		q.Result, err = conn.Db().QueryxContext(q.Context.Ctx, q.Text)
+		q.Stream, err = conn.StreamRowsContext(q.Context.Ctx, q.Text, q.Limit)
 		if err != nil {
 			setError(err)
 			err = g.Error(err, "could not execute query")
 			return
 		}
 
-		colTypes, err := q.Result.ColumnTypes()
-		if err != nil {
-			setError(err)
-			err = g.Error(err, "result.ColumnTypes()")
-			return err
-		}
-
-		q.Columns = database.SQLColumns(colTypes, conn.Template().NativeTypeMap)
+		q.Columns = q.Stream.Columns
+		q.Status = QueryStatusCompleted
 	} else {
 		tx, err := conn.NewTransaction(q.Context.Ctx)
 		if err != nil {
@@ -238,6 +232,7 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 			return err
 		}
 
+		q.Status = QueryStatusCompleted
 		q.Affected, _ = res.RowsAffected()
 	}
 
@@ -289,57 +284,6 @@ func (q *Query) ProcessCustomReq(conn database.Connection) (err error) {
 	return
 }
 
-// ResultStream returns the query result as a datastream
-func (q *Query) ResultStream() (ds *iop.Datastream, err error) {
-	if q.Error != nil {
-		err = q.Error
-		return
-	}
-
-	nextFunc := func(it *iop.Iterator) bool {
-		if q.Limit > 0 && it.Counter >= cast.ToUint64(q.Limit) {
-			g.Debug("reached limit of %d", q.Limit)
-			q.Status = QueryStatusCompleted
-			q.Close(true) // some drivers pull the whole resultset, so let's close
-			return false
-		}
-
-		next := q.Result.Next()
-		if next {
-			// add row
-			it.Row, err = q.Result.SliceScan()
-			if err != nil {
-				it.Context.CaptureErr(g.Error(err, "failed to scan"))
-			} else {
-				return true
-			}
-		}
-
-		// if any error occurs during iteration
-		if q.Result.Err() != nil || it.Context.Err() != nil {
-			q.Close(true)
-			it.Context.CaptureErr(g.Error(q.Result.Err(), "error during iteration in ResultStream nextFunc"))
-		}
-
-		q.Status = QueryStatusCompleted
-		return false
-	}
-
-	ctx := g.NewContext(context.Background())
-	ds = iop.NewDatastreamIt(ctx.Ctx, q.Columns, nextFunc)
-	ds.NoTrace = true
-	ds.Inferred = true
-
-	err = ds.Start()
-	if err != nil {
-		q.Context.Cancel()
-		err = g.Error(err, "could start datastream")
-		return
-	}
-
-	return
-}
-
 // Close closes and cancels the query
 func (q *Query) Close(cancel bool) {
 	if cancel {
@@ -358,15 +302,10 @@ func (q *Query) ProcessResult() (result map[string]interface{}, err error) {
 		return g.ToMap(q), err
 	}
 
-	if q.Affected == -1 {
-		ds, err := q.ResultStream()
-		if err != nil {
-			err = g.Error(err, "could not fetch result rows")
-			return g.ToMap(q), err
-		}
+	if q.Affected == -1 && q.Stream != nil {
 
 		// retrieve rows
-		data, err := ds.Collect(q.Limit)
+		data, err := q.Stream.Collect(q.Limit)
 		if err != nil {
 			err = g.Error(err, "could not retrieve rows")
 			return g.ToMap(q), err

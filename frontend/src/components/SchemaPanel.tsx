@@ -42,14 +42,14 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       window.dbnet.unsubscribe(id1)
       window.dbnet.unsubscribe(id2)
     }
-  }, [])
+  }, []) // eslint-disable-line
 
   React.useEffect(() => {
     setTimeout(() => {
-      if (window.dbnet.selectedConnection == connection.name.get()) return
+      if (window.dbnet.selectedConnection === connection.name.get()) return
       loadConnection(window.dbnet.selectedConnection)
     }, 100);
-  }, [onSelectConnection.get()])
+  }, [onSelectConnection.get()]) // eslint-disable-line
 
   React.useEffect(() => {
     if (window.dbnet.connections.length === 0) return
@@ -62,7 +62,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     // let conn = getConnectionState(connName)
     connection.set(new Connection(jsonClone(window.dbnet.getConnection(connName))))
     return () => localStorage.setItem("_schema_panel_connection", connection.name.get())
-  }, [trigger.get()])
+  }, [trigger.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 

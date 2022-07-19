@@ -253,7 +253,7 @@ export class DbNet {
           num_nulls: row.num_nulls,
           min_len: row.min_len,
           max_len: row.max_len,
-          last_analyzed: row.last_analyzed != '0001-01-01T00:00:00Z' ? row.last_analyzed : null
+          last_analyzed: row.last_analyzed !== '0001-01-01T00:00:00Z' ? row.last_analyzed : null
         }
         tables[tableKey].columns.push(column)
       }
@@ -329,6 +329,7 @@ export class DbNet {
 
 
 class DexieQuery {
+  // eslint-disable-next-line
   constructor(data: ObjectAny = {}) {
   }
 
@@ -339,6 +340,7 @@ class DexieQuery {
 }
 
 class Job {
+  // eslint-disable-next-line
   constructor(data: ObjectAny = {}) {
   }
 

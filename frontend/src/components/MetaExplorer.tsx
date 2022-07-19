@@ -3,11 +3,9 @@ import * as React from "react";
 import { useHS, useVariable } from "../store/state";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
-import _ from "lodash";
-import { data_req_to_records, filterAndMatched, jsonClone, parseFilterString, relative_duration, setFilter, toastInfo, toastSuccess } from "../utilities/methods";
+import { data_req_to_records, filterAndMatched, jsonClone, parseFilterString, relative_duration, setFilter, toastInfo } from "../utilities/methods";
 import { SelectButton } from 'primereact/selectbutton';
 import { Dropdown } from 'primereact/dropdown';
 import { ObjectAny } from "../utilities/interfaces";
@@ -101,9 +99,9 @@ export const MetaExplorer: React.FC<Props> = (props) => {
     let id1 = window.dbnet.subscribe('onSelectConnection', onSelectConnection)
     let id2 = window.dbnet.subscribe('refreshSchemaPanel', onRefreshSchemaPanel)
     return () => { window.dbnet.unsubscribe(id1); window.dbnet.unsubscribe(id2) }
-  }, [])
+  }, []) // eslint-disable-line
 
-  React.useEffect(() => { refreshData() }, [onSelectConnection.get(), onRefreshSchemaPanel.get()])
+  React.useEffect(() => { refreshData() }, [onSelectConnection.get(), onRefreshSchemaPanel.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const applyFilter = () => { 
@@ -130,7 +128,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       return filterAndMatched(row, parseFilterString(filter))
     }
 
-    if (viewSelection.get() == 'Schemas') {
+    if (viewSelection.get() === 'Schemas') {
       for (let schema of conn.getAllSchemas()) {
         let rec: MetaSchemaRecord = {
           index: data.length,
@@ -149,7 +147,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       }
     }
     
-    if (viewSelection.get() == 'Tables') { 
+    if (viewSelection.get() === 'Tables') { 
       let prev_schema = '';
       let background = 0;
 
@@ -168,7 +166,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
           last_analyzed: last_analyzed_at ? relative_duration(new Date(last_analyzed_at), true, true) : '',
           recs_cnt: Math.max.apply( Math, table.columns.map((c) => c.num_rows || 0)),
           cols_cnt: table.columns.length,
-          unique_cols: table.columns.filter((c) => (c.num_rows || 0) > 0 && c.num_distinct == c.num_rows).length,
+          unique_cols: table.columns.filter((c) => (c.num_rows || 0) > 0 && c.num_distinct === c.num_rows).length,
           cols_analyzed: table.columns.filter((c) => c.last_analyzed).length,
           style: {background},
         }
@@ -176,8 +174,8 @@ export const MetaExplorer: React.FC<Props> = (props) => {
         if (!filterMatch(rec)) continue
 
         // update for style
-        if (prev_schema != table.schema) {
-          background = background == 1 ? 0 : 1
+        if (prev_schema !== table.schema) {
+          background = background === 1 ? 0 : 1
           rec.style.background = background
         }
         prev_schema = rec.schema
@@ -186,7 +184,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       }
     }
 
-    if (viewSelection.get() == 'Columns') { 
+    if (viewSelection.get() === 'Columns') { 
       let prev_table = '';
       let background = 0;
 
@@ -211,8 +209,8 @@ export const MetaExplorer: React.FC<Props> = (props) => {
           if (!filterMatch(rec)) continue
 
           // update for style
-          if (prev_table != table.name) {
-            background = background == 1 ? 0 : 1
+          if (prev_table !== table.name) {
+            background = background === 1 ? 0 : 1
             rec.style.background = background
           }
           prev_table = rec.table
@@ -242,21 +240,6 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       key = `${rec.database}.${rec.schema}.${rec.table}.${rec.column}`.toLowerCase()
     }
     return key
-  }
-
-  const computeColumnRows = async (tableRec: MetaTableRecord) => { 
-    let table = window.dbnet.currentConnection.lookupTable(tableKey(tableRec))
-    let sql = table?.countRows() || ''
-    let req : QueryRequest = {
-      conn: window.dbnet.currentConnection.name,
-      database: window.dbnet.currentConnection.database,
-      text: sql,
-    }
-    loadingState[tableRec.key].set(true)
-    let query = await window.dbnet.submitQuery(req)
-    let records = data_req_to_records(query)
-    loadingState[tableRec.key].set(none)
-    refreshData(metaPanel.filter.get())
   }
 
   const computeColumnStats = async (rec: MetaTableRecord | MetaColumnRecord) => { 
@@ -359,7 +342,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
   </OverlayPanel>
 
   const columnBodyTemplate = (data: MetaColumnRecord) => {
-    const is_unique = data.recs_cnt > 0 && data.distincts_cnt == data.recs_cnt
+    const is_unique = data.recs_cnt > 0 && data.distincts_cnt === data.recs_cnt
     return (
       <React.Fragment>
         <span className={ is_unique ? 'column-unique' : ''}>
@@ -470,7 +453,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       />
 
       {
-        viewSelection.get() == 'Schemas' ?
+        viewSelection.get() === 'Schemas' ?
         [
           { field: "tables_cnt", header: "Tables Cnt" },
           { field: "tables_analyzed", header: "Tables Analyzed" },
@@ -479,7 +462,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       }
 
       {
-        viewSelection.get() == 'Tables' ?
+        viewSelection.get() === 'Tables' ?
         [
           { field: "table", header: "Table", maxWidth: 45 },
           { field: "last_analyzed", header: "Last Ana.", maxWidth: 6 },
@@ -496,7 +479,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       }
 
       {
-        viewSelection.get() == 'Columns' ?
+        viewSelection.get() === 'Columns' ?
           [
             { field: "table", header: "Table", maxWidth: 45 },
             { field: "column", header: "Column", maxWidth: 25, body: columnBodyTemplate },

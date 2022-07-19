@@ -28,9 +28,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     return () => {
       window.dbnet.unsubscribe(id2)
     }
-  }, [])
+  }, []) // eslint-disable-line
 
-  React.useEffect(() => { }, [onSelectConnection.get()])
+  React.useEffect(() => { }, [onSelectConnection.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 

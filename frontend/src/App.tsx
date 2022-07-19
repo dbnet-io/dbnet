@@ -24,7 +24,6 @@ import { JobPanel } from './components/JobPanel';
 import { DbNet } from './state/dbnet';
 import { ConnectionChooser } from './components/ConnectionChooser';
 import { getTabState } from './components/TabNames';
-import { Connection } from './state/connection';
 import { MetaExplorer } from './components/MetaExplorer';
 
 // this is to extends the window global functions

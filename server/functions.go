@@ -78,8 +78,6 @@ func LoadConnections() (err error) {
 		return err
 	}
 
-	g.PP(Connections)
-
 	return
 }
 

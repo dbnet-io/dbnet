@@ -1,8 +1,7 @@
 import TreeNode from "primereact/treenode"
 import { ObjectAny, ObjectString } from "../utilities/interfaces"
-import { data_req_to_records, LogError, toastError } from "../utilities/methods"
-import { QueryRequest } from "./query"
-import { Column, Database, Schema, Table } from "./schema"
+import { LogError, toastError } from "../utilities/methods"
+import { Database, Schema, Table } from "./schema"
 
 
 export enum ConnType {

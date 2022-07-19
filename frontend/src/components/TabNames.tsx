@@ -164,11 +164,6 @@ export const TabNames: React.FC<Props> = (props) => {
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
-  const getSelectedTabName = () => {
-    let index = queryPanel().get().tabs.map(t => t.id).indexOf(selectedTabId.get());
-    return tabs[index].get().name
-  }
-
   const deleteTab = (tabID: string) => {
     let tabI = -1;
     for (let j = 0; j < tabs.get().length; j++) {
@@ -317,7 +312,9 @@ export const TabNames: React.FC<Props> = (props) => {
                 <br />
                 <span>Database:   {tab.database}</span>
               </Tooltip>
+              
 
+              {/* eslint-disable-next-line */}
               <a
                 id={id}
                 data-pr-position="top"

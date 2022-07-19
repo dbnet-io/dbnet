@@ -108,7 +108,7 @@ export class Editor {
     for (let p = 0; p < line.length; p++) {
       const char = line[p];
       if (char === "'") { in_quote_start = !in_quote_start }
-      if (p == pos-1) break
+      if (p === pos-1) break
     }
 
     // after cursor
@@ -168,7 +168,7 @@ export class Editor {
       if (char === ' ' || char === '\t' || char === '\n') {
         if(selectWord) this.selection[3] = i
         break
-      } else if (i == line.length - 1) { 
+      } else if (i === line.length - 1) { 
         word += char
         if(selectWord) this.selection[3] = i+1
       }
@@ -177,7 +177,7 @@ export class Editor {
 
     for (let i = pos - 1; i >= 0; i--) {
       const char = line[i];
-      if (char === ' ' || char === '\t' || char === '\n' || i == 0) {
+      if (char === ' ' || char === '\t' || char === '\n' || i === 0) {
         if(selectWord) this.selection[1] = i+1
         break
       }

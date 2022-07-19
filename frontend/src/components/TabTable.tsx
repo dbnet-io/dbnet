@@ -127,7 +127,7 @@ export const TabTable: React.FC<Props> = (props) => {
     return () => {
       window.dbnet.unsubscribe(id1)
     }
-  }, [])
+  }, []) // eslint-disable-line
 
   React.useEffect(()=>{
     // let p = jsonClone<number[]>(tab.lastTableSelection.get())
@@ -137,14 +137,6 @@ export const TabTable: React.FC<Props> = (props) => {
     // let filters = filter.split(',')
     // console.log(props.hotTable.current?.hotInstance)
   }, [tab.filter.get()])  // eslint-disable-line
-  
-  const refreshTable = () => {
-    const ht = window.dbnet.resultTable.instance
-    let data = jsonClone<any[]>(props.tab.query.rows.get())
-    ht.loadData(data)
-    // console.log(data)
-    console.log(ht)
-  }
   
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {

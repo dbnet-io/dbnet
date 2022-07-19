@@ -4,7 +4,6 @@ import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
 import { MsgType } from "../store/websocket";
-import _ from "lodash";
 import { copyToClipboard, get_duration, jsonClone, new_ts_id, setFilter, showNotification, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
