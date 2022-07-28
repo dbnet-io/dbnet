@@ -199,7 +199,7 @@ export class DbNet {
 
   async getAllSchemata(connName: string, refresh = false) {
     let conn = this.getConnection(connName)
-    let promises: Promise<void>[] = []
+    let promises: Promise<string | undefined>[] = []
 
     if (Object.keys(conn.databases).length === 0) {
       await this.getDatabases(conn.name)
@@ -208,7 +208,15 @@ export class DbNet {
     for (let dbName of Object.keys(conn.databases)) {
       promises.push(this.getSchemata(conn.name, dbName, refresh))
     }
-    for (let promise of promises) await promise
+    let results : (string | undefined)[] = []
+    for (let promise of promises) results.push(await promise)
+    let errors = results.map(r => (r? 1: 0) as number).reduce((a, b) => a+b, 0)
+    let successes = results.length - errors
+    if(successes === 0 && errors > 0) {
+      // only raise error if all schemas can't connect
+      // this is to prevent the error poppups when some schemas are blocked
+      for(let error of results) if(error) toastError(error)
+    }
   }
 
   async getSchemata(connName: string, database: string, refresh = false) {
@@ -221,7 +229,7 @@ export class DbNet {
 
     try {
       let resp = await apiGet(MsgType.GetSchemata, data)
-      if (resp.error) throw new Error(resp.error)
+      if (resp.error) return resp.error as string
       let rows = data_req_to_records(resp.data)
 
       let schemas: { [key: string]: Schema; } = {}
@@ -271,8 +279,9 @@ export class DbNet {
       conn.databases[database].schemas = Object.values(schemas)
       this.trigger('refreshSchemaPanel')
     } catch (error) {
-      toastError(error)
+      return error as string
     }
+    return
   }
 
   get currentConnection() {

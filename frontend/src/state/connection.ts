@@ -113,9 +113,21 @@ export class Connection {
   schemaNodes = (database: Database) => {
     let newNodes: TreeNode[] = []
     let schema: Schema = new Schema()
+    let internal_schemas = [
+      'pg_catalog',
+      'information_schema',
+      '_timescaledb_internal',
+      '_timescaledb_config',
+      '_timescaledb_catalog',
+      'timescaledb_experimental',
+      'timescaledb_information',
+    ]
+
     try {
       for (let i = 0; i < database.schemas.length; i++) {
         schema = database.schemas[i]
+        if(internal_schemas.includes(schema.name.toLocaleLowerCase()))
+          continue
 
         // let children: TreeNode[] = []
         if (schema?.tables !== undefined) {
