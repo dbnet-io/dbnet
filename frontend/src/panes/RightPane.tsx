@@ -37,6 +37,7 @@ export const RightPane: React.FC<Props> = (props) => {
             <SubTabs tab={tab}/>
             <TabToolbar tab={childTab}/>
             <TabTable tab={childTab}/>
+            
           </div>
         </SplitterPanel>
       </Splitter>

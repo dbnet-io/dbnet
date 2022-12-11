@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path"
 
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/server"
@@ -11,7 +12,7 @@ import (
 
 func init() {
 	if os.Getenv("DBNET_DIR") == "" {
-		os.Setenv("DBNET_DIR", g.UserHomeDir()+"/dbnet")
+		os.Setenv("DBNET_DIR", path.Join(g.UserHomeDir(), "dbnet"))
 		os.MkdirAll(os.Getenv("DBNET_DIR"), 0755)
 	}
 

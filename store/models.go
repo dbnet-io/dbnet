@@ -201,7 +201,7 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 
 	sqls := database.ParseSQLMultiStatements(q.Text)
 	if len(sqls) == 1 {
-		q.Stream, err = conn.StreamRowsContext(q.Context.Ctx, q.Text, q.Limit)
+		q.Stream, err = conn.StreamRowsContext(q.Context.Ctx, q.Text, g.M("limit", q.Limit))
 		if err != nil {
 			setError(err)
 			err = g.Error(err, "could not execute query")
@@ -211,21 +211,21 @@ func (q *Query) Submit(conn database.Connection) (err error) {
 		q.Columns = q.Stream.Columns
 		q.Status = QueryStatusCompleted
 	} else {
-		tx, err := conn.NewTransaction(q.Context.Ctx)
+		_, err = conn.NewTransaction(q.Context.Ctx)
 		if err != nil {
 			setError(err)
 			err = g.Error(err, "could not start transaction")
 			return err
 		}
 
-		defer tx.Rollback()
-		res, err := tx.ExecMultiContext(q.Context.Ctx, q.Text)
+		defer conn.Rollback()
+		res, err := conn.ExecMultiContext(q.Context.Ctx, q.Text)
 		if err != nil {
 			setError(err)
 			err = g.Error(err, "could not execute queries")
 			return err
 		}
-		err = tx.Commit()
+		err = conn.Commit()
 		if err != nil {
 			setError(err)
 			err = g.Error(err, "could not commit")

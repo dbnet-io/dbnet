@@ -52,7 +52,7 @@ jobs:
         # since gh-runner is ubuntu:focal, need this to avoid error: version `GLIBC_2.28' not found
         docker run --rm -v /__:/__ -v $WORK_FOLDER:/work --workdir /work/scruto flarco/devbox:base bash -c "source /__/devbox/.env.sh && bash scripts/build.backend.sh"
 
-        rm -rf $WORK_FOLDER
+        rm -rf $WORK_FOLDER/scruto
   
   test:
     if: "! contains(github.event.head_commit.message, '[skip ci]')"

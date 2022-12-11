@@ -287,7 +287,7 @@ func GetColumns(c echo.Context) (err error) {
 					TableName:  strings.ToLower(req.Table),
 					Name:       strings.ToLower(cast.ToString(r[2])),
 					ID:         i + 1,
-					Type:       strings.ToLower(cast.ToString(r[3])),
+					Type:       cast.ToString(r[3]),
 					Precision:  0,
 					Scale:      0,
 				}

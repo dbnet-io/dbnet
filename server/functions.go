@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"os"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -36,16 +37,16 @@ var (
 
 func init() {
 	if HomeDir == "" {
-		HomeDir = g.UserHomeDir() + "/.dbnet"
+		HomeDir = path.Join(g.UserHomeDir(), ".dbnet")
 		os.Setenv("DBNET_HOME_DIR", HomeDir)
 	}
 	if SlingDir == "" {
-		SlingDir = g.UserHomeDir() + "/.sling"
+		SlingDir = path.Join(g.UserHomeDir(), ".sling")
 	}
 	os.MkdirAll(HomeDir, 0755)
 
-	HomeDirEnvFile = HomeDir + "/env.yaml"
-	SlingDirEnvFile = SlingDir + "/env.yaml"
+	HomeDirEnvFile = path.Join(HomeDir, "env.yaml")
+	SlingDirEnvFile = path.Join(SlingDir, "env.yaml")
 
 	// os.Setenv("PROFILE_PATHS", g.F("%s,%s", HomeDirEnvFile, DbNetDirEnvFile))
 }
@@ -98,7 +99,7 @@ func ReadConnections() (conns map[string]*Connection, err error) {
 
 	// get sling connection
 	if g.PathExists(SlingDirEnvFile) {
-		profileConns, err := connection.ReadConnections(SlingDirEnvFile)
+		profileConns, err := connection.ReadConnectionsFromFile(SlingDirEnvFile)
 		if !g.LogError(err) {
 			for _, conn := range profileConns {
 				if !conn.Info().Type.IsDb() {
@@ -114,7 +115,7 @@ func ReadConnections() (conns map[string]*Connection, err error) {
 
 	// get dbnet connections
 	if g.PathExists(HomeDirEnvFile) {
-		profileConns, err := connection.ReadConnections(HomeDirEnvFile)
+		profileConns, err := connection.ReadConnectionsFromFile(HomeDirEnvFile)
 		if !g.LogError(err) {
 			for _, conn := range profileConns {
 				if !conn.Info().Type.IsDb() {
@@ -244,7 +245,7 @@ func LoadSchemata(connName, DbName string) (err error) {
 					TableIsView: table.IsView,
 					Name:        strings.ToLower(col.Name),
 					ID:          col.Position,
-					Type:        strings.ToLower(col.Type),
+					Type:        col.DbType,
 					Precision:   0,
 					Scale:       0,
 				}

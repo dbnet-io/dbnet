@@ -24,7 +24,7 @@ var (
 func InitDB() {
 	var err error
 
-	dbURL := g.F("file:%s/.storage.db", os.Getenv("DBNET_DIR"))
+	dbURL := g.F("sqlite://%s/.storage.db", os.Getenv("DBNET_DIR"))
 	conn, err := database.NewConn(dbURL)
 	g.LogFatal(err, "Could not initialize sqlite connection: %s", dbURL)
 
