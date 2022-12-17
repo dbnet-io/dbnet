@@ -268,10 +268,10 @@ export const MetaExplorer: React.FC<Props> = (props) => {
     let sql = `select ${rec.column} from ${tableFullName} 
                 where ${rec.column} is not null limit 100`
     if (rec.recs_cnt > 0 && rec.distincts_cnt < 100) {
-      sql = `select ${rec.column}, count(1) cnt
+      sql = `select ${rec.column}, count(*) cnt
               from ${tableFullName}
               group by ${rec.column}
-              order by count(1) desc`
+              order by count(*) desc`
     } else if (rec.recs_cnt > 0 && rec.recs_cnt > 100000 && rec.distincts_cnt > 50) {
       sql = `select distinct ${rec.column} from ${tableFullName} 
                 where ${rec.column} is not null limit 50`

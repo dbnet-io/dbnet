@@ -149,7 +149,12 @@ export const App = () => {
         <TopMenuBar/>
       </div>
       <div>
-      <Splitter style={{ height: splitterHeight, marginLeft: '5px' }} stateKey={"splitter"} stateStorage={"local"} onResizeEnd={(e) => debounceRefresh()} gutterSize={10}>
+      <Splitter
+        style={{ height: splitterHeight, marginLeft: '5px' }}
+        stateKey={"splitter"}
+        stateStorage={"local"}
+        onResizeEnd={(e) => debounceRefresh()} gutterSize={10}
+      >
         <SplitterPanel className="p-d-flex">
           <LeftPane/>
         </SplitterPanel>

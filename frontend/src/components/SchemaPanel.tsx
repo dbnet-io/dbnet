@@ -240,12 +240,12 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             let table = nodeKeyToTable(keys[0])
             if (keys.length > 1) {
               let sql = countTables
-                .map(t => `select '${t.fullName()}' as table_name, count(1) cnt from ${t.fullName2()}`)
+                .map(t => `select '${t.fullName()}' as table_name, count(*) cnt from ${t.fullName2()}`)
                 .join(' UNION ALL\n') + ';'
               let tab = getOrCreateParentTabState(table.connection, table.database)
               appendSqlToTab(tab.id.get(), sql)
             } else {
-              let sql = `select '${table.fullName()}' as table_name, count(1) cnt from ${table.fullName2()};`
+              let sql = `select '${table.fullName()}' as table_name, count(*) cnt from ${table.fullName2()};`
               let tab = getOrCreateParentTabState(table.connection, table.database)
               appendSqlToTab(tab.id.get(), sql)
               submitSQL(tab, sql)

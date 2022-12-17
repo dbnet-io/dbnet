@@ -67,7 +67,7 @@ export class Table {
   countRows = (columns: Column[] = []) => { 
     let colsCnt = (columns.map(v => v.name) || []).map(c => `count(${c}) cnt_${c}`)
     let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
-    let sql = `select count(1) cnt${colsCntStr} from ${this.fullName()};`
+    let sql = `select count(*) cnt${colsCntStr} from ${this.fullName()};`
     sql = colsCnt.length > 2 ? formatSql(sql) : sql
     return sql
   }
@@ -79,7 +79,7 @@ export class Table {
       return ''
     }
     let colsDistStr = cols.length > 0 ? `${cols.join(',\n  ')}` : ''
-    let sql = `select\n  ${colsDistStr},\n  count(1) cnt\nfrom ${this.fullName()}\ngroup by ${colsDistStr}\norder by count(1) desc limit 500;`
+    let sql = `select\n  ${colsDistStr},\n  count(*) cnt\nfrom ${this.fullName()}\ngroup by ${colsDistStr}\norder by count(*) desc limit 500;`
     sql = cols.length > 2 ? formatSql(sql) : sql
     return sql
   }
