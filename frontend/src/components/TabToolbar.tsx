@@ -184,7 +184,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
   }
 
   return (
-    <div id='query-toolbar' className="p-grid" style={{ paddingBottom: '3px' }}>
+    <div id='query-toolbar' className="p-grid">
       <div className="p-col-12">
         <div className="work-buttons p-inputgroup" style={{ fontFamily: 'monospace' }}>
           {

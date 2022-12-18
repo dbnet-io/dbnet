@@ -105,7 +105,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
   }
 
   return (
-    <div>
+    <div id='sub-tabs-container'>
       <ContextMenu model={menu()} ref={cm} onHide={() => {}} style={{fontSize:'11px'}}/>
       <TabView
         id="sub-tabs"

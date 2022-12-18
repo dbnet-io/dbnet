@@ -19,7 +19,10 @@
 }
 
 #query-toolbar > div {
-  padding: 3px;
+  padding-top: 0px;
+  padding-bottom: 6px;
+  padding-left: 0px;
+  padding-right: 6px;
 }
 
 #history-panel > div.p-tree {
@@ -90,6 +93,7 @@
  #query-toolbar {
     /* max-height: 34px !important; */
     font-size: 0.99em;
+    margin: 0;
  }
 
  #query-toolbar > div > div > span {
@@ -168,6 +172,10 @@ font-size: 9px !important;
 #schema-tree > ul > li > ul > li > div > button {
   max-height: 20px !important;
   font-size: 5px;
+}
+
+#sub-tabs-container > div > div.p-tabview-panels {
+  padding-top: 5px !important;
 }
 
 #sub-tabs > div.p-tabview-panels {
