@@ -66,4 +66,4 @@ backend/a_main-packr.go
 test.db
 server/app/*
 dbnet-*
-
+server/app/index.html
