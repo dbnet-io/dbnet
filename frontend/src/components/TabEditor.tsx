@@ -27,7 +27,7 @@ export const formatSql = (sql: string) => {
   })
 }
 
-export function TabEditorOld(props: { tab: State<Tab> }) {
+export function TabEditor(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
   const cm = React.useRef(null);
   const sql = useHS(tab.editor.text);
@@ -265,7 +265,7 @@ const defaultOptions : monaco.editor.IStandaloneEditorConstructionOptions = {
 	},
 }
 
-export function TabEditor(props: { tab: State<Tab> }) {
+export function TabEditorNew(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
   const sql = useHS(tab.editor.text);
   const options = useHS<monaco.editor.IStandaloneEditorConstructionOptions>(defaultOptions)
