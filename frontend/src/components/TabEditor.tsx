@@ -267,7 +267,6 @@ const defaultOptions : monaco.editor.IStandaloneEditorConstructionOptions = {
 
 export function TabEditor(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
-  const cm = React.useRef(null);
   const sql = useHS(tab.editor.text);
   const options = useHS<monaco.editor.IStandaloneEditorConstructionOptions>(defaultOptions)
   // const editorHeight = sql.get().split('\n').length*15
@@ -289,11 +288,9 @@ export function TabEditor(props: { tab: State<Tab> }) {
         editorWillMount={(monaco) => { }}
         editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor, monaco) => {
           let model = instance.getModel()
-          if (model) {
-            monaco.editor.setModelLanguage(model, 'sql')
-          }
-          // monaco.languages.setMonarchTokensProvider("sql", sqlLanguage);
-          // monaco.languages.setLanguageConfiguration("sql", sqlConf);
+          if (model) monaco.editor.setModelLanguage(model, 'sql')
+          monaco.languages.setMonarchTokensProvider("sql", sqlLanguage);
+          monaco.languages.setLanguageConfiguration("sql", sqlConf);
           // let editor = new Editor(instance)
           // editor.initLanguage(monaco)
         }}

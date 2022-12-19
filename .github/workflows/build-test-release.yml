@@ -1,6 +1,8 @@
 name: Test & Build, Release
 
-on: [push]
+on:
+  workflow_dispatch:
+    
 
 jobs:
   build-frontend:

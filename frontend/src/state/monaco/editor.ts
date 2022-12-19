@@ -1,9 +1,7 @@
 import { monaco } from 'react-monaco-editor';
 import { ObjectAny, ObjectNumber } from '../../utilities/interfaces';
 import { Token, TokenPairRange } from './token';
-import { sqlConf, sqlDefinitionProvider, sqlHoverProvider, sqlLanguage } from './sqlLanguage';
 // import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api"
-import { createState } from '@hookstate/core';
 import { toastInfo } from '../../utilities/methods';
 import { Table } from '../schema';
 const crypto = require('crypto')
@@ -11,8 +9,6 @@ const crypto = require('crypto')
 export type EditorMap = Record<string, Editor>
 
 // seems that the initLanguage block only needs to be initiated globally once
-const initiated = createState(false);
-
 export interface TextBlock { 
   value: string
   tabId?: string;
@@ -268,7 +264,7 @@ export const getSelectionRange = (instance: monaco.editor.ICodeEditor) => {
 const getSelectedBlock = (instance: monaco.editor.ICodeEditor) : TextBlock | undefined => { 
   const start = instance.getSelection()?.getStartPosition()
   const end = instance.getSelection()?.getEndPosition()
-  if (start && end && start.toString() != end.toString()) {
+  if (start && end && start.toString() !== end.toString()) {
     let range = new monaco.Range(start?.lineNumber, start?.column, end?.lineNumber, end?.column)
     let value = instance.getModel()?.getValueInRange(range) || ''
     return {
