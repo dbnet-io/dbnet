@@ -9,7 +9,6 @@
     "@glideapps/glide-data-grid": "^5.2.1",
     "@handsontable/react": "2.1.0",
     "@hookstate/core": "^3.0.3",
-    "@hookstate/devtools": "^3.0.0",
     "@hookstate/logger": "^3.0.0",
     "@sentry/react": "^6.5.1",
     "@sentry/tracing": "^6.5.1",
@@ -20,8 +19,8 @@
     "@types/jest": "^26.0.20",
     "@types/lodash": "^4.14.167",
     "@types/node": "^12.19.12",
-    "@types/react": "^16.14.2",
-    "@types/react-dom": "^16.9.10",
+    "@types/react": "^17.0.1",
+    "@types/react-dom": "^17.0.1",
     "@types/react-router-dom": "^5.1.7",
     "@types/react-transition-group": "^4.4.0",
     "ace-builds": "^1.4.12",
@@ -46,7 +45,7 @@
     "react-ace": "^9.2.1",
     "react-dom": "^17.0.1",
     "react-hook-form": "^6.14.1",
-    "react-monaco-editor": "^0.42.0",
+    "react-monaco-editor": "^0.51.0",
     "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.1",
@@ -104,6 +103,7 @@
     "concurrently": "^6.2.1",
     "electron": "^13.1.9",
     "electron-packager": "^15.3.0",
+    "monaco-editor": "^0.34.1",
     "wait-on": "^6.0.0"
   }
 }
