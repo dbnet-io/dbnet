@@ -1,5 +1,6 @@
 
 export interface ObjectString { [key: string]: string; }; 
+export interface ObjectNumber { [key: string]: number; }; 
 export interface ObjectAny { [key: string]: any; }; 
 export interface RecordsData { headers: string[], rows: any[] }
 
