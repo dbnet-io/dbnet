@@ -15,6 +15,9 @@ import { Table } from "../state/schema";
 import { Tab } from "../state/tab";
 import { format } from 'sql-formatter';
 import { toastError } from "../utilities/methods";
+import MonacoEditor, { monaco } from 'react-monaco-editor';
+// import * as monaco2 from 'monaco-editor';
+import { sqlConf, sqlLanguage } from "../state/monaco/sqlLanguage";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -24,7 +27,7 @@ export const formatSql = (sql: string) => {
   })
 }
 
-export function TabEditor(props: { tab: State<Tab> }) {
+export function TabEditorOld(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
   const cm = React.useRef(null);
   const sql = useHS(tab.editor.text);
@@ -250,4 +253,50 @@ export function TabEditor(props: { tab: State<Tab> }) {
       />
     </span>
   </div>;
+}
+
+
+const defaultOptions : monaco.editor.IStandaloneEditorConstructionOptions = {
+  language: 'sql',
+  fontSize: 11,
+  selectOnLineNumbers: false,
+  minimap: {
+		enabled: false
+	},
+}
+
+export function TabEditor(props: { tab: State<Tab> }) {
+  const tab = useHS(props.tab)
+  const sql = useHS(tab.editor.text);
+  const options = useHS<monaco.editor.IStandaloneEditorConstructionOptions>(defaultOptions)
+  // const editorHeight = sql.get().split('\n').length*15
+  const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
+  return (
+    <div
+      id={`editor-wrapper-${tab.id.get()}`}
+    >
+      <MonacoEditor
+        width="100%"
+        height={editorHeight}
+        language="sql"
+        // theme="vs-dark"
+        value={sql.get()}
+        options={options.get()}
+        onChange={(text: string) => {
+          sql.set(text)
+        }}
+        editorWillMount={(monaco) => { }}
+        editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor, monaco) => {
+          let model = instance.getModel()
+          if (model) monaco.editor.setModelLanguage(model, 'sql')
+          monaco.languages.setMonarchTokensProvider("sql", sqlLanguage);
+          monaco.languages.setLanguageConfiguration("sql", sqlConf);
+          // let editor = new Editor(instance)
+          // editor.initLanguage(monaco)
+        }}
+        editorWillUnmount={(editor, monaco) => {
+        }}
+      />
+    </div>
+  )
 }
