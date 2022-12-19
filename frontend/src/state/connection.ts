@@ -95,6 +95,7 @@ export class Connection {
         newNodes.push({
           key: database.name,
           label: database.name.toUpperCase(),
+          leaf: false,
           data: {
             type: 'database',
             data: database,
@@ -129,32 +130,17 @@ export class Connection {
         if(internal_schemas.includes(schema.name.toLocaleLowerCase()))
           continue
 
-        // let children: TreeNode[] = []
-        if (schema?.tables !== undefined) {
-          if (!Array.isArray(schema.tables)) schema.tables = []
-          for (let table of schema.tables) {
-            let tn = table.name.length < 40 ? table.name : table.name.slice(0,40) + '...'
-            newNodes.push({
-              key: `${database.name}.${schema.name}.${table.name}`,
-              label: `${schema.name}.${tn}`,
-              data: {
-                type: 'table',
-                data: table,
-              },
-              children: [],
-            })
-          }
-        }
-
-        // newNodes.push({
-        //   key: `${database.name}.${schema.name}`,
-        //   label: schema.name,
-        //   data: {
-        //     type: 'schema',
-        //     data: schema,
-        //   },
-        //   children: children,
-        // })
+        newNodes.push({
+          key: `${database.name}.${schema.name}`,
+          label: schema.name,
+          data: {
+            type: 'schema',
+            database: database.name,
+            data: schema,
+          },
+          leaf: false,
+          children: this.tableNodes(database, schema),
+        })
       }
     } catch (error) {
       console.log(error)
@@ -162,6 +148,37 @@ export class Connection {
       toastError('Error loading schemas', `${error}`)
     }
     return newNodes
+  }
+
+  tableNodes = (database: Database, schema: Schema) => {
+    let newNodes: TreeNode[] = []
+
+    try {
+      // let children: TreeNode[] = []
+      if (schema?.tables !== undefined) {
+        if (!Array.isArray(schema.tables)) schema.tables = []
+        for (let table of schema.tables) {
+          let table_name = table.name.length < 40 ? table.name : table.name.slice(0,40) + '...'
+          newNodes.push({
+            key: `${database.name}.${schema.name}.${table.name}`,
+            label: `${table_name}`,
+            data: {
+              type: 'table',
+              schema: schema.name,
+              database: database.name,
+              data: table,
+            },
+            leaf: true,
+          })
+        }
+      }
+    } catch (error) {
+      console.log(error)
+      console.log(schema)
+      toastError('Error loading tables', `${error}`)
+    }
+    return newNodes
+
   }
 
   lookupDatabase(key: string) {

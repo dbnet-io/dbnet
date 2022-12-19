@@ -72,6 +72,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       {
         label: 'Connections',
         icon: 'pi pi-fw pi-sitemap',
+        // style: {maxHeight: '500px', overflowY: 'scroll'},
         items: connItems,
       },
       {

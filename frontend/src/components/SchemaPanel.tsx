@@ -126,18 +126,18 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let schema_name = ''
       let isView = false
       if (node.data.type === 'table') {
-        label = <> {node.label} </>
+        label = <span><i className="pi pi-table" style={{fontSize: '12px', paddingLeft: '5px', paddingRight: '5px'}}/> {node.label} </span>
         let table = node.data.data
         database_name = table.database
         schema_name = table.schema
         isView = node.data.data.isView
       } else if (node.data.type === 'schema') {
-        label = <b>{node.label}</b>
+        label = <b><i className="pi pi-folder" style={{fontSize: '12px', paddingRight: '9px'}}/>{node.label}</b>
         let schema = node.data.data
         database_name = `${schema.database}`.toUpperCase()
         schema_name = schema.name
       } else {
-        label = <b>{node.label}</b>
+        label = <b><i className="pi pi-database" style={{fontSize: '12px', paddingRight: '5px'}}/> {node.label}</b>
         database_name = `${node.label}`
       }
 
@@ -479,7 +479,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             fontSize: '0.5rem',
           }}
         >
-          <Menu model={getConnectionItems()} popup ref={databasesMenu} id="popup_menu" style={{ fontSize: '0.7rem' }} />
+          <Menu model={getConnectionItems()} popup ref={databasesMenu} id="popup_menu" style={{ fontSize: '0.7rem', maxHeight: '500px', overflowY: 'scroll'}} />
           <Button
             icon="pi pi-bars"
             className="p-button-sm p-button-secondary"

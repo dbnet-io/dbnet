@@ -165,14 +165,36 @@ font-size: 9px !important;
   padding: 0px;
 }
 
+#schema-tree > ul > li > div {
+  font-weight: bold;
+}
+
+#schema-tree > ul > li > ul > li > div {
+  margin-top: 5px;
+  margin-left: 10px;
+}
+
+/* table node */
 #schema-tree > ul > li > ul > li > ul > li > div > button {
   margin: 0px;
+  max-height: 20px;
+}
+
+#schema-tree > ul > li > ul > li > ul > li {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+#schema-tree > ul > li > div > button {
+  margin: 0;
 }
 
 #schema-tree > ul > li > ul > li > div > button {
   max-height: 20px !important;
   font-size: 5px;
+  margin: 0;
 }
+
 
 #sub-tabs-container > div > div.p-tabview-panels {
   padding-top: 5px !important;
@@ -213,6 +235,8 @@ font-size: 9px !important;
 
 #top-menu-bar > ul > li > ul {
   z-index: 10;
+  max-height: 500px;
+  overflow-y: scroll;
 }
 
 .no-padding {
@@ -272,3 +296,4 @@ font-size: 9px !important;
   color: blueviolet;
   font-weight: 700;
 }
+
