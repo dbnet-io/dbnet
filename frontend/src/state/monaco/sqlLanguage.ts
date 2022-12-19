@@ -1,7 +1,7 @@
 // https://github.com/microsoft/monaco-editor/blob/main/src/basic-languages/sql/sql.ts
 
 import { monaco } from 'react-monaco-editor';
-import { Editor, getCurrentBlock } from './editor';
+import { MonacoEditor, getCurrentBlock } from './editor';
 
 export const sqlConf: monaco.languages.LanguageConfiguration = {
   
@@ -888,7 +888,7 @@ export const getIdentifierRangeAtPosition = (model: monaco.editor.ITextModel, po
 /**
  * See https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example
 */
-export const sqlHoverProvider = (editor: Editor) => {
+export const sqlHoverProvider = (editor: MonacoEditor) => {
   return {
     provideHover: function (model: monaco.editor.ITextModel, position: monaco.Position) {
       // make call to server to get info
@@ -924,7 +924,7 @@ export const sqlHoverProvider = (editor: Editor) => {
   } as monaco.languages.HoverProvider;
 }
 
-export const sqlDefinitionProvider = (editor: Editor) => {
+export const sqlDefinitionProvider = (editor: MonacoEditor) => {
   return {
     provideDefinition: function (model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.Definition | monaco.languages.LocationLink[]> {
       const block = getCurrentBlock(model, position)

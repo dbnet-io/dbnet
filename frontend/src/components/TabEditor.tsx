@@ -282,20 +282,15 @@ export function TabEditor(props: { tab: State<Tab> }) {
         // theme="vs-dark"
         value={sql.get()}
         options={options.get()}
-        onChange={(text: string) => {
-          sql.set(text)
-        }}
-        editorWillMount={(monaco) => { }}
+        onChange={(text: string) => { sql.set(text) }}
+        // editorWillMount={(monaco) => { }}
         editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor, monaco) => {
           let model = instance.getModel()
           if (model) monaco.editor.setModelLanguage(model, 'sql')
-          monaco.languages.setMonarchTokensProvider("sql", sqlLanguage);
-          monaco.languages.setLanguageConfiguration("sql", sqlConf);
-          // let editor = new Editor(instance)
-          // editor.initLanguage(monaco)
+          let editor = tab.get().setMonacoEditor(instance)
+          editor.initLanguage(monaco)
         }}
-        editorWillUnmount={(editor, monaco) => {
-        }}
+        // editorWillUnmount={(editor, monaco) => { }}
       />
     </div>
   )

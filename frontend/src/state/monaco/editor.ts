@@ -4,9 +4,16 @@ import { Token, TokenPairRange } from './token';
 // import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api"
 import { toastInfo } from '../../utilities/methods';
 import { Table } from '../schema';
+import { sqlConf, sqlLanguage } from './sqlLanguage';
+import { createState, State } from '@hookstate/core';
+import { Tab } from '../tab';
+import { getTabState } from '../../components/TabNames';
+import { submitSQL } from '../../components/TabToolbar';
 const crypto = require('crypto')
 
-export type EditorMap = Record<string, Editor>
+const initiated = createState(false)
+
+export type EditorMap = Record<string, MonacoEditor>
 
 // seems that the initLanguage block only needs to be initiated globally once
 export interface TextBlock { 
@@ -24,43 +31,16 @@ const newTextBlock = () => {
   } as TextBlock
 }
 
-const actions : monaco.editor.IActionDescriptor[] = [
-  {
-    id: 'execute-sql',
-    label: 'Execute SQL',
-    keybindings: [
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-      monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter,
-    ],
-    run: function (ed: monaco.editor.ICodeEditor) {
-      let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
-      // block.tabId = schematic.workspace.selectedTabId.get() // for now, take selectedTabId
-      if(!block.value) return toastInfo('Submitted a blank query')
-      // let query = schematic.createQuery({ text: block.value, block }) // for now, take selectedTabId
-      // schematic.submitQuery(query)
-    }
-  },
-  {
-    id: 'save-file',
-    label: 'Save File',
-    keybindings: [
-      monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-      monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyS,
-    ],
-    run: function (ed: monaco.editor.ICodeEditor) {
-      // let tab = schematic.workspace.selectedTab // for now, take selectedTab
-      // if (tab) schematic.tabWrite(tab)
-    }
-  },
-]
 
 /** Represents the Monaco Editor object */
-export class Editor { 
+export class MonacoEditor { 
   id: string
   instance: monaco.editor.IStandaloneCodeEditor
   parserCache: {[key: string]: ParsedSql}
+  tabId: string
   
-  constructor(instance: monaco.editor.IStandaloneCodeEditor) { 
+  constructor(tabId: string, instance: monaco.editor.IStandaloneCodeEditor) { 
+    this.tabId = tabId
     this.instance = instance
     this.id = instance.getId()
     this.parserCache = {}
@@ -81,18 +61,39 @@ export class Editor {
     }
   }
 
-  // initLanguage(monaco: typeof monacoEditor) {
-  //   this.addKeyboardActions()
-  //   if (!initiated.get()) {
-  //     monaco.languages.setMonarchTokensProvider("sql", sqlLanguage);
-  //     monaco.languages.setLanguageConfiguration("sql", sqlConf);
-  //     // monaco.languages.registerHoverProvider('sql', sqlHoverProvider(this));
-  //     // monaco.languages.registerDefinitionProvider('sql', sqlDefinitionProvider(this));
-  //     initiated.set(true)
-  //   }
-  // }
+  initLanguage(m: typeof monaco) {
+    this.addKeyboardActions()
+    if (!initiated.get()) {
+      m.languages.setMonarchTokensProvider("sql", sqlLanguage);
+      m.languages.setLanguageConfiguration("sql", sqlConf);
+      // m.languages.registerHoverProvider('sql', sqlHoverProvider(this));
+      // m.languages.registerDefinitionProvider('sql', sqlDefinitionProvider(this));
+      initiated.set(true)
+    }
+  }
 
   addKeyboardActions() { 
+    let tabId = this.tabId
+    const actions : monaco.editor.IActionDescriptor[] = [
+      {
+        id: 'execute-sql',
+        label: 'Execute SQL',
+        keybindings: [
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
+          monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter,
+        ],
+        run: function (ed: monaco.editor.ICodeEditor) {
+          let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
+          if(!block.value) return toastInfo('Submitted a blank query')
+          
+          let sql = block.value
+          let parentTab = getTabState(tabId)
+          if (sql === '') { sql = parentTab.editor.get().getBlock() }
+          if (sql.trim() !== '') { submitSQL(parentTab, sql) }
+        }
+      },
+    ]
+
     for (let action of actions) { 
       this.instance.addAction(action)
     }
