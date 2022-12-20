@@ -85,10 +85,9 @@ export class EditorMonaco {
           let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
           if(!block.value) return toastInfo('Submitted a blank query')
           
-          console.log(`tab ${tabId}`)
           let sql = block.value
           let parentTab = getTabState(tabId)
-          if (!parentTab.id?.get()) console.error(`did not find tab ${tabId}`)
+          if (!parentTab.id?.get()) return console.log(`did not find tab ${tabId}`)
           if (sql === '') { sql = parentTab.editor.get().getBlock() }
           if (sql.trim() !== '') { submitSQL(parentTab, sql) }
         }

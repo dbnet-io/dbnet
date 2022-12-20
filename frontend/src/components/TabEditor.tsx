@@ -300,9 +300,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
         options={options.get()}
         onChange={(text: string) => { sql.set(text) }}
         // editorWillMount={(monaco) => { }}
-        editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor, monaco) => {
-          initEditor(instance)
-        }}
+        editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor) => initEditor(instance)}
         // editorWillUnmount={(editor, monaco) => { }}
       />
     </div>
