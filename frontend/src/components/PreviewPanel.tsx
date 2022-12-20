@@ -33,9 +33,9 @@ export const PreviewPanel: React.FC<Props> = (props) => {
       header={header}
       visible={show.get()}
       modal={false}
-      position="top-right"
+      position="bottom-left"
       onHide={() => { show.set(false) }}
-      style={{ width: '400px' }}
+      style={{ width: '350px' }}
       closeOnEscape={false}
     >
       <MetaTablePanel />

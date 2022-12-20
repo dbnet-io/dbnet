@@ -293,8 +293,9 @@ export class DbNet {
     let index = this.connections.map(c => c.name.toLowerCase()).indexOf(connName)
     if (index > -1) {
       return this.connections[index]
+    } else if (connName !== '') {
+      console.log(`did not find connection ${connName}`)
     }
-    console.log(`did not find connection ${connName}`)
     return new Connection()
   }
 
