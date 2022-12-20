@@ -341,6 +341,9 @@ export const TabTable: React.FC<Props> = (props) => {
           style: val === '[NULL]' ? 'faded' : 'normal',
           data: val,
           displayData: `${val}`,
+          themeOverride: {
+            fontFamily: 'monospace'
+          }
       }
   }, [props.tab.query.rows.get()]); // eslint-disable-line
 
@@ -349,6 +352,14 @@ export const TabTable: React.FC<Props> = (props) => {
   if (props?.tab?.loading?.get()) {
     // set progress spinner if still running
     output = <Progress tab={tab} resultWidth={resultWidth} tableHeight={tableHeight}/>
+  } else if(props?.tab?.query.err.get()) {
+    // set error if found
+    let err = props.tab.query.err.get() + "\n\nFor SQL:\n" + props.tab.query.text.get()
+    output = <InputTextarea
+      value={err}
+      style={{height: tableHeight, width: resultWidth, color:'red', fontSize:'16px'}}
+      readOnly
+    />
   } else if(props?.tab?.showText.get()) {
     // show rows as text
     let pt = new PrettyTable()
@@ -359,14 +370,6 @@ export const TabTable: React.FC<Props> = (props) => {
     output = <InputTextarea
       value={pt.toString()}
       style={{height: tableHeight, width: resultWidth, fontSize:'13px', fontFamily:'monospace'}}
-      readOnly
-    />
-  } else if(props?.tab?.query.err.get()) {
-    // set error if found
-    let err = props.tab.query.err.get() + "\n\nFor SQL:\n" + props.tab.query.text.get()
-    output = <InputTextarea
-      value={err}
-      style={{height: tableHeight, width: resultWidth, color:'red', fontSize:'16px'}}
       readOnly
     />
   } else if(props?.tab?.query.text.get().includes('ddl_view') || props?.tab?.query.text.get().includes('ddl_table')) {
