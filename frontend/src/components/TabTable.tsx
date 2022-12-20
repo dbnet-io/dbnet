@@ -311,7 +311,6 @@ export const TabTable: React.FC<Props> = (props) => {
 
   const onHover = (e: GridMouseEventArgs) => {
     if(e.kind === 'out-of-bounds') return
-    console.log(e)
   }
 
   // const glideCols = React.useMemo<GridColumn[]>(

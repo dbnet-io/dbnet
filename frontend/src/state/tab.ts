@@ -1,8 +1,7 @@
-import { monaco } from "react-monaco-editor"
 import { ObjectAny } from "../utilities/interfaces"
 import { jsonClone, new_ts_id } from "../utilities/methods"
 import { Editor } from "./editor"
-import { MonacoEditor } from "./monaco/editor"
+import { EditorMonaco } from "./monaco/monaco"
 import { Query } from "./query"
 import { FileItem } from "./workspace"
 
@@ -16,7 +15,7 @@ export class Tab {
   id: string
   name: string
   editor: Editor
-  monaco?: MonacoEditor
+  monaco?: EditorMonaco
   query: Query
   loading: boolean
   filter: string
@@ -61,12 +60,6 @@ export class Tab {
     let parent_name = this.getParentTabName()
     this.id = data.id || new_ts_id(`tab-${this.name || parent_name}.`)
     if (!this.name) this.name = this.id.slice(-7)
-  }
-
-  setMonacoEditor(instance: monaco.editor.IStandaloneCodeEditor) {
-    const editor = new MonacoEditor(this.id, instance)
-    this.monaco = editor
-    return editor
   }
 
   getParentTabName = () => {

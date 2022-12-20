@@ -17,7 +17,7 @@ import { format } from 'sql-formatter';
 import { toastError } from "../utilities/methods";
 import MonacoEditor, { monaco } from 'react-monaco-editor';
 // import * as monaco2 from 'monaco-editor';
-import { sqlConf, sqlLanguage } from "../state/monaco/sqlLanguage";
+import { EditorMonaco } from "../state/monaco/monaco";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -271,11 +271,27 @@ export function TabEditor(props: { tab: State<Tab> }) {
   const options = useHS<monaco.editor.IStandaloneEditorConstructionOptions>(defaultOptions)
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
+  const editorRef = React.useRef<MonacoEditor>(null)
+
+  React.useEffect(() => {
+    initEditor(editorRef.current?.editor)
+  }, [tab.id.get()]) // eslint-disable-line
+
+  const initEditor = (instance?: monaco.editor.IStandaloneCodeEditor) => {
+    if(!instance) return
+    let model = instance.getModel()
+    if (model) monaco.editor.setModelLanguage(model, 'sql')
+    const editor = new EditorMonaco(tab.id.get(), instance)
+    editor.initLanguage(monaco)
+    tab.monaco.set(editor)
+  }
+
   return (
     <div
       id={`editor-wrapper-${tab.id.get()}`}
     >
       <MonacoEditor
+        ref={editorRef}
         width="100%"
         height={editorHeight}
         language="sql"
@@ -285,10 +301,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
         onChange={(text: string) => { sql.set(text) }}
         // editorWillMount={(monaco) => { }}
         editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor, monaco) => {
-          let model = instance.getModel()
-          if (model) monaco.editor.setModelLanguage(model, 'sql')
-          let editor = tab.get().setMonacoEditor(instance)
-          editor.initLanguage(monaco)
+          initEditor(instance)
         }}
         // editorWillUnmount={(editor, monaco) => { }}
       />

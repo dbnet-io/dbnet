@@ -5,15 +5,14 @@ import { Token, TokenPairRange } from './token';
 import { toastInfo } from '../../utilities/methods';
 import { Table } from '../schema';
 import { sqlConf, sqlLanguage } from './sqlLanguage';
-import { createState, State } from '@hookstate/core';
-import { Tab } from '../tab';
+import { createState } from '@hookstate/core';
 import { getTabState } from '../../components/TabNames';
 import { submitSQL } from '../../components/TabToolbar';
 const crypto = require('crypto')
 
 const initiated = createState(false)
 
-export type EditorMap = Record<string, MonacoEditor>
+export type EditorMap = Record<string, EditorMonaco>
 
 // seems that the initLanguage block only needs to be initiated globally once
 export interface TextBlock { 
@@ -33,7 +32,7 @@ const newTextBlock = () => {
 
 
 /** Represents the Monaco Editor object */
-export class MonacoEditor { 
+export class EditorMonaco { 
   id: string
   instance: monaco.editor.IStandaloneCodeEditor
   parserCache: {[key: string]: ParsedSql}
@@ -86,8 +85,10 @@ export class MonacoEditor {
           let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
           if(!block.value) return toastInfo('Submitted a blank query')
           
+          console.log(`tab ${tabId}`)
           let sql = block.value
           let parentTab = getTabState(tabId)
+          if (!parentTab.id?.get()) console.error(`did not find tab ${tabId}`)
           if (sql === '') { sql = parentTab.editor.get().getBlock() }
           if (sql.trim() !== '') { submitSQL(parentTab, sql) }
         }
