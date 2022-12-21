@@ -907,12 +907,12 @@ export const sqlHoverProvider = (editor: EditorMonaco) => {
           if (!parsed?.tokenMapper) return {} as monaco.languages.Hover
 
           const token = parsed.getTokenFromPosition(position)
-          const tokenRange = token.Range()
+          const tokenRange = token.range
 
           return {
             range: tokenRange,
             contents: [
-              { value: token.text },
+              { value: token.value },
               { value: JSON.stringify(position) },
               { value: JSON.stringify(token) },
               { value: JSON.stringify(tokenRange) },

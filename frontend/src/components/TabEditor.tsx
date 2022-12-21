@@ -283,7 +283,8 @@ export function TabEditor(props: { tab: State<Tab> }) {
     if (model) monaco.editor.setModelLanguage(model, 'sql')
     const editor = new EditorMonaco(tab.id.get(), instance)
     editor.initLanguage(monaco)
-    tab.monaco.set(editor)
+    window.dbnet.editorTabMap[instance.getId()] = tab.id.get()
+    window.dbnet.editorMap[tab.id.get()] = editor
   }
 
   return (

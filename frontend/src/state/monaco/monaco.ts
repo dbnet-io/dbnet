@@ -1,6 +1,6 @@
+import { Token, TokenPairRange, TokenizeLine } from 'dbnet-parser';
 import { monaco } from 'react-monaco-editor';
 import { ObjectAny, ObjectNumber } from '../../utilities/interfaces';
-import { Token, TokenPairRange } from './token';
 // import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api"
 import { toastInfo } from '../../utilities/methods';
 import { Table } from '../schema';
@@ -8,11 +8,14 @@ import { sqlConf, sqlLanguage } from './sqlLanguage';
 import { createState } from '@hookstate/core';
 import { getTabState } from '../../components/TabNames';
 import { submitSQL } from '../../components/TabToolbar';
+import { loadMetaTable } from '../../components/MetaTablePanel';
 const crypto = require('crypto')
 
-const initiated = createState(false)
+
+const globalInitiated = createState(false)
 
 export type EditorMap = Record<string, EditorMonaco>
+export type EditorTabMap = Record<string, string>
 
 // seems that the initLanguage block only needs to be initiated globally once
 export interface TextBlock { 
@@ -22,7 +25,7 @@ export interface TextBlock {
   endPosition: monaco.Position,
 }
 
-const newTextBlock = () => {
+export const newTextBlock = () => {
   return {
     value: '',
     startPosition: new monaco.Position(-1, -1),
@@ -62,17 +65,16 @@ export class EditorMonaco {
 
   initLanguage(m: typeof monaco) {
     this.addKeyboardActions()
-    if (!initiated.get()) {
+    if (!globalInitiated.get()) {
       m.languages.setMonarchTokensProvider("sql", sqlLanguage);
       m.languages.setLanguageConfiguration("sql", sqlConf);
       // m.languages.registerHoverProvider('sql', sqlHoverProvider(this));
       // m.languages.registerDefinitionProvider('sql', sqlDefinitionProvider(this));
-      initiated.set(true)
+      globalInitiated.set(true)
     }
   }
 
   addKeyboardActions() { 
-    let tabId = this.tabId
     const actions : monaco.editor.IActionDescriptor[] = [
       {
         id: 'execute-sql',
@@ -81,21 +83,52 @@ export class EditorMonaco {
           monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
           monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter,
         ],
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: 1,
         run: function (ed: monaco.editor.ICodeEditor) {
           let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
           if(!block.value) return toastInfo('Submitted a blank query')
           
           let sql = block.value
+          let tabId = window.dbnet.editorTabMap[ed.getId()]
           let parentTab = getTabState(tabId)
           if (!parentTab.id?.get()) return console.log(`did not find tab ${tabId}`)
           if (sql === '') { sql = parentTab.editor.get().getBlock() }
           if (sql.trim() !== '') { submitSQL(parentTab, sql) }
         }
       },
+      {
+        id: 'definition',
+        label: 'Object Definition',
+        keybindings: [
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backquote,
+          monaco.KeyMod.WinCtrl | monaco.KeyCode.Backquote,
+        ],
+        contextMenuGroupId: 'navigation',
+        contextMenuOrder: 2,
+        run: function (ed: monaco.editor.ICodeEditor) {
+          let token = getCurrentObject(ed.getModel(), ed.getPosition())
+          let tabId = window.dbnet.editorTabMap[ed.getId()]
+          let tab = getTabState(tabId)
+          let conn = window.dbnet.getConnection(tab.connection.get() || '')
+          let table = conn.parseTableName(token.value)
+          loadMetaTable(table)
+        }
+      },
+      {
+        id: 'format',
+        label: 'Format SQL',
+        contextMenuGroupId: '1_modification',
+        contextMenuOrder: 1,
+        run: function (ed: monaco.editor.ICodeEditor) {
+          console.log(ed)
+        }
+      },
     ]
 
     for (let action of actions) { 
-      this.instance.addAction(action)
+      let a = this.instance.getAction(action.id)
+      if(!a) this.instance.addAction(action)
     }
   }
 
@@ -252,6 +285,29 @@ export const getCurrentBlock = (model: monaco.editor.ITextModel | null, position
   return newTextBlock()
 }
 
+export const getCurrentObject = (model: monaco.editor.ITextModel | null, position: monaco.Position | null = null) => { 
+  if(!position || !model) return new Token()
+
+  console.log(position)
+
+  let line = model.getLineContent(position.lineNumber)
+  let column = position.column
+
+  let oToken = new Token()
+  let body = TokenizeLine(line, position.lineNumber)
+  for (let i = 0; i < body.tokens.length; i++) {
+    const token = body.tokens[i];
+    let range = token.range
+    if(column >= range.startColumn && column <= range.endColumn) oToken = token
+    if(!oToken.isWord) {
+      if(body.previous(oToken).isWord) oToken = body.previous(oToken)
+      if(body.next(oToken).isWord) oToken = body.next(oToken)
+    }
+  }
+
+  return oToken
+}
+
 export const getSelectionRange = (instance: monaco.editor.ICodeEditor) => {
   const start = instance.getSelection()?.getStartPosition()
   const end = instance.getSelection()?.getEndPosition()
@@ -320,7 +376,7 @@ export class ParsedSql {
   
   async getDefinition(model: monaco.editor.ITextModel, position: monaco.Position) { 
     const token = this.getTokenFromPosition(position)
-    if (!token.referenceKey) return { model, range: token.Range() }
+    if (!token.referenceKey) return { model, range: token.range }
     
     if (token.referenceKey in this.tokenMapper.keyIndexRangeMap) { 
       let indexRange = this.tokenMapper.keyIndexRangeMap[token.referenceKey]
@@ -344,6 +400,6 @@ export class ParsedSql {
     // let newRange = this.getKeyRange(token.referenceKey)
     // if (newRange) return { model, range: newRange }
 
-    return { model, range: token.Range() }
+    return { model, range: token.range }
   }
 }

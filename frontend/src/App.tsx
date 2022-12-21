@@ -153,9 +153,10 @@ export const App = () => {
         style={{ height: splitterHeight, marginLeft: '5px' }}
         stateKey={"splitter"}
         stateStorage={"local"}
-        onResizeEnd={(e) => debounceRefresh()} gutterSize={10}
+        onResizeEnd={(e) => debounceRefresh()} 
+        gutterSize={10}
       >
-        <SplitterPanel className="p-d-flex">
+        <SplitterPanel className="p-d-flex" style={{maxWidth:'500px'}}>
           <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">

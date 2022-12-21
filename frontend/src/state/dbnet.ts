@@ -7,6 +7,7 @@ import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
 import { Connection } from "./connection";
 import { Editor } from "./editor";
+import { EditorMap, EditorTabMap } from "./monaco/monaco";
 import { Query, QueryRequest } from "./query";
 import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
@@ -42,6 +43,8 @@ export class DbNet {
   resultTable: ResultTable
   triggerMap: TriggerMapRecord
   state: DbNetState
+  editorMap: EditorMap
+  editorTabMap: EditorTabMap
 
   // app: AppState
   // queryPanel: QueryPanelState
@@ -60,6 +63,8 @@ export class DbNet {
     this.selectedConnection = ''
     this.triggerMap = {} as TriggerMapRecord
     this.state = new DbNetState()
+    this.editorMap = {}
+    this.editorTabMap = {}
   }
 
   async init() {
