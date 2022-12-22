@@ -32,7 +32,6 @@
     "dexie": "^3.0.3",
     "http-proxy-middleware": "^1.0.6",
     "jmespath": "^0.15.0",
-    "jspreadsheet-ce": "^4.6.3",
     "lodash": "^4.17.15",
     "marked": "^4.2.4",
     "monaco-editor": "0.31.1",

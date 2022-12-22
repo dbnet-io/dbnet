@@ -53,7 +53,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   React.useEffect(() => {
     if (window.dbnet.connections.length === 0) return
-    let connName = localStorage.getItem("_schema_panel_connection")
+    let connName = localStorage.getItem("_connection_name")
     if (!connName) {
       connName = window.dbnet.connections[0].name
     } else if (!window.dbnet.connections.map(c => c.name).includes(connName)) {
@@ -61,7 +61,6 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     }
     // let conn = getConnectionState(connName)
     connection.set(new Connection(jsonClone(window.dbnet.getConnection(connName))))
-    return () => localStorage.setItem("_schema_panel_connection", connection.name.get())
   }, [trigger.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -108,8 +107,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const selectAll = (table: Table) => {
     let sql = `${table.selectAll()} limit 500;`
     let tab = getOrCreateParentTabState(table.connection, table.database)
-    appendSqlToTab(tab.id.get(), sql)
-    submitSQL(tab, sql)
+    let block = appendSqlToTab(tab.id.get(), sql)
+    submitSQL(tab, sql, undefined, block)
   }
 
   ///////////////////////////  JSX  ///////////////////////////
@@ -243,12 +242,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
                 .map(t => `select '${t.fullName()}' as table_name, count(*) cnt from ${t.fullName2()}`)
                 .join(' UNION ALL\n') + ';'
               let tab = getOrCreateParentTabState(table.connection, table.database)
-              appendSqlToTab(tab.id.get(), sql)
+              let block = appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql, undefined, block)
             } else {
               let sql = `select '${table.fullName()}' as table_name, count(*) cnt from ${table.fullName2()};`
               let tab = getOrCreateParentTabState(table.connection, table.database)
-              appendSqlToTab(tab.id.get(), sql)
-              submitSQL(tab, sql)
+              let block = appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql, undefined, block)
             }
           }
         },
@@ -285,8 +285,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             let sql = makeYAML(data) + ';'
             let table = nodeKeyToTable(keys[0])
             let tab = getOrCreateParentTabState(table.connection, table.database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let block = appendSqlToTab(tab.id.get(), sql)
+            submitSQL(tab, sql, undefined, block)
           }
         },
         {
@@ -310,8 +310,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             // let tab = createTab(schemaTable.name, sql)
             let table = nodeKeyToTable(keys[0])
             let tab = getOrCreateParentTabState(table.connection, table.database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let block = appendSqlToTab(tab.id.get(), sql)
+            submitSQL(tab, sql, undefined, block)
           }
         },
         {

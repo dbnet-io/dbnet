@@ -4,13 +4,13 @@ import { ObjectAny, ObjectNumber } from '../../utilities/interfaces';
 // import * as monacoEditor from "monaco-editor/esm/vs/editor/editor.api"
 import { toastInfo } from '../../utilities/methods';
 import { Table } from '../schema';
-import { sqlConf, sqlLanguage } from './sqlLanguage';
+import { sqlConf, sqlDefinitionProvider, sqlHoverProvider, sqlLanguage } from './sqlLanguage';
 import { createState } from '@hookstate/core';
 import { getTabState } from '../../components/TabNames';
 import { submitSQL } from '../../components/TabToolbar';
 import { loadMetaTable } from '../../components/MetaTablePanel';
 import { format } from 'sql-formatter';
-import { SaveEditorSelection } from '../editor';
+import { saveEditorSelection } from '../editor';
 const crypto = require('crypto')
 
 
@@ -27,12 +27,24 @@ export interface TextBlock {
   endPosition: monaco.Position,
 }
 
-export const newTextBlock = () => {
+export const newTextBlock = (data: ObjectAny = {}) => {
   return {
-    value: '',
-    startPosition: new monaco.Position(-1, -1),
-    endPosition: new monaco.Position(-1, -1),
+    value: data.value || '',
+    startPosition: new monaco.Position(data.startRow || -1, data.startCol || -1),
+    endPosition: new monaco.Position(data.endRow || -1, data.endCol || -1),
   } as TextBlock
+}
+
+export const blockAsRange = (block: TextBlock) => {
+  return new monaco.Range(
+    block.startPosition.lineNumber, block.startPosition.column,
+    block.endPosition.lineNumber, block.endPosition.column,
+  )
+}
+
+export const blockAsSelection = (block: TextBlock) => {
+  return [block.startPosition.lineNumber, block.startPosition.column,
+    block.endPosition.lineNumber, block.endPosition.column]
 }
 
 
@@ -70,8 +82,8 @@ export class EditorMonaco {
     if (!globalInitiated.get()) {
       m.languages.setMonarchTokensProvider("sql", sqlLanguage);
       m.languages.setLanguageConfiguration("sql", sqlConf);
-      // m.languages.registerHoverProvider('sql', sqlHoverProvider(this));
-      // m.languages.registerDefinitionProvider('sql', sqlDefinitionProvider(this));
+      m.languages.registerHoverProvider('sql', sqlHoverProvider(this));
+      m.languages.registerDefinitionProvider('sql', sqlDefinitionProvider(this));
       globalInitiated.set(true)
     }
   }
@@ -86,7 +98,7 @@ export class EditorMonaco {
           monaco.KeyMod.WinCtrl | monaco.KeyCode.Enter,
         ],
         contextMenuGroupId: 'navigation',
-        contextMenuOrder: 1,
+        contextMenuOrder: 2,
         run: function (ed: monaco.editor.ICodeEditor) {
           let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
           if(!block.value) return toastInfo('Submitted a blank query')
@@ -96,19 +108,19 @@ export class EditorMonaco {
           let parentTab = getTabState(tabId)
           if (!parentTab.id?.get()) return console.log(`did not find tab ${tabId}`)
           if (sql === '') { sql = parentTab.editor.get().getBlock() }
-          if (sql.trim() !== '') { submitSQL(parentTab, sql) }
-          SaveEditorSelection(parentTab,  ed)
+          if (sql.trim() !== '') { submitSQL(parentTab, sql, undefined, block) }
+          saveEditorSelection(parentTab,  ed)
         }
       },
       {
         id: 'definition',
-        label: 'Object Definition',
+        label: 'Object Details',
         keybindings: [
           monaco.KeyMod.CtrlCmd | monaco.KeyCode.Backquote,
           monaco.KeyMod.WinCtrl | monaco.KeyCode.Backquote,
         ],
         contextMenuGroupId: 'navigation',
-        contextMenuOrder: 2,
+        contextMenuOrder: 3,
         run: function (ed: monaco.editor.ICodeEditor) {
           let token = getCurrentObject(ed.getModel(), ed.getPosition())
           let tabId = window.dbnet.editorTabMap[ed.getId()]
@@ -116,7 +128,7 @@ export class EditorMonaco {
           let conn = window.dbnet.getConnection(tab.connection.get() || '')
           let table = conn.parseTableName(token.value)
           loadMetaTable(table)
-          SaveEditorSelection(tab,  ed)
+          saveEditorSelection(tab,  ed)
         }
       },
       {
@@ -131,10 +143,10 @@ export class EditorMonaco {
           let newSql = '\n\n' + format(oldSql).trim() + '\n'
           ed.setValue(ed.getValue().replaceAll(oldSql, newSql))
           ed.focus()
-          
+
           let tabId = window.dbnet.editorTabMap[ed.getId()]
           let tab = getTabState(tabId)
-          SaveEditorSelection(tab,  ed)
+          saveEditorSelection(tab,  ed)
         }
       },
     ]
@@ -300,8 +312,6 @@ export const getCurrentBlock = (model: monaco.editor.ITextModel | null, position
 
 export const getCurrentObject = (model: monaco.editor.ITextModel | null, position: monaco.Position | null = null) => { 
   if(!position || !model) return new Token()
-
-  console.log(position)
 
   let line = model.getLineContent(position.lineNumber)
   let column = position.column

@@ -6,7 +6,7 @@ import MonacoEditor, { monaco } from 'react-monaco-editor';
 // import * as monaco2 from 'monaco-editor';
 import { EditorMonaco } from "../state/monaco/monaco";
 import { format } from "sql-formatter";
-import { SaveEditorSelection } from "../state/editor";
+import { saveEditorSelection, setDecoration } from "../state/editor";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -55,12 +55,15 @@ export function TabEditor(props: { tab: State<Tab> }) {
     ))
     instance.revealLineInCenter(selection[0])
     instance.focus()
+
+    // set decorations
+    setDecoration(tab, undefined, instance)
   }
 
   return (
     <div
       id={`editor-wrapper-${tab.id.get()}`}
-      onClick={(e) => SaveEditorSelection(tab)}
+      onClick={(e) => saveEditorSelection(tab)}
     >
       <MonacoEditor
         ref={editorRef}
@@ -73,7 +76,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
         onChange={(text: string) => { 
           sql.set(text) 
           let ed = window.dbnet.editorMap[tab.id.get()]
-          SaveEditorSelection(tab, ed.instance)
+          saveEditorSelection(tab, ed.instance)
         }}
         // editorWillMount={(monaco) => { }}
         editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor) => initEditor(instance)}

@@ -182,8 +182,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         sql = makeYAML(data) + ';'
       }
       let tab = getOrCreateParentTabState(table.get().connection, table.get().database)
-      appendSqlToTab(tab.id.get(), sql)
-      submitSQL(tab, sql)
+      let block = appendSqlToTab(tab.id.get(), sql)
+      submitSQL(tab, sql, undefined, block)
       hideForms()
       hideOverlay()
     }
@@ -241,8 +241,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   const appendAndSubmit = (connection: string, database: string, sql: string) => {
     let tab = getOrCreateParentTabState(connection, database)
-    appendSqlToTab(tab.id.get(), sql)
-    submitSQL(tab, sql)
+    let block = appendSqlToTab(tab.id.get(), sql)
+    submitSQL(tab, sql, undefined, block)
    }
 
   ///////////////////////////  JSX  ///////////////////////////

@@ -64,6 +64,7 @@ export class DbNet {
   }
 
   selectConnection(name: string) {
+    if(!name || name === 'null') return
     if (!name || !this.connections.map(c => c.name).includes(name)) {
       return toastError(`Connection ${name} not found`)
     }

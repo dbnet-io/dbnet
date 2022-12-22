@@ -197,8 +197,8 @@ export const HistoryPanel: React.FC<Props> = (props) => {
               // let tab = getTabState(tabName)
               // if(!tab || !tab.get()) tab = createTab(tabName, sql)
               let tab = getCurrentParentTabState()
-              appendSqlToTab(tab.id.get(), sql)
-              submitSQL(tab, sql)
+              let block = appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql, undefined, block)
             }}
           />
         </span>

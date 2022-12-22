@@ -14,7 +14,8 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 import { Tab } from "../state/tab";
 import { Query } from "../state/query";
-import { getCurrentBlock, getSelectedBlock } from "../state/monaco/monaco";
+import { getCurrentBlock, getSelectedBlock, TextBlock } from "../state/monaco/monaco";
+import { setDecoration } from "../state/editor";
 
 export const cancelSQL = async (tab: State<Tab>) => {
   let data1 = {
@@ -40,7 +41,7 @@ export const refreshResult = async (tab: State<Tab>) => {
 }
 
 
-export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) => {
+export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab, block?: TextBlock) => {
   if (!sql) sql = tab.editor.text.get() // get current block
 
   // create child tab
@@ -78,19 +79,7 @@ export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab) =
   let parentTab = getTabState(`${tab_.parent.get()}`)
 
   // mark text
-  // let before = window.dbnet.editor.getRange()
-  // let i = 0
-  // while (true) {
-  //   let found = window.dbnet.editor.find(sql.trim())
-  //   let after = window.dbnet.editor.getRange()
-  //   if (after.containsRange(before)) break // if it's found, it will be selected
-  //   if(after.end.row > before.start.row || (after.end.row == before.start.row && after.end.column >= before.start.column)) break // if past
-  //   i++; if (i > 10) break // just in case
-  //   if(!found) break
-  // }
-
-  // let points = window.dbnet.editor.getPoints()
-  // if (points) parentTab.editor.highlight.set(points)
+  setDecoration(tab, block)
 
   tab_.set(
     t => {
@@ -215,7 +204,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
                   if(!block.value) return toastInfo('Submitted a blank query')
                   let sql = block.value
                   if (sql === '') { sql = parentTab.editor.get().getBlock() }
-                  if (sql.trim() !== '') { submitSQL(parentTab, sql) }
+                  if (sql.trim() !== '') { submitSQL(parentTab, sql, undefined, block) }
                 }} />
           }
 
