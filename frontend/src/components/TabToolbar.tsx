@@ -14,6 +14,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 import { Tab } from "../state/tab";
 import { Query } from "../state/query";
+import { getCurrentBlock, getSelectedBlock } from "../state/monaco/monaco";
 
 export const cancelSQL = async (tab: State<Tab>) => {
   let data1 = {
@@ -207,8 +208,12 @@ export function TabToolbar(props: { tab: State<Tab> }) {
                 tooltipOptions={{ position: 'top' }}
                 className="p-button-sm p-button-primary"
                 onClick={(e) => {
-                  let sql = window.dbnet.editor.instance.getSelectedText()
                   let parentTab = getTabState(tab.parent.get() || '')
+                  let ed = window.dbnet.editorMap[parentTab.id.get()]
+                  if(!ed?.instance) return console.log('no editor')
+                  let block = getSelectedBlock(ed.instance) || getCurrentBlock(ed.instance.getModel(), ed.instance.getPosition())
+                  if(!block.value) return toastInfo('Submitted a blank query')
+                  let sql = block.value
                   if (sql === '') { sql = parentTab.editor.get().getBlock() }
                   if (sql.trim() !== '') { submitSQL(parentTab, sql) }
                 }} />

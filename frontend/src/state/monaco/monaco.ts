@@ -318,7 +318,7 @@ export const getSelectionRange = (instance: monaco.editor.ICodeEditor) => {
   return
 }
 
-const getSelectedBlock = (instance: monaco.editor.ICodeEditor) : TextBlock | undefined => { 
+export const getSelectedBlock = (instance: monaco.editor.ICodeEditor) : TextBlock | undefined => { 
   const start = instance.getSelection()?.getStartPosition()
   const end = instance.getSelection()?.getEndPosition()
   if (start && end && start.toString() !== end.toString()) {
