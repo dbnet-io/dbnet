@@ -5,7 +5,6 @@ import { State } from "@hookstate/core";
 import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 import _ from "lodash";
 
-import 'handsontable/dist/handsontable.full.css';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { getTabState } from "./TabNames";
@@ -399,7 +398,16 @@ export const TabTable: React.FC<Props> = (props) => {
       readOnly
     />
   } else if(rows.length === 0) {
-    return <></>
+    let text = `No Rows Returned.`
+    output = <InputTextarea
+      value={text}
+      style={{
+        height: tableHeight, width: resultWidth, 
+        color:'blue', fontSize:'12px',
+        fontFamily: 'monospace',
+      }}
+      readOnly
+    />
   } else {
     output = <>
       <DataEditor

@@ -49,11 +49,7 @@ export const App = () => {
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
 
-  const aceEditorRef = React.useRef(null);
-  const resultTableRef = React.useRef(null);
-  const state = React.useRef<DbNet>(new DbNet({
-    aceEditorRef, resultTableRef,
-  }))
+  const state = React.useRef<DbNet>(new DbNet({ }))
   window.dbnet = state.current
   var dbnet = state.current
   
@@ -68,7 +64,7 @@ export const App = () => {
     Init()
     return () => {
       dbnet.dispose()
-      state.current = new DbNet({aceEditorRef, resultTableRef});
+      state.current = new DbNet({});
     }
   }, [])// eslint-disable-line
 

@@ -11,12 +11,9 @@ import { EditorMap, EditorTabMap } from "./monaco/monaco";
 import { Query, QueryRequest } from "./query";
 import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
-import { ResultTable } from "./table";
 import { Workspace } from "./workspace";
 
 export type DbNetOptions = {
-  resultTableRef: React.MutableRefObject<any>;
-  aceEditorRef: React.MutableRefObject<any>;
 
   // uri: string;
   // editor: editor.IStandaloneCodeEditor;
@@ -40,25 +37,15 @@ export class DbNet {
   selectedConnection: string
   connections: Connection[]
   editor: Editor
-  resultTable: ResultTable
   triggerMap: TriggerMapRecord
   state: DbNetState
   editorMap: EditorMap
   editorTabMap: EditorTabMap
 
-  // app: AppState
-  // queryPanel: QueryPanelState
-  // jobPanel: JobPanelState
-  // projectPanel: ProjectPanelState
-  // schemaPanel: SchemaPanelState
-  // objectPanel: ObjectPanelState
-  // historyPanel: HistoryPanelState
-
   constructor(options: DbNetOptions) {
     this.db = getDexieDb()
     this.workspace = new Workspace()
-    this.editor = new Editor(options.aceEditorRef)
-    this.resultTable = new ResultTable(options.resultTableRef)
+    this.editor = new Editor()
     this.connections = []
     this.selectedConnection = ''
     this.triggerMap = {} as TriggerMapRecord

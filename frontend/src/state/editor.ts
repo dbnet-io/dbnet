@@ -1,17 +1,19 @@
-import { Ace, Range } from "ace-builds"
+import { monaco } from 'react-monaco-editor';
 import { ObjectAny } from "../utilities/interfaces"
-import _, { sum } from "lodash";
+import { getCurrentBlock, getSelectedBlock, newTextBlock } from "./monaco/monaco";
+import { State } from "@hookstate/core";
+import { Tab } from "./tab";
 
 export class Editor {
-  instanceRef: React.MutableRefObject<any>
+  monacoRef: React.MutableRefObject<any>
   text: string
   selection: number[] // startRow, startCol, endRow, endCol
   highlight: number[] // startRow, startCol, endRow, endCol
   history: ObjectAny
   focus: number // to trigger focus
 
-  constructor(instanceRef: React.MutableRefObject<any>, data: ObjectAny = {}) {
-    this.instanceRef = instanceRef
+  constructor(data: ObjectAny = {}) {
+    this.monacoRef = undefined as any
     this.text = data.text || ''
     this.selection = data.selection || [0, 0, 0, 0]
     this.highlight = data.highlight || [0, 0, 0, 0]
@@ -19,173 +21,47 @@ export class Editor {
     this.focus = 0
   }
 
-  get instance() {
-    return this.instanceRef.current?.editor as Ace.Editor
+  get monaco() {
+    return this.monacoRef.current?.editor as monaco.editor.IStandaloneCodeEditor
   }
 
-  getRange() {
-    return this.instance?.selection.getRange()
-  }
-
-  setRange(selection: number[]) {
-    this.instance.selection.setRange(new Range(
-      selection[0], selection[1],
-      selection[2], selection[3],
-    ))
-  }
-
-  getPoints() {
-    let range = this.getRange()
-    return [range.start.row, range.start.column, range.end.row, range.end.column]
-  }
-
-  find(text: string) {
-    let before = this.getRange()
-    this.instance?.find(text)
-    let after = this.getRange()
-    return !_.isEqual(before, after)
-  }
-
-  lines = () => {
-    return this.text.split('\n')
-  }
-
-  setHighlights () {
-    if (sum(this.highlight) > 0) {
-      let rng = new Range(
-        this.highlight[0], this.highlight[1], 
-        this.highlight[2], this.highlight[3],
-      )
-      this.instance.session.addMarker(rng, "editor-highlight", 'text')
-    } else {
-      for (let marker of Object.values(this.instance.session.getMarkers())) {
-        if (marker.clazz === "tab-names") {
-          this.instance.session.removeMarker(marker.id)
-        }
-      }
-    }
-  }
-
-  focusSelection(scroll = false) {
-    if (!this.instance) return
-    let selection = this.selection
-
-    if (scroll) {
-      this.instance.scrollToLine(selection[0], true, true, () => { })
-    }
-
-    this.setRange(selection)
-    this.instance.focus()
-  }
-
-  getBlockPoints = (block: string) => {
-    block = block.trim()
-    let points = undefined
-    let pos = this.text.indexOf(block)
-    if (pos === -1) return points
-
-    let upperBlock = this.text.slice(0, pos)
-    let upperBlockLines = upperBlock.split('\n')
-    // let lastUpperBlockLine = upperBlockLines[upperBlockLines.length - 1]
-    let blockLines = block.split('\n')
-    let lastBlockLine = blockLines[blockLines.length - 1]
-    points = [upperBlockLines.length - 1, 0, upperBlockLines.length + blockLines.length - 1, lastBlockLine.length - 1]
-    return points
-  }
+  // setHighlights () {
+  //   if (sum(this.highlight) > 0) {
+  //     let rng = new Range(
+  //       this.highlight[0], this.highlight[1], 
+  //       this.highlight[2], this.highlight[3],
+  //     )
+  //     this.instance.session.addMarker(rng, "editor-highlight", 'text')
+  //   } else {
+  //     for (let marker of Object.values(this.instance.session.getMarkers())) {
+  //       if (marker.clazz === "tab-names") {
+  //         this.instance.session.removeMarker(marker.id)
+  //       }
+  //     }
+  //   }
+  // }
 
   getBlock = () => {
-    let block = ''
-    let lines = this.lines()
-    let lineI = this.selection[0]
-    let line = lines[lineI]
-    let pos = this.selection[1]
-    let in_quote_start = false
-
-    let i = pos
-    let l = lineI
-
-    // determine if in quote in cursor line
-    for (let p = 0; p < line.length; p++) {
-      const char = line[p];
-      if (char === "'") { in_quote_start = !in_quote_start }
-      if (p === pos-1) break
-    }
-
-    // after cursor
-    let in_quote = in_quote_start
-    while (true) {
-      if (i >= line.length) {
-        if (l >= lines.length - 1) {
-          break
-        }
-        l++
-        i = 0
-        block += '\n'
-      }
-
-      line = lines[l]
-      const char = line[i]
-      if (char === "'") { in_quote = !in_quote }
-      if (char === ';' && !in_quote) { break }
-      if (char) { block += char }
-      i++
-    }
-
-    // before cursor
-    i = pos - 1
-    l = lineI
-    line = lines[l]
-    in_quote = in_quote_start
-    while (true) {
-      if (i < 0) {
-        if (l <= 0) {
-          break
-        }
-        l--
-        line = lines[l]
-        i = line.length - 1
-        block = '\n' + block
-      }
-
-      const char = line[i]
-      if (char === "'") { in_quote = !in_quote }
-      if (char === ';' && !in_quote) { break }
-      if (char) { block = char + block }
-      i--
-    }
-
-    return block
+    let block = newTextBlock()
+    let ed = this.monaco
+    if(!ed) return block.value
+    block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
+    return block.value
   }
+}
 
-  getWord = (selectWord=false) => {
-    let word = ''
-    let lines = this.lines()
-    let line = lines[this.selection[0]]
-    let pos = this.selection[1]
-
-    for (let i = pos; i < line.length; i++) {
-      const char = line[i];
-      if (char === ' ' || char === '\t' || char === '\n') {
-        if(selectWord) this.selection[3] = i
-        break
-      } else if (i === line.length - 1) { 
-        word += char
-        if(selectWord) this.selection[3] = i+1
-      }
-      else { word += char }
+export const SaveEditorSelection = (tab: State<Tab>, instance?: monaco.editor.ICodeEditor) => {
+    if(!instance) {
+      let editor = window.dbnet.editorMap[tab.id.get()]
+      if(!editor?.instance) return
+      instance = editor.instance
     }
-
-    for (let i = pos - 1; i >= 0; i--) {
-      const char = line[i];
-      if (char === ' ' || char === '\t' || char === '\n' || i === 0) {
-        if(selectWord) this.selection[1] = i+1
-        break
-      }
-      else { word = char + word }
-    }
-
-    if(selectWord) this.setRange(this.selection)
-
-    return word
-  }
+    let selection = instance.getSelection()
+    if(!selection) return
+    tab.editor.selection.set([
+      selection.startLineNumber, 
+      selection.startColumn, 
+      selection.endLineNumber, 
+      selection.endColumn, 
+    ])
 }

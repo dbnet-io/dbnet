@@ -1,10 +1,8 @@
 import { Accordion, AccordionTab } from 'primereact/accordion';
-import { Card } from 'primereact/card';
 import * as React from "react";
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-pgsql";
 
 import { useHS } from '../store/state';
@@ -81,32 +79,11 @@ export const Sessions: React.FC<Props> = (props) => {
 
     const sql = useHS('')
     return (
-      // <textarea 
-      //   value={sql.get()}
-      //   onChange={(e) => sql.set(e.target.value)}
-      //   style={{width:"100%", height:"500px", fontSize:'12px'}}
-      //   className="code"
-      // />
-      <AceEditor
-        width="100%"
-        height="300px"
-        placeholder="Placeholder Text"
-        mode="pgsql"
-        theme="github"
-        name={props.name || 'sql'}
-        onChange={(v) => sql.set(v)}
-        // fontSize={14}
-        showPrintMargin={true}
-        showGutter={true}
-        // highlightActiveLine={true}
-        value={ sql.get() }
-        setOptions={{
-          enableBasicAutocompletion: false,
-          enableLiveAutocompletion: false,
-          enableSnippets: false,
-          showLineNumbers: true,
-          tabSize: 2,
-        }}
+      <textarea 
+        value={sql.get()}
+        onChange={(e) => sql.set(e.target.value)}
+        style={{width:"100%", height:"500px", fontSize:'12px'}}
+        className="code"
       />
     )
   }

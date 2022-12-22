@@ -256,7 +256,7 @@ export class Connection {
       connection: this.name,
       name: '',
       schema: '',
-      database: '',
+      database: this.database,
       sql: '',
       dialect: this.type
     })

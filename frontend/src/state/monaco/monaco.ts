@@ -9,6 +9,8 @@ import { createState } from '@hookstate/core';
 import { getTabState } from '../../components/TabNames';
 import { submitSQL } from '../../components/TabToolbar';
 import { loadMetaTable } from '../../components/MetaTablePanel';
+import { format } from 'sql-formatter';
+import { SaveEditorSelection } from '../editor';
 const crypto = require('crypto')
 
 
@@ -95,6 +97,7 @@ export class EditorMonaco {
           if (!parentTab.id?.get()) return console.log(`did not find tab ${tabId}`)
           if (sql === '') { sql = parentTab.editor.get().getBlock() }
           if (sql.trim() !== '') { submitSQL(parentTab, sql) }
+          SaveEditorSelection(parentTab,  ed)
         }
       },
       {
@@ -113,6 +116,7 @@ export class EditorMonaco {
           let conn = window.dbnet.getConnection(tab.connection.get() || '')
           let table = conn.parseTableName(token.value)
           loadMetaTable(table)
+          SaveEditorSelection(tab,  ed)
         }
       },
       {
@@ -121,7 +125,16 @@ export class EditorMonaco {
         contextMenuGroupId: '1_modification',
         contextMenuOrder: 1,
         run: function (ed: monaco.editor.ICodeEditor) {
-          console.log(ed)
+          let block = getSelectedBlock(ed) || getCurrentBlock(ed.getModel(), ed.getPosition())
+          if(!block.value) return 
+          let oldSql = block.value
+          let newSql = '\n\n' + format(oldSql).trim() + '\n'
+          ed.setValue(ed.getValue().replaceAll(oldSql, newSql))
+          ed.focus()
+          
+          let tabId = window.dbnet.editorTabMap[ed.getId()]
+          let tab = getTabState(tabId)
+          SaveEditorSelection(tab,  ed)
         }
       },
     ]

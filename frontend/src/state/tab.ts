@@ -1,7 +1,6 @@
 import { ObjectAny } from "../utilities/interfaces"
 import { jsonClone, new_ts_id } from "../utilities/methods"
 import { Editor } from "./editor"
-import { EditorMonaco } from "./monaco/monaco"
 import { Query } from "./query"
 import { FileItem } from "./workspace"
 
@@ -15,7 +14,6 @@ export class Tab {
   id: string
   name: string
   editor: Editor
-  monaco?: EditorMonaco
   query: Query
   loading: boolean
   filter: string
@@ -37,7 +35,7 @@ export class Tab {
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || ''
-    this.editor = new Editor(window.dbnet?.editor.instanceRef, data.editor || {})
+    this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
     this.resultLimit = data.resultLimit || 100
