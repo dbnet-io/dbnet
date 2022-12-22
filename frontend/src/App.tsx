@@ -152,7 +152,7 @@ export const App = () => {
         onResizeEnd={(e) => debounceRefresh()} 
         gutterSize={10}
       >
-        <SplitterPanel className="p-d-flex" style={{maxWidth:'500px'}}>
+        <SplitterPanel className="p-d-flex" style={{maxWidth:'450px'}}>
           <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">
