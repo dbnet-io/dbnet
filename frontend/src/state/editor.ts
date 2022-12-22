@@ -3,6 +3,7 @@ import { ObjectAny } from "../utilities/interfaces"
 import { blockAsRange, blockAsSelection, getCurrentBlock, getSelectedBlock, newTextBlock, TextBlock } from "./monaco/monaco";
 import { State } from "@hookstate/core";
 import { Tab } from "./tab";
+import { Table } from './schema';
 
 export class Editor {
   monacoRef: React.MutableRefObject<any>
@@ -13,6 +14,7 @@ export class Editor {
   decorationIds: string[]
   history: ObjectAny
   focus: number // to trigger focus
+  definitionTable: Table
 
   constructor(data: ObjectAny = {}) {
     this.monacoRef = undefined as any
@@ -23,6 +25,7 @@ export class Editor {
     this.decorationIds = []
     this.history = data.history || {}
     this.focus = 0
+    this.definitionTable = {} as Table
   }
 
   get monaco() {

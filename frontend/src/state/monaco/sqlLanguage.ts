@@ -1,6 +1,7 @@
 // https://github.com/microsoft/monaco-editor/blob/main/src/basic-languages/sql/sql.ts
 
 import { monaco } from 'react-monaco-editor';
+import { getTabState } from '../../components/TabNames';
 import { EditorMonaco, getCurrentObject } from './monaco';
 
 export const sqlConf: monaco.languages.LanguageConfiguration = {
@@ -911,17 +912,17 @@ export const sqlDefinitionProvider = (editor: EditorMonaco) => {
 
       let oToken = getCurrentObject(model, position)
       
-      // let tab = getTabState(window.dbnet.state.queryPanel.selectedTabId.get())
-      // if(tab?.connection?.get()) {
+      let tab = getTabState(window.dbnet.state.queryPanel.selectedTabId.get())
+      if(tab?.connection?.get()) {
       
-      //   let conn = window.dbnet.getConnection(tab.connection.get() || '')
-      //   let table = conn.parseTableName(oToken.value)
-      //   if(!table.schema) {
-      //     // TODO: is CTE
-      //   } else {
-      //     loadMetaTable(table)
-      //   }
-      // }
+        let conn = window.dbnet.getConnection(tab.connection.get() || '')
+        let table = conn.parseTableName(oToken.value)
+        if(!table.schema) {
+          // TODO: is CTE
+        } else {
+          window.dbnet.editor.definitionTable = table
+        }
+      }
 
       return {
         uri: model.uri,

@@ -7,6 +7,8 @@ import MonacoEditor, { monaco } from 'react-monaco-editor';
 import { EditorMonaco } from "../state/monaco/monaco";
 import { format } from "sql-formatter";
 import { saveEditorSelection, setDecoration } from "../state/editor";
+import { loadMetaTable } from "./MetaTablePanel";
+import { Table } from "../state/schema";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -63,7 +65,15 @@ export function TabEditor(props: { tab: State<Tab> }) {
   return (
     <div
       id={`editor-wrapper-${tab.id.get()}`}
-      onClick={(e) => saveEditorSelection(tab)}
+      onClick={(e) => {
+        saveEditorSelection(tab)
+
+        // load meta table if ctrl + click on identifier
+        if((e.metaKey || e.ctrlKey) && window.dbnet.editor.definitionTable.schema) {
+          loadMetaTable(window.dbnet.editor.definitionTable)
+          window.dbnet.editor.definitionTable = {} as Table // reset
+        }
+      }}
     >
       <MonacoEditor
         ref={editorRef}
