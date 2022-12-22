@@ -43,7 +43,7 @@ export class DbNetState {
         workspace: jsonClone(this.workspace.get()),
         // projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
-        // schemaPanel: jsonClone(this.schemaPanel.get()),
+        schemaPanel: jsonClone(this.schemaPanel.get()),
         // objectPanel: jsonClone(this.objectPanel.get()),
         // historyPanel: jsonClone(this.historyPanel.get()),
       },
@@ -67,7 +67,7 @@ export class DbNetState {
       let data = resp.data
       // this.connections.set(data.connections?.map((c: any) =>new Connection(c)))
       this.workspace.set(new WorkspaceState(data.workspace))
-      // this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
       // this.projectPanel.set(new ProjectPanelState(data.projectPanel))
       // this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))
