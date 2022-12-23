@@ -216,7 +216,7 @@ export const TabTable: React.FC<Props> = (props) => {
       }}
       readOnly
     />
-  } else if(rows.length === 0) {
+  } else if(rows.length === 0 && props.tab.query.headers?.length > 0) {
     let text = `No Rows Returned.`
     output = <InputTextarea
       value={text}

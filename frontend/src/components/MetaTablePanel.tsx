@@ -189,7 +189,10 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
     }
   }
 
-  const height = document.body.scrollHeight - 670 < 300 ? 300 : document.body.scrollHeight - 670
+  const leftPanelRatio = window.dbnet.state.settingState.leftPaneRatio.get()
+  const childHeight2 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelRatio[1] / 100
+  const height = childHeight2? childHeight2 - 147 : ((document.body.scrollHeight / 2) - 60)
+  // const height = document.body.scrollHeight - 670 < 300 ? 300 : document.body.scrollHeight - 670
   ///////////////////////////  HOOKS  ///////////////////////////
   const objectPanel = useState(window.dbnet.state.objectPanel)
   const table = useState<Table>(new Table())
@@ -423,7 +426,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
   return (
     <div id='object-panel' className="p-grid p-fluid" style={{ textAlign: 'center' }}>
-      <div className="p-col-12 p-md-12" style={{ fontSize: '13px', fontFamily: 'monospace', paddingBottom: '10px' }}>
+      <div className="p-col-12 p-md-12" style={{ fontSize: '13px', fontFamily: 'monospace', paddingBottom: '0px' }}>
         <span
           style={{ fontSize: '12px', backgroundColor: 'white', overflowX: 'hidden' }}
         // onDoubleClick={() => { copyToClipboard(objectPanel.table.name.get()) }}

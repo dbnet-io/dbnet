@@ -18,7 +18,6 @@ import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
-import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { JobPanel } from './components/JobPanel';
 import { DbNet } from './state/dbnet';
@@ -128,7 +127,7 @@ export const App = () => {
     >
       <Toast ref={toast} />
       <JobPanel/>
-      <PreviewPanel />
+      {/* <PreviewPanel /> */}
       <MetaExplorer/>
       <RowViewPanel />
       <ConnectionChooser

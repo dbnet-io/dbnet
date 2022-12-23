@@ -114,6 +114,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   ///////////////////////////  JSX  ///////////////////////////
 
   const SchemaTree = () => {
+    const leftPanelratio = window.dbnet.state.settingState.leftPaneRatio.get()
+    const childHeight1 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelratio[0] / 100
+    const height = childHeight1? childHeight1 - 139 : ((document.body.scrollHeight / 2) - 60)
     const expandedKeys = useHS(schemaPanel.expandedNodes)
     const selectedKeys = useHS(schemaPanel.selectedNodes);
     const [selectedNodeKey, setSelectedNodeKey] = React.useState<any>('');
@@ -447,7 +450,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onContextMenu={event => cm.current?.show(event.originalEvent as any)}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 200}px`,
+          height: `${height}px`,
+          // height: `100%`,
+          // overflowY: "scroll",
           fontSize: '0.8rem',
           padding: 0,
         }}
@@ -499,7 +504,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       <div className="p-col-12 p-md-12">
         <Bar />
       </div>
-      <div className="p-col-12 p-md-12">
+      <div className="p-col-12 p-md-12" style={{width:'100%'}}>
         <SchemaTree />
       </div>
     </div>
