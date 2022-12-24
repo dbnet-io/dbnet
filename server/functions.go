@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"encoding/base64"
+	"io/ioutil"
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/flarco/dbio/connection"
 	"github.com/flarco/dbio/database"
+	"github.com/flarco/dbio/env"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/scruto/store"
@@ -28,27 +29,26 @@ var (
 	mux          sync.Mutex
 	defaultLimit = 100
 	// Sync syncs to store
-	Sync            = store.Sync
-	HomeDir         = os.Getenv("DBNET_HOME_DIR")
-	SlingDir        = os.Getenv("SLING_HOME_DIR")
-	HomeDirEnvFile  = ""
-	SlingDirEnvFile = ""
+	Sync           = store.Sync
+	HomeDir        = os.Getenv("DBNET_HOME_DIR")
+	HomeDirEnvFile = ""
 )
 
 func init() {
-	if HomeDir == "" {
-		HomeDir = path.Join(g.UserHomeDir(), ".dbnet")
-		os.Setenv("DBNET_HOME_DIR", HomeDir)
-	}
-	if SlingDir == "" {
-		SlingDir = path.Join(g.UserHomeDir(), ".sling")
-	}
+	HomeDir = env.SetHomeDir("dbnet")
+	HomeDirEnvFile = env.GetEnvFilePath(HomeDir)
+
+	// create env file if not exists
 	os.MkdirAll(HomeDir, 0755)
+	if HomeDir != "" && !g.PathExists(HomeDirEnvFile) {
+		defaultEnvBytes, _ := env.EnvFolder.ReadFile("default.env.yaml")
+		defaultEnvBytes = append([]byte("# See https://docs.dbnet.io/\n"), defaultEnvBytes...)
+		ioutil.WriteFile(HomeDirEnvFile, defaultEnvBytes, 0644)
+	}
 
-	HomeDirEnvFile = path.Join(HomeDir, "env.yaml")
-	SlingDirEnvFile = path.Join(SlingDir, "env.yaml")
-
-	// os.Setenv("PROFILE_PATHS", g.F("%s,%s", HomeDirEnvFile, DbNetDirEnvFile))
+	// other sources of creds
+	env.SetHomeDir("sling")  // https://github.com/slingdata-io/sling
+	env.SetHomeDir("dbrest") // https://github.com/dbrest-io/dbrest
 }
 
 // Connection is a connection
@@ -86,72 +86,15 @@ func LoadConnections() (err error) {
 func ReadConnections() (conns map[string]*Connection, err error) {
 	connsMap := map[string]*Connection{}
 
-	// get dbt connections
-	dbtConns, err := connection.ReadDbtConnections()
-	if !g.LogError(err) {
-		for name, conn := range dbtConns {
-			connsMap[name] = &Connection{
-				Conn:  conn,
-				Props: map[string]string{},
-			}
-		}
-	}
-
-	// get sling connection
-	if g.PathExists(SlingDirEnvFile) {
-		profileConns, err := connection.ReadConnectionsFromFile(SlingDirEnvFile)
-		if !g.LogError(err) {
-			for _, conn := range profileConns {
-				if !conn.Info().Type.IsDb() {
-					continue
-				}
-				connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
-					Conn:  conn,
-					Props: map[string]string{},
-				}
-			}
-		}
-	}
-
-	// get dbnet connections
-	if g.PathExists(HomeDirEnvFile) {
-		profileConns, err := connection.ReadConnectionsFromFile(HomeDirEnvFile)
-		if !g.LogError(err) {
-			for _, conn := range profileConns {
-				if !conn.Info().Type.IsDb() {
-					continue
-				}
-				connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
-					Conn:  conn,
-					Props: map[string]string{},
-				}
-			}
-		}
-	}
-
-	// Environment variables
-	for key, val := range g.KVArrToMap(os.Environ()...) {
-		if !strings.Contains(val, ":/") || strings.Contains(val, "{") {
-			continue
-		}
-
-		key = strings.ToUpper(key)
-		conn, err := connection.NewConnectionFromURL(key, val)
-		if err != nil {
-			e := g.F("could not parse %s: %s", key, g.ErrMsgSimple(err))
-			g.Warn(e)
-			continue
-		}
-
-		if !conn.Info().Type.IsDb() {
-			continue
-		}
-
-		connsMap[strings.ToUpper(conn.Info().Name)] = &Connection{
-			Conn:  conn,
+	connEntries := connection.GetLocalConns()
+	for _, entry := range connEntries {
+		name := strings.ReplaceAll(strings.ToUpper(entry.Name), "/", "_")
+		connsMap[name] = &Connection{
+			Conn:  entry.Connection,
 			Props: map[string]string{},
 		}
 	}
+
 	return connsMap, nil
 }
 

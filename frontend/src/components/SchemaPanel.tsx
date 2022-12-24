@@ -115,6 +115,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   const SchemaTree = () => {
     const leftPanelratio = window.dbnet.state.settingState.leftPaneRatio.get()
+    const childWidth = document.getElementById("left-pane")?.scrollWidth || 370
     const childHeight1 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelratio[0] / 100
     const height = childHeight1? childHeight1 - 139 : ((document.body.scrollHeight / 2) - 60)
     const expandedKeys = useHS(schemaPanel.expandedNodes)
@@ -127,6 +128,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let database_name = ''
       let schema_name = ''
       let isView = false
+      let maxChars = childWidth / 10
+      node.label = (node.label?.length || 0) < maxChars ? node.label : (node.label?.slice(0,40) || '') + '...'
       if (node.data.type === 'table') {
         label = <span><i className="pi pi-table" style={{fontSize: '12px', paddingLeft: '5px', paddingRight: '5px'}}/> {node.label} </span>
         let table = node.data.data
@@ -177,7 +180,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
                 null
             }
           </Tooltip>
-          <span style={isView ? { color: 'brown' } : {}}>
+          <span style={{color: isView ? 'brown' : '', overflowX: "hidden" }}>
             {label}
           </span>
         </span>

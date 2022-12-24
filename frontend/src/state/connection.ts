@@ -159,10 +159,9 @@ export class Connection {
       if (schema?.tables !== undefined) {
         if (!Array.isArray(schema.tables)) schema.tables = []
         for (let table of schema.tables) {
-          let table_name = table.name.length < 40 ? table.name : table.name.slice(0,40) + '...'
           newNodes.push({
             key: `${database.name}.${schema.name}.${table.name}`,
-            label: `${table_name}`,
+            label: `${table.name}`,
             data: {
               type: 'table',
               schema: schema.name,

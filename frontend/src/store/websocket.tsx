@@ -23,8 +23,6 @@ export interface WsQueue {
 }
 
 export enum MsgType {
-  Test = 'test',
-  Error = 'error',
   SubmitSQL = 'submit-sql',
   CancelSQL = 'cancel-sql',
   GetSettings = 'get-settings',
