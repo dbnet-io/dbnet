@@ -30,7 +30,7 @@ var (
 	defaultLimit = 100
 	// Sync syncs to store
 	Sync           = store.Sync
-	HomeDir        = os.Getenv("DBNET_HOME_DIR")
+	HomeDir        = ""
 	HomeDirEnvFile = ""
 )
 
@@ -74,28 +74,18 @@ func (c *Connection) DefaultDB() string {
 }
 
 func LoadConnections() (err error) {
-	Connections, err = ReadConnections()
-	if err != nil {
-		return err
-	}
-
-	return
-}
-
-// ReadConnections loads the connections
-func ReadConnections() (conns map[string]*Connection, err error) {
-	connsMap := map[string]*Connection{}
+	Connections = map[string]*Connection{}
 
 	connEntries := connection.GetLocalConns()
 	for _, entry := range connEntries {
 		name := strings.ReplaceAll(strings.ToUpper(entry.Name), "/", "_")
-		connsMap[name] = &Connection{
+		Connections[name] = &Connection{
 			Conn:  entry.Connection,
 			Props: map[string]string{},
 		}
 	}
 
-	return connsMap, nil
+	return
 }
 
 // NewQuery creates a Query object
