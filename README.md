@@ -1,5 +1,3 @@
-# dbNet
-
 <p align="center">
     <img src="https://user-images.githubusercontent.com/7671010/209962426-a849b819-480d-4863-9676-d13a195cc19d.png" height="50">
   </p>
