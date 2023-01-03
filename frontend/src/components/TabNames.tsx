@@ -59,7 +59,7 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
       let ed = window.dbnet.editorMap[tab.id.get()]
       e.text = e.text + '\n\n' + sql
       let lines = e.text.split('\n') 
-      let lineNumber = (ed.instance.getModel()?.getLineCount() || lines.length) + 2 // add 2 new lines
+      let lineNumber = (ed?.instance.getModel()?.getLineCount() || lines.length) + 2 // add 2 new lines
       e.selection = [lineNumber, 1, lineNumber, 1] // set to last line
       setTimeout(() => {
         if(!ed?.instance) return console.log('no editor')

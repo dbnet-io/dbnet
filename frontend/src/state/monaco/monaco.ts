@@ -149,6 +149,17 @@ export class EditorMonaco {
           saveEditorSelection(tab,  ed)
         }
       },
+      {
+        id: 'duplicate',
+        label: 'Duplicate Line',
+        keybindings: [
+          monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD,
+          monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyD,
+        ],
+        run: function (ed: monaco.editor.ICodeEditor) {
+          ed.trigger(null, 'editor.action.copyLinesDownAction', null)
+        }
+      },
     ]
 
     for (let action of actions) { 
