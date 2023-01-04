@@ -20,6 +20,7 @@ export class DbNetState {
   metaPanel: State<MetaPanelState>
   objectPanel: State<ObjectPanelState>
   historyPanel: State<HistoryPanelState>
+  settingState: State<SettingState>
 
   constructor(data: ObjectAny = {}) {
     this.workspace = createState(new WorkspaceState(data.workspace))
@@ -30,6 +31,7 @@ export class DbNetState {
     this.jobPanel = createState(new JobPanelState(data.queryPanel))
     this.queryPanel = createState(new QueryPanelState(data.queryPanel))
     this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
+    this.settingState = createState(new SettingState(data.settingState))
     // this.ws = createState(new Ws())
   }
 
@@ -43,8 +45,9 @@ export class DbNetState {
         workspace: jsonClone(this.workspace.get()),
         // projectPanel: jsonClone(this.projectPanel.get()),
         queryPanel: jsonClone(this.queryPanel.get().payload()),
-        // schemaPanel: jsonClone(this.schemaPanel.get()),
-        // objectPanel: jsonClone(this.objectPanel.get()),
+        schemaPanel: jsonClone(this.schemaPanel.get()),
+        settingState: jsonClone(this.settingState.get()),
+        objectPanel: jsonClone(this.objectPanel.get()),
         // historyPanel: jsonClone(this.historyPanel.get()),
       },
     }
@@ -67,9 +70,10 @@ export class DbNetState {
       let data = resp.data
       // this.connections.set(data.connections?.map((c: any) =>new Connection(c)))
       this.workspace.set(new WorkspaceState(data.workspace))
-      // this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      this.schemaPanel.set(new SchemaPanelState(data.schemaPanel))
+      this.settingState.set(new SettingState(data.settingState))
       // this.projectPanel.set(new ProjectPanelState(data.projectPanel))
-      // this.objectPanel.set(new ObjectPanelState(data.objectPanel))
+      this.objectPanel.set(new ObjectPanelState(data.objectPanel))
       this.queryPanel.set(new QueryPanelState(data.queryPanel))
       // this.historyPanel.set(new HistoryPanelState(data.historyPanel))
     } catch (error) {
@@ -112,6 +116,13 @@ class HistoryPanelState {
   constructor(data: ObjectAny = {}) {
     this.selectedQuery = new Query(data.selectedQuery)
     this.filter = data.filter || ''
+  }
+}
+
+class SettingState {
+  leftPaneRatio: number[]
+  constructor(data: ObjectAny = {}) {
+    this.leftPaneRatio = data.leftPaneRatio || [50,50]
   }
 }
 

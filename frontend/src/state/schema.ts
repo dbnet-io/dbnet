@@ -2,6 +2,7 @@ import { makeYAML } from "../components/MetaTablePanel"
 import { formatSql } from "../components/TabEditor"
 import { ObjectAny } from "../utilities/interfaces"
 import { data_req_to_records, LogError, toastError } from "../utilities/methods"
+import { ConnType } from "./connection"
 import { QueryRequest } from "./query"
 
 
@@ -49,7 +50,9 @@ export class Table {
   database: string
   schema: string
   name: string
+  sql: string;
   isView: boolean
+  dialect: ConnType;
   columns: Column[]
   constructor(data: ObjectAny = {}) {
     this.connection = data.connection
@@ -57,6 +60,8 @@ export class Table {
     this.name = data.name
     this.database = data.database
     this.isView = data.isView
+    this.sql = data.sql
+    this.dialect = data.dialect
     this.columns = data.columns || []
   }
 

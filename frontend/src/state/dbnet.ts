@@ -7,15 +7,13 @@ import { ObjectAny } from "../utilities/interfaces";
 import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
 import { Connection } from "./connection";
 import { Editor } from "./editor";
+import { EditorMap, EditorTabMap } from "./monaco/monaco";
 import { Query, QueryRequest } from "./query";
 import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
-import { ResultTable } from "./table";
 import { Workspace } from "./workspace";
 
 export type DbNetOptions = {
-  resultTableRef: React.MutableRefObject<any>;
-  aceEditorRef: React.MutableRefObject<any>;
 
   // uri: string;
   // editor: editor.IStandaloneCodeEditor;
@@ -39,27 +37,21 @@ export class DbNet {
   selectedConnection: string
   connections: Connection[]
   editor: Editor
-  resultTable: ResultTable
   triggerMap: TriggerMapRecord
   state: DbNetState
-
-  // app: AppState
-  // queryPanel: QueryPanelState
-  // jobPanel: JobPanelState
-  // projectPanel: ProjectPanelState
-  // schemaPanel: SchemaPanelState
-  // objectPanel: ObjectPanelState
-  // historyPanel: HistoryPanelState
+  editorMap: EditorMap
+  editorTabMap: EditorTabMap
 
   constructor(options: DbNetOptions) {
     this.db = getDexieDb()
     this.workspace = new Workspace()
-    this.editor = new Editor(options.aceEditorRef)
-    this.resultTable = new ResultTable(options.resultTableRef)
+    this.editor = new Editor()
     this.connections = []
     this.selectedConnection = ''
     this.triggerMap = {} as TriggerMapRecord
     this.state = new DbNetState()
+    this.editorMap = {}
+    this.editorTabMap = {}
   }
 
   async init() {
@@ -72,6 +64,7 @@ export class DbNet {
   }
 
   selectConnection(name: string) {
+    if(!name || name === 'null') return
     if (!name || !this.connections.map(c => c.name).includes(name)) {
       return toastError(`Connection ${name} not found`)
     }
@@ -293,8 +286,9 @@ export class DbNet {
     let index = this.connections.map(c => c.name.toLowerCase()).indexOf(connName)
     if (index > -1) {
       return this.connections[index]
+    } else if (connName !== '') {
+      console.log(`did not find connection ${connName}`)
     }
-    console.log(`did not find connection ${connName}`)
     return new Connection()
   }
 

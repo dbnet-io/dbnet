@@ -23,6 +23,7 @@ export enum ConnType {
   DbSQLServer = "sqlserver",
   DbAzure = "azuresql",
   DbAzureDWH = "azuredwh",
+  DbBigTable = "bigtable",
 }
 
 
@@ -158,10 +159,9 @@ export class Connection {
       if (schema?.tables !== undefined) {
         if (!Array.isArray(schema.tables)) schema.tables = []
         for (let table of schema.tables) {
-          let table_name = table.name.length < 40 ? table.name : table.name.slice(0,40) + '...'
           newNodes.push({
             key: `${database.name}.${schema.name}.${table.name}`,
-            label: `${table_name}`,
+            label: `${table.name}`,
             data: {
               type: 'table',
               schema: schema.name,
@@ -241,6 +241,98 @@ export class Connection {
       }
     }
     return -1
-  }  
+  }
+  get quote_char() {
+    let q = '"'
+    if(this.type === ConnType.DbBigQuery) q = '`'
+    if(this.type === ConnType.DbMySQL) q = '`'
+    if(this.type === ConnType.DbBigTable) q = ''
+    return q
+  }
+
+  parseTableName = (text: string) : Table => {
+    let table = new Table({
+      connection: this.name,
+      name: '',
+      schema: '',
+      database: this.database,
+      sql: '',
+      dialect: this.type
+    })
+
+    let quote = this.quote_char
+
+    let defCaseUpper = this.type === ConnType.DbOracle || this.type === ConnType.DbSnowflake
+
+    let inQuote = false
+    let words : string[] = []
+    let word = ""
+
+    let addWord = () => {
+      if(word === ""){
+        return
+      }
+      words.push(word)
+      word = ""
+    }
+
+    for (let c of text) {
+      switch (c) {
+      case quote:
+        if(inQuote) {
+          addWord()
+        }
+        inQuote = !inQuote
+        continue
+      case ".": // eslint-disable-line
+        if(!inQuote){
+          addWord()
+          continue
+        }
+      case " ": // eslint-disable-line
+      case "\n": // eslint-disable-line
+      case "\t": // eslint-disable-line
+      case "\r": // eslint-disable-line
+      case "(": // eslint-disable-line
+      case ")": // eslint-disable-line
+      case "-": // eslint-disable-line
+      case "'":
+        if(!inQuote) {
+          table.sql = text.trim()
+          return table
+        }
+        break;
+      }
+
+      if(inQuote) {
+        word = word + c
+      } else {
+        word = word + (defCaseUpper ? c.toUpperCase() : c)
+      }
+    }
+
+    if(inQuote) {
+      throw new Error("unterminated qualifier quote")
+    } else if(word !== "") {
+      addWord()
+    }
+
+    if(words.length === 0) {
+      throw  new Error("invalid table name")
+    } else if(words.length === 1) {
+      table.name = words[0]
+    } else if(words.length === 2) {
+      table.schema = words[0]
+      table.name = words[1]
+    } else if(words.length === 3) {
+      table.database = words[0]
+      table.schema = words[1]
+      table.name = words[2]
+    } else {
+      table.sql = text.trim()
+    }
+
+    return table
+  }
 }
 

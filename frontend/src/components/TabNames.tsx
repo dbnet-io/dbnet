@@ -10,7 +10,6 @@ import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
 import { Tab } from "../state/tab";
 import { MenuItem, MenuItemOptions } from "primereact/menuitem";
-import { Range } from "ace-builds"
 
 const queryPanel = () => window.dbnet.state.queryPanel
 
@@ -57,21 +56,23 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
     tab.editor.selection.set([lines.length - 1, 0, lines.length - 1, 0])
   } else {
     tab.editor.set(e => {
+      let ed = window.dbnet.editorMap[tab.id.get()]
       e.text = e.text + '\n\n' + sql
       let lines = e.text.split('\n') 
-      e.selection = [lines.length, 0, lines.length, 0] // set to last line
+      let lineNumber = (ed?.instance.getModel()?.getLineCount() || lines.length) + 2 // add 2 new lines
+      e.selection = [lineNumber, 1, lineNumber, 1] // set to last line
       setTimeout(() => {
-        window.dbnet.editor.instance.scrollToLine(lines.length, true, true, () => { })
-        window.dbnet.editor.instance.selection.setRange(new Range(
-          e.selection[0], e.selection[1], e.selection[2], e.selection[3],
-        ));
-        window.dbnet.editor.instance.focus()
+        if(!ed?.instance) return console.log('no editor')
+        ed.instance.revealLine(lineNumber, 0)
+        ed.instance.setPosition({column: 1, lineNumber: lineNumber})
+        ed.instance.focus()
       }, 20);
       // window.dbnet.editor.focusSelection(true)
       e.focus = e.focus + 1
       return e
     })
   }
+  return tab.editor.get().selectionToBlock(sql)
 }
 
 export const createTabChild = (parent: Tab) => {
@@ -117,7 +118,7 @@ export const getCurrentParentTabState = () => {
 
 export const getOrCreateParentTabState = (connection: string, database: string) => {
   let currTab = getCurrentParentTabState()
-  if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database.toUpperCase()) return currTab
+  if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database?.toUpperCase()) return currTab
 
   let index = queryPanel().tabs.get()
               .map(t => `${t.connection}-${t.database}`.toUpperCase())

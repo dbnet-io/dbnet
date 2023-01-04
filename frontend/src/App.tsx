@@ -18,7 +18,6 @@ import { jsonClone, toastError, toastInfo } from './utilities/methods';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import _ from "lodash";
 import { TopMenuBar } from './components/TopMenuBar';
-import { PreviewPanel } from './components/PreviewPanel';
 import { RowViewPanel } from './components/RowViewPanel';
 import { JobPanel } from './components/JobPanel';
 import { DbNet } from './state/dbnet';
@@ -49,11 +48,7 @@ export const App = () => {
   ///////////////////////////  HOOKS  ///////////////////////////
   useWindowSize()
 
-  const aceEditorRef = React.useRef(null);
-  const resultTableRef = React.useRef(null);
-  const state = React.useRef<DbNet>(new DbNet({
-    aceEditorRef, resultTableRef,
-  }))
+  const state = React.useRef<DbNet>(new DbNet({ }))
   window.dbnet = state.current
   var dbnet = state.current
   
@@ -68,7 +63,7 @@ export const App = () => {
     Init()
     return () => {
       dbnet.dispose()
-      state.current = new DbNet({aceEditorRef, resultTableRef});
+      state.current = new DbNet({});
     }
   }, [])// eslint-disable-line
 
@@ -132,7 +127,7 @@ export const App = () => {
     >
       <Toast ref={toast} />
       <JobPanel/>
-      <PreviewPanel />
+      {/* <PreviewPanel /> */}
       <MetaExplorer/>
       <RowViewPanel />
       <ConnectionChooser
@@ -153,9 +148,10 @@ export const App = () => {
         style={{ height: splitterHeight, marginLeft: '5px' }}
         stateKey={"splitter"}
         stateStorage={"local"}
-        onResizeEnd={(e) => debounceRefresh()} gutterSize={10}
+        onResizeEnd={(e) => debounceRefresh()} 
+        gutterSize={10}
       >
-        <SplitterPanel className="p-d-flex">
+        <SplitterPanel className="p-d-flex" style={{maxWidth:'450px'}}>
           <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">

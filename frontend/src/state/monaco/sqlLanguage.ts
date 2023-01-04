@@ -1,7 +1,8 @@
 // https://github.com/microsoft/monaco-editor/blob/main/src/basic-languages/sql/sql.ts
 
 import { monaco } from 'react-monaco-editor';
-import { Editor, getCurrentBlock } from './editor';
+import { getTabState } from '../../components/TabNames';
+import { EditorMonaco, getCurrentObject } from './monaco';
 
 export const sqlConf: monaco.languages.LanguageConfiguration = {
   
@@ -888,60 +889,47 @@ export const getIdentifierRangeAtPosition = (model: monaco.editor.ITextModel, po
 /**
  * See https://microsoft.github.io/monaco-editor/playground.html#extending-language-services-hover-provider-example
 */
-export const sqlHoverProvider = (editor: Editor) => {
+export const sqlHoverProvider = (editor: EditorMonaco) => {
   return {
     provideHover: function (model: monaco.editor.ITextModel, position: monaco.Position) {
-      // make call to server to get info
-      // TODO: check if identifer matches column name from selectable tables or a column name/alias
-      // If not, then return {}
-      // if (identiferRange && keywords.indexOf(identifier.toUpperCase()) !== -1) {
-      //   // is a reserved word.
-      //   return {}
-      // }
+      let token = getCurrentObject(model, position)
 
-      // const position_id = `${position.lineNumber}-${position.column}`
-      const block = getCurrentBlock(model, position)
-
-      return editor.parseSQL(block.value, block.startPosition.lineNumber, block.startPosition.column).then(
-        (parsed) => {
-          if (!parsed?.tokenMapper) return {} as monaco.languages.Hover
-
-          const token = parsed.getTokenFromPosition(position)
-          const tokenRange = token.Range()
-
-          return {
-            range: tokenRange,
-            contents: [
-              { value: token.text },
-              { value: JSON.stringify(position) },
-              { value: JSON.stringify(token) },
-              { value: JSON.stringify(tokenRange) },
-            ]
-          }
-        }
-      )
+      return {
+        range: token.range,
+        contents: [
+          { value: token.value },
+          // { value: JSON.stringify(position) },
+          // { value: JSON.stringify(token) },
+        ]
+      }
     }
   } as monaco.languages.HoverProvider;
 }
 
-export const sqlDefinitionProvider = (editor: Editor) => {
+export const sqlDefinitionProvider = (editor: EditorMonaco) => {
   return {
     provideDefinition: function (model: monaco.editor.ITextModel, position: monaco.Position, token: monaco.CancellationToken): monaco.languages.ProviderResult<monaco.languages.Definition | monaco.languages.LocationLink[]> {
-      const block = getCurrentBlock(model, position)
-      return editor.parseSQL(block.value, block.startPosition.lineNumber, block.startPosition.column).then(
-        async (parsed) => {
-          if (!parsed?.tokenMapper && !position) return {} as monaco.languages.Definition
 
-          // const token = parsed.getTokenFromPosition(position)
-          // const tokenRange = token.Range()
-          // toastInfo(token.referenceKey)
-          let definition = await parsed.getDefinition(model, position)
-          return {
-            uri: definition.model.uri,
-            range: definition.range,
-          } as monaco.languages.Definition
+      let oToken = getCurrentObject(model, position)
+      
+      let tab = getTabState(window.dbnet.state.queryPanel.selectedTabId.get())
+      if(tab?.connection?.get()) {
+      
+        let conn = window.dbnet.getConnection(tab.connection.get() || '')
+        let table = conn.parseTableName(oToken.value)
+        if(!table.schema) {
+          // TODO: is CTE
+        } else {
+          window.dbnet.editor.definitionTable = table
         }
-      )
+      }
+
+      return {
+        uri: model.uri,
+        originSelectionRange: oToken.range,
+        range: oToken.range,
+        targetSelectionRange: oToken.range,
+      } as monaco.languages.Definition
     }
   } as monaco.languages.DefinitionProvider
 }

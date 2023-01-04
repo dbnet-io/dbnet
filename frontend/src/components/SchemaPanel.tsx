@@ -53,7 +53,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   React.useEffect(() => {
     if (window.dbnet.connections.length === 0) return
-    let connName = localStorage.getItem("_schema_panel_connection")
+    let connName = localStorage.getItem("_connection_name")
     if (!connName) {
       connName = window.dbnet.connections[0].name
     } else if (!window.dbnet.connections.map(c => c.name).includes(connName)) {
@@ -61,7 +61,6 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     }
     // let conn = getConnectionState(connName)
     connection.set(new Connection(jsonClone(window.dbnet.getConnection(connName))))
-    return () => localStorage.setItem("_schema_panel_connection", connection.name.get())
   }, [trigger.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
@@ -108,13 +107,17 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   const selectAll = (table: Table) => {
     let sql = `${table.selectAll()} limit 500;`
     let tab = getOrCreateParentTabState(table.connection, table.database)
-    appendSqlToTab(tab.id.get(), sql)
-    submitSQL(tab, sql)
+    let block = appendSqlToTab(tab.id.get(), sql)
+    submitSQL(tab, sql, undefined, block)
   }
 
   ///////////////////////////  JSX  ///////////////////////////
 
   const SchemaTree = () => {
+    const leftPanelratio = window.dbnet.state.settingState.leftPaneRatio.get()
+    const childWidth = document.getElementById("left-pane")?.scrollWidth || 370
+    const childHeight1 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelratio[0] / 100
+    const height = childHeight1? childHeight1 - 139 : ((document.body.scrollHeight / 2) - 60)
     const expandedKeys = useHS(schemaPanel.expandedNodes)
     const selectedKeys = useHS(schemaPanel.selectedNodes);
     const [selectedNodeKey, setSelectedNodeKey] = React.useState<any>('');
@@ -125,6 +128,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       let database_name = ''
       let schema_name = ''
       let isView = false
+      let maxChars = childWidth / 10
+      node.label = (node.label?.length || 0) < maxChars ? node.label : (node.label?.slice(0,40) || '') + '...'
       if (node.data.type === 'table') {
         label = <span><i className="pi pi-table" style={{fontSize: '12px', paddingLeft: '5px', paddingRight: '5px'}}/> {node.label} </span>
         let table = node.data.data
@@ -175,7 +180,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
                 null
             }
           </Tooltip>
-          <span style={isView ? { color: 'brown' } : {}}>
+          <span style={{color: isView ? 'brown' : '', overflowX: "hidden" }}>
             {label}
           </span>
         </span>
@@ -243,12 +248,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
                 .map(t => `select '${t.fullName()}' as table_name, count(*) cnt from ${t.fullName2()}`)
                 .join(' UNION ALL\n') + ';'
               let tab = getOrCreateParentTabState(table.connection, table.database)
-              appendSqlToTab(tab.id.get(), sql)
+              let block = appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql, undefined, block)
             } else {
               let sql = `select '${table.fullName()}' as table_name, count(*) cnt from ${table.fullName2()};`
               let tab = getOrCreateParentTabState(table.connection, table.database)
-              appendSqlToTab(tab.id.get(), sql)
-              submitSQL(tab, sql)
+              let block = appendSqlToTab(tab.id.get(), sql)
+              submitSQL(tab, sql, undefined, block)
             }
           }
         },
@@ -285,8 +291,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             let sql = makeYAML(data) + ';'
             let table = nodeKeyToTable(keys[0])
             let tab = getOrCreateParentTabState(table.connection, table.database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let block = appendSqlToTab(tab.id.get(), sql)
+            submitSQL(tab, sql, undefined, block)
           }
         },
         {
@@ -310,8 +316,8 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             // let tab = createTab(schemaTable.name, sql)
             let table = nodeKeyToTable(keys[0])
             let tab = getOrCreateParentTabState(table.connection, table.database)
-            appendSqlToTab(tab.id.get(), sql)
-            submitSQL(tab, sql)
+            let block = appendSqlToTab(tab.id.get(), sql)
+            submitSQL(tab, sql, undefined, block)
           }
         },
         {
@@ -447,7 +453,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
         onContextMenu={event => cm.current?.show(event.originalEvent as any)}
         nodeTemplate={nodeTemplate}
         contentStyle={{
-          height: `${window.innerHeight - 200}px`,
+          height: `${height}px`,
+          // height: `100%`,
+          // overflowY: "scroll",
           fontSize: '0.8rem',
           padding: 0,
         }}
@@ -499,7 +507,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
       <div className="p-col-12 p-md-12">
         <Bar />
       </div>
-      <div className="p-col-12 p-md-12">
+      <div className="p-col-12 p-md-12" style={{width:'100%'}}>
         <SchemaTree />
       </div>
     </div>

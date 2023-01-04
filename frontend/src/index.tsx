@@ -7,7 +7,7 @@ import { Integrations } from "@sentry/tracing";
 
 
 Sentry.init({
-  dsn: "https://d6b440f7646e4fdcacfa27dd59a659c5@o794636.ingest.sentry.io/5801619",
+  // dsn: "https://d6b440f7646e4fdcacfa27dd59a659c5@o794636.ingest.sentry.io/5801619",
   integrations: [new Integrations.BrowserTracing()],
   release: "dbnet@" + process.env.npm_package_version,
   environment: process.env.NODE_ENV,

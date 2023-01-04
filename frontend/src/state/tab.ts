@@ -35,7 +35,7 @@ export class Tab {
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || ''
-    this.editor = new Editor(window.dbnet?.editor.instanceRef, data.editor || {})
+    this.editor = new Editor(data.editor || {})
     this.query = new Query(data.query) || new Query()
     this.filter = data.filter || ''
     this.resultLimit = data.resultLimit || 100

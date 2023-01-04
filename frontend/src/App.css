@@ -195,6 +195,14 @@ font-size: 9px !important;
   margin: 0;
 }
 
+#preview-panel > div.p-dialog-header > div.p-dialog-header-icons > button {
+  max-height: 20px;
+}
+
+#preview-panel > div.p-dialog-header > div.p-dialog-header-icons > button > span {
+  font-size: 10px;
+}
+
 
 #sub-tabs-container > div > div.p-tabview-panels {
   padding-top: 5px !important;
@@ -297,3 +305,8 @@ font-size: 9px !important;
   font-weight: 700;
 }
 
+.query-submit-decoration {
+	background: lightblue;
+	width: 5px !important;
+	margin-left: 3px;
+}
