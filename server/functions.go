@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -10,20 +9,18 @@ import (
 	"time"
 
 	"github.com/slingdata-io/sling-cli/core/sling"
-	"github.com/spf13/cast"
 
+	"github.com/dbnet-io/dbnet/store"
 	"github.com/flarco/dbio/connection"
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/env"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
-	"github.com/flarco/scruto/store"
 )
 
 var (
 	// Connections is all connections
 	Connections  = map[string]*Connection{}
-	DbtServers   = map[string]*DbtServer{}
 	Queries      = map[string]*store.Query{}
 	Jobs         = map[string]*store.Job{}
 	mux          sync.Mutex
@@ -99,18 +96,6 @@ func NewQuery(ctx context.Context) *store.Query {
 
 // ReqFunction is the request function type
 type ReqFunction func(c database.Connection, req Request) (iop.Dataset, error)
-
-// ProcessRequestFromMsg processes the request with the given function
-func ProcessRequestFromMsg(msg Message, reqFunc ReqFunction) (data iop.Dataset, err error) {
-	req := Request{}
-	err = g.Unmarshal(g.Marshal(msg.Data), &req)
-	if err != nil {
-		err = g.Error(err, "could not unmarshal request")
-		return
-	}
-
-	return ProcessRequest(req, reqFunc)
-}
 
 // ProcessRequest processes the request with the given function
 func ProcessRequest(req Request, reqFunc ReqFunction) (data iop.Dataset, err error) {
@@ -216,13 +201,6 @@ func doSubmitSQL(query *store.Query) (err error) {
 	Queries[query.ID] = query
 	mux.Unlock()
 
-	err = processDbtQuery(query)
-	if err != nil {
-		query.Error = g.Error(err, "could not compile dbt query")
-		query.Err = g.ErrMsg(query.Error)
-		return query.Error
-	}
-
 	go func() {
 		query.Submit(c)
 
@@ -238,54 +216,6 @@ func doSubmitSQL(query *store.Query) (err error) {
 	}()
 
 	return
-}
-
-// processDbtQuery compiles the dbt query as needed
-func processDbtQuery(q *store.Query) (err error) {
-
-	conn, err := GetConnObject(q.Conn, q.Database)
-	if err != nil {
-		return g.Error(err, "could not get query connection")
-	}
-
-	if strings.Contains(q.Text, "{{") && strings.Contains(q.Text, "}}") && cast.ToBool(conn.Data["dbt"]) {
-		// Is DBT query, need to compile and submit
-
-		profile := cast.ToString(conn.Data["profile"])
-		target := cast.ToString(conn.Data["target"])
-
-		s, err := GetOrCreateDbtServer(q.ProjDir, profile, target)
-		if err != nil {
-			return g.Error(err, "could not get or create dbt server")
-		}
-
-		dbtReq := dbtRequest{
-			ID:      q.ID,
-			JsonRPC: "2.0",
-			Method:  "compile_sql",
-			Params: map[string]interface{}{
-				"timeout": 60,
-				"sql":     base64.StdEncoding.EncodeToString([]byte(q.Text)),
-				"name":    q.ID,
-			},
-		}
-
-		dbtResp, err := s.Submit(dbtReq)
-		if err != nil {
-			return g.Error(err, "error compiling dbt query %s", q.ID)
-		}
-
-		resultVal := cast.ToSlice(dbtResp.Result["results"])[0]
-		result := g.M()
-		err = g.Unmarshal(g.Marshal(resultVal), &result)
-		if err != nil {
-			return g.Error(err, "error parsing compiled sql for %s", q.ID)
-		}
-
-		q.Text = cast.ToString(result["compiled_sql"])
-	}
-
-	return nil
 }
 
 // GetConnInstance gets the connection object

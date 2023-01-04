@@ -1,18 +1,20 @@
-module github.com/flarco/scruto
+module github.com/dbnet-io/dbnet
 
 go 1.19
 
 require (
+	github.com/dbrest-io/dbrest v0.0.30
 	github.com/flarco/dbio v0.3.178
 	github.com/flarco/g v0.1.51
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/jmoiron/sqlx v1.2.0
-	github.com/labstack/echo/v4 v4.2.2
+	github.com/labstack/echo/v4 v4.1.17
+	github.com/labstack/echo/v5 v5.0.0-20220201181537-ed2888cfa198
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/slingdata-io/sling-cli v0.87.25
 	github.com/spf13/cast v1.5.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/gorm v1.20.7
 )
@@ -118,10 +120,10 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/kr/fs v0.1.0 // indirect
-	github.com/labstack/gommon v0.3.0 // indirect
+	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-ieproxy v0.0.9 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
@@ -157,7 +159,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasttemplate v1.2.1 // indirect
+	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/viant/xunsafe v0.8.0 // indirect
 	github.com/xitongsys/parquet-go v1.5.4 // indirect
 	github.com/xitongsys/parquet-go-source v0.0.0-20201014235637-c24a23d9ef1e // indirect
@@ -167,13 +169,13 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be // indirect
+	golang.org/x/crypto v0.4.0 // indirect
 	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d // indirect
-	golang.org/x/net v0.0.0-20221002022538-bcab6841153b // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
-	golang.org/x/sys v0.0.0-20220926163933-8cfa568d3c25 // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/term v0.3.0 // indirect
+	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.92.0 // indirect
@@ -198,5 +200,7 @@ require (
 replace github.com/flarco/g => ../g
 
 replace github.com/flarco/dbio => ../dbio
+
+replace github.com/dbrest-io/dbrest => ../dbrest
 
 replace github.com/slingdata-io/sling-cli => ../sling-cli

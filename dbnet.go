@@ -4,9 +4,9 @@ import (
 	"os"
 	"path"
 
+	"github.com/dbnet-io/dbnet/server"
+	"github.com/dbnet-io/dbnet/store"
 	"github.com/flarco/g"
-	"github.com/flarco/scruto/server"
-	"github.com/flarco/scruto/store"
 	"github.com/skratchdot/open-golang/open"
 )
 

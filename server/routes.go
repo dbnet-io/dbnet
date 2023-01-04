@@ -6,13 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dbnet-io/dbnet/store"
 	"github.com/flarco/dbio"
 	"github.com/flarco/dbio/connection"
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
-	"github.com/flarco/scruto/store"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/slingdata-io/sling-cli/core/sling"
 	"github.com/spf13/cast"
 )
@@ -541,45 +541,6 @@ func PostFileOperation(c echo.Context) (err error) {
 	}
 
 	return c.JSON(200, data)
-}
-
-// PostSubmitDbt submits an RPC commands to a dbt server
-// https://docs.getdbt.com/reference/commands/rpc
-func PostSubmitDbt(c echo.Context) (err error) {
-	req := Request{}
-	if err = c.Bind(&req); err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
-	}
-
-	m := g.M()
-	err = g.Unmarshal(g.Marshal(req.Data), &m)
-	if err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
-	}
-
-	profile := cast.ToString(m["profile"])
-	target := cast.ToString(m["target"])
-	projDir := cast.ToString(m["projDir"])
-
-	s, err := GetOrCreateDbtServer(projDir, profile, target)
-	if err != nil {
-		err = g.Error(err, "could not get or create dbt server")
-		return g.ErrJSON(http.StatusInternalServerError, err)
-	}
-
-	dbtReq := dbtRequest{}
-	err = g.Unmarshal(g.Marshal(m["request"]), &dbtReq)
-	if err != nil {
-		return g.ErrJSON(http.StatusBadRequest, err, "invalid submit DBT request")
-	}
-
-	dbtResp, err := s.Submit(dbtReq)
-	if err != nil {
-		err = g.Error(err, "error performing RPC request: %s", req.Procedure)
-		return g.ErrJSON(http.StatusInternalServerError, err)
-	}
-
-	return c.JSON(200, dbtResp)
 }
 
 type JobRequestConn struct {

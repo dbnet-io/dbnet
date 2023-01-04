@@ -160,7 +160,7 @@ jobs:
         go get github.com/flarco/g@HEAD
         go get github.com/flarco/dbio@HEAD
 
-        go build -o dbNet.exe github.com/flarco/scruto
+        go build -o dbNet.exe github.com/dbnet-io/dbnet
 
     - name: Release Binaries to Github
       uses: "marvinpinto/action-automatic-releases@latest"

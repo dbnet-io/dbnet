@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dbnet-io/dbnet/server"
+	"github.com/dbnet-io/dbnet/store"
 	"github.com/flarco/dbio"
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
-	"github.com/flarco/scruto/server"
-	"github.com/flarco/scruto/store"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
@@ -37,10 +37,6 @@ func TestAll(t *testing.T) {
 	testLoadSession(t)
 	testGetHistory(t)
 	testJob(t)
-}
-
-func handleMsg(msg net.Message) net.Message {
-	return server.Handlers[msg.Type](msg)
 }
 
 func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
