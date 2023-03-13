@@ -6,6 +6,7 @@ import (
 
 	"github.com/dbnet-io/dbnet/server"
 	"github.com/dbnet-io/dbnet/store"
+	"github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/g"
 	"github.com/skratchdot/open-golang/open"
 )
@@ -16,11 +17,11 @@ func init() {
 		os.MkdirAll(os.Getenv("DBNET_DIR"), 0755)
 	}
 
-	g.LogError(server.LoadConnections())
 	store.InitDB()
 }
 
 func main() {
+	state.NoRestriction = true // allow all on dbREST
 	go store.Loop()
 	srv := server.NewServer()
 	srv.Start()

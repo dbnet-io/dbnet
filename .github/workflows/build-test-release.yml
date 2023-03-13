@@ -98,9 +98,10 @@ jobs:
         echo "RUNNER_CONTEXT -> $RUNNER_CONTEXT"
       
     - name: Set up GoLang
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v3
       with:
-        go-version: '1.16.2'
+        go-version: '1.19'
+        cache: true
 
     - name: Set up Node 14
       uses: actions/setup-node@v1

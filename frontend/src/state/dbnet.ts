@@ -1,20 +1,23 @@
+import { State } from "@hookstate/core";
 import Dexie from "dexie";
 import _ from "lodash";
+import { createTabResult, getOrCreateParentTabState, getResultState, getTabState } from "../components/TabNames";
 import { apiGet, apiPost, Response } from "../store/api";
 import { Variable } from "../store/state";
-import { MsgType } from "../store/websocket";
 import { ObjectAny } from "../utilities/interfaces";
-import { data_req_to_records, jsonClone, new_ts_id, Sleep, toastError } from "../utilities/methods";
+import { jsonClone, new_ts_id, showNotification, Sleep, toastError, toastInfo } from "../utilities/methods";
 import { Connection } from "./connection";
 import { Editor } from "./editor";
 import { EditorMap, EditorTabMap } from "./monaco/monaco";
-import { Query, QueryRequest } from "./query";
+import { Query, QueryRequest, Result } from "./query";
+import { makeRoute, Routes } from "./routes";
 import { Database, Schema, Table } from "./schema";
 import { DbNetState } from "./state";
+import { Tab } from "./tab";
 import { Workspace } from "./workspace";
 
 export type DbNetOptions = {
-
+  connectionName?: string;
   // uri: string;
   // editor: editor.IStandaloneCodeEditor;
   onConnected?: () => unknown;
@@ -25,7 +28,7 @@ export type DbNetOptions = {
   reconnectInterval?: number;
 };
 
-export type TriggerType = 'refreshSchemaPanel' | 'refreshJobPanel' | 'refreshTable' | 'onSelectConnection'
+export type TriggerType = 'refreshSchemaPanel' | 'refreshJobPanel' | 'refreshTable' | 'onSelectConnection' | 'onStateLoaded'
 
 // export type TriggerMapRecord = Record<TriggerType, Record<string, Variable<number>>>
 export type TriggerMapRecord = Record<TriggerType, Record<string, () => void>>
@@ -35,7 +38,6 @@ export class DbNet {
   db: Dexie
   workspace: Workspace
   selectedConnection: string
-  connections: Connection[]
   editor: Editor
   triggerMap: TriggerMapRecord
   state: DbNetState
@@ -46,8 +48,7 @@ export class DbNet {
     this.db = getDexieDb()
     this.workspace = new Workspace()
     this.editor = new Editor()
-    this.connections = []
-    this.selectedConnection = ''
+    this.selectedConnection = options.connectionName?.replace('/', '') || ''
     this.triggerMap = {} as TriggerMapRecord
     this.state = new DbNetState()
     this.editorMap = {}
@@ -60,17 +61,43 @@ export class DbNet {
     await this.loadConnections() // get all connections or create TODO:
     await this.loadHistoryQueries()
     await this.loadHistoryJobs()
-
   }
 
   selectConnection(name: string) {
     if(!name || name === 'null') return
-    if (!name || !this.connections.map(c => c.name).includes(name)) {
+    name = name.toLowerCase()
+    if (!name || !this.connections.map(c => c.name.toLowerCase()).includes(name.toLowerCase())) {
       return toastError(`Connection ${name} not found`)
     }
+    if(this.selectedConnection === name) return
     this.selectedConnection = name
+    window.history.replaceState(null, name, '/' + name);
     localStorage.setItem("_connection_name", name)
     this.trigger('onSelectConnection')
+  }
+
+  selectTab(id: string) {
+    if(!id) {
+      let tab = getOrCreateParentTabState(this.selectedConnection, this.currentConnection.database)
+      id = tab.id.get()
+    }
+
+    this.state.queryPanel.selectedTabId.set(id)
+    this.state.workspace.selectedConnectionTab.set(
+      m => {
+        if(!m) m = {}
+        m[this.selectedConnection.toLowerCase()] = id
+        return m
+      }
+    )
+  }
+
+  getCurrConnectionsTabs() {
+    return this.state
+              .queryPanel
+              .tabs
+              .get()
+              .filter(t => t.connection?.toLowerCase() === this.selectedConnection.toLowerCase())
   }
 
   trigger(type: TriggerType) {
@@ -127,13 +154,17 @@ export class DbNet {
     await this.workspace.save()
   }
 
+  get connections() {
+    return this.workspace.connections
+  }
+
   async loadConnections() {
     let resp: Response = {} as Response
     let tries = 0
     while (true) {
       try {
         tries++
-        resp = await apiGet(MsgType.GetConnections, {})
+        resp = await apiGet(Routes.getConnections, {})
         break
       } catch (error: any) {
         resp.error = error
@@ -143,10 +174,13 @@ export class DbNet {
     }
 
     if (resp.error) return toastError(resp.error)
-    let conns: Connection[] = _.sortBy(Object.values(resp.data.conns), (c: any) => c.name)
-    this.connections = conns.map(c => new Connection(c))
-    this.workspace.connections = this.connections.map(c => c.name)
-     // set current conn
+    let records = await resp.records()
+    
+    let connections = _.sortBy(records, (c: any) => c.name).map(c => new Connection(c))
+    this.workspace.connections = connections
+    this.state.workspace.connections.set(connections)
+    
+    // set current conn
     if(!this.selectedConnection) this.selectConnection(`${localStorage.getItem("_connection_name")}`)
   }
 
@@ -163,14 +197,15 @@ export class DbNet {
 
   async getDatabases(connName: string) {
     try {
+      if(!connName) return
       let connection = this.currentConnection
-
-      let resp = await apiGet(MsgType.GetDatabases, { conn: connName })
+      let route = makeRoute(Routes.getConnectionDatabases, { connection: connName })
+      let resp = await apiGet(route)
       if (resp.error) throw new Error(resp.error)
-      let rows = data_req_to_records(resp.data)
-      if (rows.length > 0) {
+      let records = await resp.records()
+      if (records.length > 0) {
         let databases = jsonClone<Record<string, Database>>(connection.databases)
-        rows.forEach((r) => {
+        records.forEach((r) => {
           let name = (r.name as string)
           if (!(name.toLowerCase() in databases)) {
             databases[name.toLowerCase()] = new Database({ name: name.toUpperCase() })
@@ -179,7 +214,7 @@ export class DbNet {
         connection.databases = databases
         this.getConnection(connName).databases = databases
         if (connection.database === '') {
-          connection.database = rows[0].name.toUpperCase()
+          connection.database = records[0].name.toUpperCase()
         }
         this.trigger('refreshSchemaPanel')
       } else {
@@ -215,20 +250,19 @@ export class DbNet {
   async getSchemata(connName: string, database: string, refresh = false) {
 
     let data = {
-      conn: connName,
+      connection: connName,
       database: database,
       procedure: refresh ? 'refresh' : null
     }
 
     try {
-      let resp = await apiGet(MsgType.GetSchemata, data)
+      let resp = await apiGet(makeRoute(Routes.getConnectionColumns, data), { database })
       if (resp.error) return resp.error as string
-      let rows = data_req_to_records(resp.data)
+      let records = await resp.records()
 
       let schemas: { [key: string]: Schema; } = {}
       let tables: { [key: string]: Table; } = {}
-      for (let row of rows) {
-        row.schema_name = row.schema_name.toLowerCase()
+      for (let row of records) {
         if (!(row.schema_name in schemas)) {
           schemas[row.schema_name] = new Schema({ name: row.schema_name, database: database, tables: [] })
         }
@@ -239,7 +273,7 @@ export class DbNet {
             database: database.toUpperCase(),
             schema: row.schema_name,
             name: row.table_name,
-            isView: row.table_is_view,
+            isView: row.table_type === 'view',
             columns: [],
           })
         }
@@ -287,45 +321,136 @@ export class DbNet {
     if (index > -1) {
       return this.connections[index]
     } else if (connName !== '') {
-      console.log(`did not find connection ${connName}`)
+      // console.log(`did not find connection ${connName}`)
     }
     return new Connection()
   }
 
   async submitQuery(req: QueryRequest) { 
-    let data1 = {
+    let tab: State<Tab> | undefined
+    let result: State<Result> | undefined
+
+    if(req.tab_id) tab = getTabState(req.tab_id)
+    if(req.result_id) result = getResultState(req.result_id)
+
+    if(result)
+      // set limit to fetch, and save in cache
+      req.limit = result.limit.get() > 5000 ? 5000 : result.limit.get() < 500 && result.limit.get() > -1 ? 500 : req.limit
+
+    if (req.text.trim().endsWith(';'))
+      req.text = req.text.trim().slice(0, -1).trim()
+    
+    let query = new Query({
       id: new_ts_id('query.'),
-      conn: req.conn,
+      connection: req.connection,
       database: req.database,
       text: req.text.trim(),
       time: (new Date()).getTime(),
-      tab: req.tab,
-      limit: req.limit,
-      wait: true,
-      proj_dir: window.dbnet.state.projectPanel.rootPath.get(),
-    }
-    
-    let query = new Query(data1)
+      tab_id: req.tab_id,
+      limit: req.limit || 500,
+    })
 
+    if (!req.headless && req.tab_id && !req.result_id) {
+      // always create new result
+      let tab = getTabState(req.tab_id)
+      let resultTab = createTabResult(tab.get())
+      tab.selectedResult.set(resultTab.id)
+      req.result_id = resultTab.id
+      result = getResultState(resultTab.id)
+    } else if (!req.headless && req.result_id) {
+      // reset result
+      getResultState(req.result_id).set(
+        r => {
+          r.query.time = new Date().getTime()
+          r.lastTableSelection = [0, 0, 0, 0]
+          r.query.rows = []
+          r.query.headers = []
+          r.query.text = query.text
+          r.query.err = ''
+          r.query.duration = 0
+          r.filter = ''
+          return r
+        }
+      )
+    }
+
+    // cleanup
+    cleanupDexieDb()
+    
     try {
       let done = false
-      let headers = {}
+
+      let headers : ObjectAny = {"Accept": 'application/json'}
+
+      if(req.export === 'csv') headers["Accept"] = 'text/csv'
+      if(req.export === 'jsonlines') headers["Accept"] = 'application/jsonlines'
+      
+      tab?.loading.set(true)
+      result?.loading.set(true)
+
       while (!done) {
-        let resp = await apiPost(MsgType.SubmitSQL, data1, headers)
-        query = new Query(resp.data)
+        let resp = await apiPost(makeRoute(Routes.postConnectionSQL, query), query.text, headers)
         if (resp.error) throw new Error(resp.error)
-        if (query.err) throw new Error(query.err)
-        if (resp.status === 202) {
-          headers = { "DbNet-Continue": "true" }
+        if (resp.response.status === 202) {
+          headers["X-Request-Continue"] = "true"
           continue
         }
+
+        query.err = resp.data?.err
+        query.headers = await resp.headers().map(h => h.name)
+        if(req.export) {
+          query.headers = ['message']
+          query.rows = [['File Generated.']]
+          resp.download(`${req.connection}-${req.database}`.toLowerCase(), req.export)
+        } else {
+          query.rows = await resp.rows()
+        }
+
         done = true
       }
+
+      tab?.set(
+        t => {
+          t.rowView.rows = query.getRowData(0)
+          if(result) t.selectedResult = result.id.get()
+          t.editor.highlight = [0, 0, 0, 0]
+          t.loading = false
+          return t
+        }
+      )
+
+      result?.set(
+        r => {
+          r.query = query
+          if(tab) r.parent = tab.id.get()
+          r.loading = false
+          return r
+        }
+      )
+
+      // cache results
+      getDexieDb().table('queries').put(jsonClone(query))
     } catch (error) {
       toastError(error)
       query.err = `${error}`
     }
 
+    window.dbnet.state.save()
+
+    // to refresh
+    const queryPanel = window.dbnet.state.queryPanel.get()
+    if (queryPanel.currTab().id === tab?.id.get()) {
+      window.dbnet.trigger('refreshTable')
+    } else {
+      // notify if out of focus
+      if (result?.query.err.get()) toastError(`Query "${tab?.name.get()}" failed`)
+      else toastInfo(`Query "${tab?.name.get()}" completed`)
+    }
+
+    if (!document.hasFocus()) {
+      showNotification(`Query "${tab?.connection.get()}" ${result?.query.err.get() ? 'errored' : 'completed'}!`)
+    }
+    
     return query
   }
 }

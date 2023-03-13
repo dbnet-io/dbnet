@@ -22,6 +22,7 @@ export const formatSql = (sql: string) => {
 const defaultOptions : monaco.editor.IStandaloneEditorConstructionOptions = {
   language: 'sql',
   fontSize: 11,
+  tabSize: 2,
   selectOnLineNumbers: false,
   minimap: {
 		enabled: false

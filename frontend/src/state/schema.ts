@@ -144,9 +144,10 @@ export class Table {
   updateColumnStats = async (columns: Column[] = []) => {
     let sql = this.columnStats(columns) || ''
     let req : QueryRequest = {
-      conn: this.connection,
+      connection: this.connection,
       database: this.database,
       text: sql,
+      headless: true,
     }
     let query = await window.dbnet.submitQuery(req)
     let records = data_req_to_records(query, true)

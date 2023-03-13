@@ -2,7 +2,7 @@ import * as React from "react";
 import { none, State } from "@hookstate/core";
 import { useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
-import { createTabChild, getTabState } from "./TabNames";
+import { createTabResult, getResultState, getTabState } from "./TabNames";
 import { ContextMenu } from "primereact/contextmenu";
 import { jsonClone } from "../utilities/methods";
 import { Tab } from "../state/tab";
@@ -12,40 +12,49 @@ const queryPanel = () => window.dbnet.state.queryPanel
 
 
 // getChildTabs returns the child tabs of a tab
-const getChildTabs = (tab: Tab) => {
-  return queryPanel().tabs.get().filter(t => t.parent === tab.id && !t.hidden)
+const getResultTabs = (tab: Tab) => {
+  return queryPanel().results.get().filter(t => t.parent === tab.id)
 }
 
 export function SubTabs(props: { tab: State<Tab>; }) {
-  const childTab = useHS(getTabState(props.tab.selectedChild.get()))
+  const resultTab = useHS(getResultState(props.tab.selectedResult.get()))
 
   ///////////////////////////  HOOKS  ///////////////////////////
-  const activeIndex = useHS(getChildTabs(props.tab?.get()).map(t => t.id).indexOf(childTab.id?.get()))
+  const activeIndex = useHS(getResultTabs(props.tab?.get()).map(r => r.id).indexOf(resultTab.id?.get()))
   const cm = React.useRef<ContextMenu>(null);
-  const contextTabId = useHS('')
+  const contextResultId = useHS('')
 
   ///////////////////////////  EFFECTS  ///////////////////////////
+
+  React.useEffect(() => {
+    activeIndex.set(
+      getResultTabs(props.tab?.get())
+        .map(r => r.id)
+        .indexOf(resultTab.id?.get())
+    )
+  }, [props.tab.selectedResult.get()]) // eslint-disable-line
+
   ///////////////////////////  FUNCTIONS  ///////////////////////////
-  const tabOptions = () => getChildTabs(props.tab.get())
+  const resultOptions = () => getResultTabs(props.tab.get())
 
   ///////////////////////////  JSX  ///////////////////////////
 
   const headerTemplate = (options: TabPanelHeaderTemplateOptions) => {
-    let childTabId = tabOptions()[options.index].id
-    let childTab = getTabState(childTabId)
-    // let parentTab = getTabState(childTab.parent.get() as string)
-    // let index = queryPanel.get().getTabIndexByID(childTabId)
+    let resultTabId = resultOptions()[options.index].id
+    let resultTab = getResultState(resultTabId)
+    // let parentTab = getTabState(resultTab.parent.get() as string)
+    // let index = queryPanel.get().getTabIndexByID(resultTabId)
 
     // we want the double click to pin / unpin
     return <>
       <span
         onDoubleClick={() => {
-          childTab.pinned.set(v => !v) 
-          props.tab.selectedChild.set(childTabId)
+          resultTab.pinned.set(v => !v) 
+          props.tab.selectedResult.set(resultTabId)
         }}
         onContextMenu={(e) => {
           e.preventDefault()
-          contextTabId.set(jsonClone(childTabId))
+          contextResultId.set(jsonClone(resultTabId))
           cm.current?.show(e as any)
         }}
       >
@@ -57,43 +66,42 @@ export function SubTabs(props: { tab: State<Tab>; }) {
 
 
   const menu = () : MenuItem[] => {
-    let childTab = getTabState(jsonClone(contextTabId.get()))
+    let resultTab = getResultState(jsonClone(contextResultId.get()))
 
     let items : MenuItem[] = [
       {
-        label: childTab.get()?.pinned ? 'Unpin' : 'Pin',
+        label: resultTab.get()?.pinned ? 'Unpin' : 'Pin',
         icon: 'pi pi-chevron-circle-down',
         command: () => {
-          childTab.pinned.set(v => !v) 
-          props.tab.selectedChild.set(childTab.get().id)
+          resultTab.pinned.set(v => !v) 
+          props.tab.selectedResult.set(resultTab.get().id)
         }
       },
       {
         label: 'Close',
         icon: 'pi pi-times',
         command: () => {
-          let parentTab = getTabState(childTab.get()?.parent as string)
-          let selectTabID = childTab.get().id
-          childTab.set(t => {
+          let parentTab = getTabState(resultTab.get()?.parent as string)
+          let selectResultID = resultTab.get().id
+          resultTab.set(t => {
             t.pinned = false
             t.loading = false
             return t
           })
 
-          if(tabOptions().length === 1) {
-            selectTabID = createTabChild(parentTab.get()).id
-            props.tab.selectedChild.set(selectTabID)
+          if(resultOptions().length === 1) {
+            selectResultID = createTabResult(parentTab.get()).id
           } else {
-            let oldIndex = queryPanel().get().getTabIndexByID(selectTabID)
-            let index = tabOptions().map(t => t.id).indexOf(selectTabID)
+            let oldIndex = queryPanel().get().getResultIndexByID(selectResultID)
+            let index = resultOptions().map(r => r.id).indexOf(selectResultID)
             let newIndex = index === 0 ? 1 : index - 1
 
             // select other tab
-            selectTabID = tabOptions()[newIndex].id
-            props.tab.selectedChild.set(selectTabID)
+            selectResultID = resultOptions()[newIndex].id
+            props.tab.selectedResult.set(selectResultID)
 
             // delete old child tab
-            queryPanel().tabs[oldIndex].set(none)
+            queryPanel().results[oldIndex].set(none)
           }
         }
       },
@@ -112,14 +120,14 @@ export function SubTabs(props: { tab: State<Tab>; }) {
         className="tabview-custom"
         activeIndex={activeIndex.get()}
         onTabChange={(e) => {
-          let childTabId = tabOptions()[e.index].id
-          props.tab.selectedChild.set(childTabId)
+          let resultTabId = resultOptions()[e.index].id
+          props.tab.selectedResult.set(resultTabId)
           activeIndex.set(e.index)
         }}
         style={{fontSize: '14px'}}
       >
         {
-          tabOptions().map(
+          resultOptions().map(
             t => {
               return <TabPanel 
                 key={t.id}

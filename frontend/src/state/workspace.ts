@@ -1,11 +1,12 @@
 import TreeNode from "primereact/treenode"
 import { ObjectAny } from "../utilities/interfaces"
 import { jsonClone } from "../utilities/methods"
+import { Connection } from "./connection"
 import { getDexieDb } from "./dbnet"
 
 export class Workspace {
   name: string
-  connections: string[]
+  connections: Connection[]
   tabs: string[]
   
   constructor(data: ObjectAny = {}) {

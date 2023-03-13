@@ -3,182 +3,180 @@ import { useHS } from "../store/state";
 import { Button } from "primereact/button";
 import { InputText } from "primereact/inputtext";
 import { State } from "@hookstate/core";
-import { MsgType } from "../store/websocket";
-import { copyToClipboard, get_duration, jsonClone, new_ts_id, setFilter, showNotification, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, get_duration, jsonClone, setFilter, toastError, toastInfo } from "../utilities/methods";
 import { fetchRows } from "./TabTable";
 import { Dropdown } from 'primereact/dropdown';
 import { apiPost } from "../store/api";
-import { createTabChild, getTabState } from "./TabNames";
+import { getResultState, getTabState } from "./TabNames";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { InputTextarea } from 'primereact/inputtextarea';
-import { cleanupDexieDb, getDexieDb } from "../state/dbnet";
 import { Tab } from "../state/tab";
-import { Query } from "../state/query";
+import { QueryRequest, Result } from "../state/query";
 import { getCurrentBlock, getSelectedBlock, TextBlock } from "../state/monaco/monaco";
 import { setDecoration } from "../state/editor";
+import { Routes, makeRoute } from "../state/routes";
+import { InputNumber } from 'primereact/inputnumber';
 
-export const cancelSQL = async (tab: State<Tab>) => {
+export const cancelSQL = async (tab: State<Result>) => {
   let data1 = {
     id: tab.query.id.get(),
-    conn: tab.connection.get(),
-    database: tab.database.get(),
-    tab: tab.id.get(),
-    wait: true,
+    connection: tab.connection.get(),
   }
 
   try {
-    let resp = await apiPost(MsgType.CancelSQL, data1)
+    let resp = await apiPost(makeRoute(Routes.postConnectionCancel, data1))
     if (resp.error) throw new Error(resp.error)
   } catch (error) {
     toastError(error)
   }
 }
 
-export const refreshResult = async (tab: State<Tab>) => {
-  let childTab = getTabState(tab.id.get())
-  let parentTab = getTabState(tab.parent.get() || '')
-  submitSQL(parentTab, childTab.query.text.get(), childTab.get())
+export const refreshResult = async (result: State<Result>) => {
+  let resultTab = getResultState(result.id.get())
+  let parentTab = getTabState(result.parent.get() || '')
+  submitSQL(parentTab, resultTab.query.text.get(), resultTab.get())
 }
 
 
-export const submitSQL = async (tab: State<Tab>, sql?: string, childTab?: Tab, block?: TextBlock) => {
-  if (!sql) sql = tab.editor.text.get() // get current block
-
-  // create child tab
-  // if (!childTab) childTab = createTabChild(tab.get())
-  if (!childTab) {
-    childTab = getTabState(tab.selectedChild.get()).get()
-    if (childTab.pinned) {
-      childTab = createTabChild(tab.get())
-      tab.selectedChild.set(childTab.id)
-    }
-  }
-  // store.queryPanel.selectedTabId.set(tab.id.get())
-  // tab.selectedChild.set(childTab.id)
-
-  // set limit to fetch, and save in cache
-  const limit = childTab.resultLimit > 5000 ? 5000 : childTab.resultLimit < 500 && childTab.resultLimit > -1 ? 500 : childTab.resultLimit
-
-  let data1 = {
-    id: new_ts_id('query.'),
-    conn: tab.connection.get(),
-    database: tab.database.get(),
-    text: sql.trim(),
-    time: (new Date()).getTime(),
-    tab: childTab.id,
-    limit: limit,
-    wait: true,
-    proj_dir: window.dbnet.state.projectPanel.rootPath.get(),
-  }
-
-  if (data1.text.endsWith(';')) {
-    data1.text = data1.text.slice(0, -1).trim()
-  }
-
-  let tab_ = getTabState(data1.tab)
-  let parentTab = getTabState(`${tab_.parent.get()}`)
+export const submitSQL = async (tab: State<Tab>, sql?: string, resultTab?: Result, block?: TextBlock) => {
 
   // mark text
   setDecoration(tab, block)
 
-  tab_.set(
-    t => {
-      t.query.time = new Date().getTime()
-      t.lastTableSelection = [0, 0, 0, 0]
-      t.query.rows = []
-      t.query.headers = []
-      t.query.text = `${sql}`
-      t.query.err = ''
-      t.query.duration = 0
-      t.query.id = data1.id
-      t.loading = true
-      t.filter = ''
-      return t
-    }
-  )
-  parentTab.loading.set(true)
-
-  // cleanup
-  cleanupDexieDb()
-
-  try {
-    let done = false
-    let headers = {}
-    while (!done) {
-      let resp = await apiPost(MsgType.SubmitSQL, data1, headers)
-      if (resp.error) throw new Error(resp.error)
-      if (resp.status === 202) {
-        headers = { "DbNet-Continue": "true" }
-        continue
-      }
-      done = true
-      let query = new Query(resp.data)
-      query.pulled = true
-      query.duration = Math.round(query.duration * 100) / 100
-
-      tab_.set(
-        t => {
-          t.query = query
-          t.rowView.rows = query.getRowData(0)
-          t.loading = false
-          return t
-        }
-      )
-
-      // cache results
-      getDexieDb().table('queries').put(jsonClone(query))
-    }
-  } catch (error) {
-    toastError(error)
-    tab_.query?.err.set(`${error}`)
-  }
-  parentTab.loading.set(false)
-  parentTab.editor.highlight.set([0, 0, 0, 0])
-  window.dbnet.state.save()
-
-
-  // to refresh
-  const queryPanel = window.dbnet.state.queryPanel
-  if (queryPanel.get().currTab().id === parentTab.id.get()) {
-    window.dbnet.trigger('refreshTable')
-  } else {
-    // notify if out of focus
-    if (tab_.query.err.get()) toastError(`Query "${parentTab.name.get()}" failed`)
-    else toastInfo(`Query "${parentTab.name.get()}" completed`)
-  }
-
-  if (!document.hasFocus()) {
-    showNotification(`Query "${parentTab.name.get()}" ${tab_.query.err.get() ? 'errored' : 'completed'}!`)
-  }
+  await window.dbnet.submitQuery({
+    connection: tab.connection.get() || '',
+    database: tab.database.get() || '',
+    text: sql?.trim() || tab.editor.text.get(),
+    tab_id: tab.id.get(),
+    result_id: resultTab?.id,
+  })
 }
 
-export function TabToolbar(props: { tab: State<Tab> }) {
-  const tab = props.tab;
-  const filter = useHS(tab.filter);
-  const resultLimit = useHS(tab.resultLimit);
+export function TabToolbar(props: { result: State<Result> }) {
+  const result = props.result;
+  const tab = getTabState(result.parent.get())
+  const filter = useHS(result.filter);
+  const resultLimit = useHS(result.limit);
   const cancelling = useHS(false);
-  const localFilter = useHS(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
+  const localFilter = useHS(result.filter.get() ? jsonClone<string>(result.filter.get()) : '')
   const sqlOp = React.useRef<any>(null);
+  const exportOp = React.useRef<any>(null);
+  const exportLimit = useHS(100000);
 
   React.useEffect(() => {
-    localFilter.set(tab.filter.get() ? jsonClone<string>(tab.filter.get()) : '')
-  }, [tab.id.get()]) // eslint-disable-line
+    localFilter.set(result.filter.get() ? jsonClone<string>(result.filter.get()) : '')
+  }, [result.id.get()]) // eslint-disable-line
 
   const overlaySubmit = (e: any) => { 
-    let sql = tab.query.text.get()
-    let parentTab = getTabState(tab.parent.get() || '')
+    let sql = result.query.text.get()
+    let parentTab = getTabState(result.parent.get() || '')
     if (sql.trim() !== '') {
       submitSQL(parentTab, sql)
       sqlOp.current.hide(e)
     }
   }
 
+  const SqlOverlayPanel = <OverlayPanel 
+      ref={sqlOp}
+      showCloseIcon
+      id="sql-overlay-panel"
+      style={{ width: '550px' }}
+      className="overlaypanel-demo"
+      >
+    <div
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') overlaySubmit(e)
+      }}>
+      <InputTextarea
+        style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px' }}
+        rows={20}
+        value={result.query.text.get()}
+        onChange={(e) => result.query.text.set(e.target.value)}
+      />
+      <span
+        style={{
+          position: 'absolute',
+          marginLeft: '-50px',
+        }}
+      >
+        <Button
+          icon="pi pi-copy"
+          className="p-button-rounded p-button-text p-button-info"
+          onClick={() => copyToClipboard(result.query.text.get())}
+        />
+        <Button
+          icon="pi pi-play"
+          tooltip="Execute"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-rounded p-button-text p-button-info"
+          onClick={(e) => { overlaySubmit(e) }} />
+      </span>
+    </div>
+  </OverlayPanel>
+
+  const ExportOverlayPanel = <OverlayPanel 
+      ref={exportOp}
+      showCloseIcon
+      id="export-overlay-panel"
+      // style={{ width: '150px' }}
+    >
+    <div
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') overlaySubmit(e)
+        if (e.key === 'Escape') exportOp.current.hide(e)
+      }}>
+        <p><strong>File Rows Limit:</strong></p>
+        <InputNumber
+          id='export-limit-input'
+          value={exportLimit.get()}
+          onValueChange={(e) => {
+            // validate
+            let val = e.value || 0
+            if(val < 1) {
+              return toastError(`Invalid input`)
+            }
+            exportLimit.set(val)
+          }}
+        />
+
+        <Button
+          label="OK"
+          className="ml-2"
+          onClick={async (e) => {
+            let text = result.query.text.get().trim()
+            let limit = exportLimit.get()
+
+             // replace limit at end
+            text = text.replace(/limit +\d+$/ig, `limit ${limit}`)
+
+             // replace rownum at end (Oracle)
+            text = text.replace(/rownum +<= +\d+/ig, `rownum <= ${limit}`)
+
+             // replace top after select (SQL Server)
+            text = text.replace(/select +top +\d+/ig, `select top ${limit}`)
+
+            let req : QueryRequest = {
+              connection: result.connection.get() || '',
+              database: result.database.get() || '',
+              tab_id: tab.id.get(),
+              result_id: result.id.get(),
+              text: text,
+              export: 'csv',
+              limit: limit,
+            }
+            
+            window.dbnet.submitQuery(req)
+          }}
+        />
+    </div>
+  </OverlayPanel>
+
   return (
     <div id='query-toolbar' className="p-grid">
       <div className="p-col-12">
         <div className="work-buttons p-inputgroup" style={{ fontFamily: 'monospace' }}>
           {
-            tab.loading.get() ?
+            result.loading.get() ?
               <Button
                 icon="pi pi-times"
                 tooltip="Kill query"
@@ -187,7 +185,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
                 loading={cancelling.get()}
                 onClick={async (e) => {
                   cancelling.set(true)
-                  await cancelSQL(tab)
+                  await cancelSQL(result)
                   cancelling.set(false)
                 }} />
               :
@@ -197,7 +195,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
                 tooltipOptions={{ position: 'top' }}
                 className="p-button-sm p-button-primary"
                 onClick={(e) => {
-                  let parentTab = getTabState(tab.parent.get() || '')
+                  let parentTab = getTabState(result.parent.get() || '')
                   let ed = window.dbnet.editorMap[parentTab.id.get()]
                   if(!ed?.instance) return console.log('no editor')
                   let block = getSelectedBlock(ed.instance) || getCurrentBlock(ed.instance.getModel(), ed.instance.getPosition())
@@ -214,40 +212,10 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             tooltip="Refresh results"
             tooltipOptions={{ position: 'top' }}
             className="p-button-sm p-button-info"
-            onClick={(e) => refreshResult(tab)}
+            onClick={(e) => refreshResult(result)}
           />
-          <OverlayPanel ref={sqlOp} showCloseIcon id="sql-overlay-panel" style={{ width: '550px' }} className="overlaypanel-demo">
-            <div
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') overlaySubmit(e)
-              }}>
-              <InputTextarea
-                style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px' }}
-                rows={20}
-                value={tab.query.text.get()}
-                onChange={(e) => tab.query.text.set(e.target.value)}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  marginLeft: '-50px',
-                }}
-              >
-                <Button
-                  icon="pi pi-copy"
-                  className="p-button-rounded p-button-text p-button-info"
-                  onClick={() => copyToClipboard(tab.query.text.get())}
-                />
-                <Button
-                  icon="pi pi-play"
-                  tooltip="Execute"
-                  tooltipOptions={{ position: 'top' }}
-                  className="p-button-rounded p-button-text p-button-info"
-                  onClick={(e) => { overlaySubmit(e) }} />
-              </span>
-            </div>
-          </OverlayPanel>
 
+          {SqlOverlayPanel}
           <Button
             label="SQL"
             className="p-button-sm p-button-warning"
@@ -319,9 +287,9 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             onClick={() => {
               // console.log(props.hotTable.current?.hotInstance)
               // console.log(props.hotTable.current?.hotInstance.countRows())
-              let startCol = tab.lastTableSelection.get()[1]
-              let endCol = tab.lastTableSelection.get()[3]
-              copyToClipboard(tab.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n'))
+              let startCol = result.lastTableSelection.get()[1]
+              let endCol = result.lastTableSelection.get()[3]
+              copyToClipboard(result.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n'))
             }}
           />
 
@@ -334,8 +302,8 @@ export function TabToolbar(props: { tab: State<Tab> }) {
               let data = []
               const sep = '\t'
 
-              data.push(tab.query.headers.get().join(sep))
-              for (let row of tab.query.rows.get()) {
+              data.push(result.query.headers.get().join(sep))
+              for (let row of result.query.rows.get()) {
                 let newRow = []
                 for (let val of row) {
                   let newVal = val + ''
@@ -351,15 +319,17 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             }
           />
 
+          {ExportOverlayPanel}
           <Button
             icon="pi pi-file-excel"
             className="p-button-sm p-button-outlined p-button-secondary"
             tooltip="Export to CSV or Excel"
             tooltipOptions={{ position: 'top' }}
+            onClick={(e) => exportOp.current.toggle(e)}
           />
 
-          <span className="p-inputgroup-addon">{Math.min(tab.query.rows.length, tab.resultLimit.get() > -1 ? 99999999999 : tab.resultLimit.get())} rows</span>
-          <span className="p-inputgroup-addon">{get_duration(Math.floor(tab.query.duration.get() * 10) / 10).replace('s', 's').replace('m', 'm ')}</span>
+          <span className="p-inputgroup-addon">{Math.min(result.query.rows.length, tab.resultLimit.get() > -1 ? 99999999999 : tab.resultLimit.get())} rows</span>
+          <span className="p-inputgroup-addon">{get_duration(Math.floor(result.query.duration.get() * 10) / 10).replace('s', 's').replace('m', 'm ')}</span>
 
           <Button
             icon="pi pi-angle-double-down"
@@ -367,7 +337,7 @@ export function TabToolbar(props: { tab: State<Tab> }) {
             tooltipOptions={{ position: 'top' }}
             className="p-button-sm p-button-help"
             onClick={(e) => {
-              fetchRows(tab)
+              fetchRows(result)
             }} />
         </div>
       </div>

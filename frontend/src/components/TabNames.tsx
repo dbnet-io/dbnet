@@ -10,8 +10,11 @@ import { InputText } from "primereact/inputtext";
 import { ConnectionChooser } from "./ConnectionChooser";
 import { Tab } from "../state/tab";
 import { MenuItem, MenuItemOptions } from "primereact/menuitem";
+import { withResizeDetector } from "react-resize-detector";
+import { Result } from "../state/query";
 
 const queryPanel = () => window.dbnet.state.queryPanel
+const selectTab = (id: string) => window.dbnet.selectTab(id)
 
 export const createTab = (name: string = '', sql = '', connName: string, dbName: string) => {
   name = newTabName(name)
@@ -25,7 +28,7 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
     let tab = queryPanel().tabs[index]
     tab.hidden.set(false) // if was hidden
     appendSqlToTab(tab.id.get(), sql)
-    queryPanel().selectedTabId.set(tab.id.get());
+    selectTab(tab.id.get());
     return tab
   }
   let newTab = new Tab({
@@ -34,10 +37,10 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
     connection: connName,
     database: dbName,
   });
-  let childTab = createTabChild(newTab)
-  newTab.selectedChild = childTab.id
+  let resultTab = createTabResult(newTab)
+  newTab.selectedResult = resultTab.id
   queryPanel().tabs.merge([newTab])
-  queryPanel().selectedTabId.set(newTab.id);
+  selectTab(newTab.id);
   return queryPanel().tabs[queryPanel().tabs.length - 1]
 }
 
@@ -75,44 +78,60 @@ export const appendSqlToTab = (tabID: string, sql: string) => {
   return tab.editor.get().selectionToBlock(sql)
 }
 
-export const createTabChild = (parent: Tab) => {
-  let activeChildTab = getTabState(parent.selectedChild)
-  let newTab = new Tab({
+export const createTabResult = (parent: Tab) => {
+  let activeResultTab = getResultState(parent.selectedResult)
+  let newResult = new Result({
     parent: parent.id,
-    resultLimit: activeChildTab.get()?.resultLimit || parent.resultLimit,
+    limit: activeResultTab.limit.get() || parent.resultLimit,
     connection: parent.connection,
     database: parent.database,
   });
 
   // add new child tab
-  queryPanel().tabs.merge([newTab])
-  getTabState(parent.id)?.selectedChild?.set(newTab.id)
-  cleanupOtherChildTabs(newTab)
-  return newTab
+  AddResultAndCleanup(newResult)
+  getTabState(parent.id)?.selectedResult?.set(newResult.id)
+  return newResult
 }
 
-export const cleanupOtherChildTabs = (childTab: Tab) => {
+export const AddResultAndCleanup = (result: Result, numResults = 3) => {
   // delete existing non-pinned child tabs
-  let tabs = queryPanel().tabs.get()
-  for (let i = 0; i < tabs.length; i++) {
-    if (tabs[i].parent === childTab.parent &&
-      !tabs[i].loading && !tabs[i].pinned &&
-      tabs[i].id !== childTab.id) {
-      queryPanel().tabs[i].set(none)
-      i--
+  const is_match = (r: Result) => 
+          r && !r.loading && !r.pinned && r !== none &&
+          r.parent === result.parent &&
+          r.id !== result.id
+
+  queryPanel().results.set(
+    results => {
+      results.push(result)
+      
+      if(results.filter(r => is_match(r)).length <= numResults) return results
+
+      for (let i = 0; i < results.length; i++) {
+        if (is_match(results[i])) {
+          results[i] = none
+          if(results.filter(r => is_match(r)).length <= numResults) break
+        }
+      }
+
+      return results.filter(r => r !== none)
     }
-  }
+  )
 }
 
 export const getTabState = (tabID: string) => {
   let index = queryPanel().get().getTabIndexByID(tabID)
+  if(index === -1) return queryPanel().tabs[0]
   return queryPanel().tabs[index]
 }
 
+export const getResultState = (resultID: string) => {
+  let index = queryPanel().get().getResultIndexByID(resultID)
+  if(index === -1) return queryPanel().results[0]
+  return queryPanel().results[index]
+}
+
 export const getCurrentParentTabState = () => {
-  let index = queryPanel().get().currTabIndex()
-  let parent = queryPanel().tabs[index].parent.get()
-  if (parent) index = queryPanel().get().getTabIndexByID(parent)
+  let index = queryPanel().get().currResultIndex()
   return queryPanel().tabs[index]
 }
 
@@ -120,25 +139,24 @@ export const getOrCreateParentTabState = (connection: string, database: string) 
   let currTab = getCurrentParentTabState()
   if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database?.toUpperCase()) return currTab
 
-  let index = queryPanel().tabs.get()
+  let connTabs = window.dbnet.getCurrConnectionsTabs()
+  let index = connTabs
               .map(t => `${t.connection}-${t.database}`.toUpperCase())
               .indexOf(`${connection}-${database}`.toUpperCase())
   if(index === -1) {
     let tab = createTab('', '', connection, database)
-    queryPanel().selectedTabId.set(tab.id.get())
+    selectTab(tab.id.get())
     return tab
   }
-  let parent = queryPanel().tabs[index].parent.get()
-  if (parent) index = queryPanel().get().getTabIndexByID(parent)
-  queryPanel().selectedTabId.set(queryPanel().tabs[index].id.get())
-  return queryPanel().tabs[index]
+  selectTab(connTabs[index].id)
+  return getTabState(connTabs[index].id)
 }
 
 export const newTabName = (name: string) => {
-  let prefix = 'Q'
+  // let prefix = 'Q'
+  let prefix = new Date().toISOString().split('T')[0] + '_'
   // add new tab
-  let tabNames = queryPanel().tabs.get()
-                .filter(t => !t.parent).map(t => t.name)
+  let tabNames = queryPanel().tabs.get().map(t => t.name)
   let i = tabNames.length + 1;
   let newName = name !== ''? name : `${prefix}${i}`
   while (tabNames.includes(newName)) {
@@ -148,45 +166,62 @@ export const newTabName = (name: string) => {
   return newName
 }
 
-interface Props {}
+const getTabIndex = () => {
+  let connTabs = window.dbnet.getCurrConnectionsTabs()
+  let index = connTabs
+                .filter(t => !t.hidden)
+                .map(t => t.id)
+                .indexOf(queryPanel().selectedTabId.get());
+  return index + 2
+}
 
-export const TabNames: React.FC<Props> = (props) => {
+interface Props {
+  width?: number;
+  height?: number;
+}
+
+const TabNamesComponent: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
   const cm = React.useRef<ContextMenu>(null);
-  const tabs = useHS(queryPanel().tabs)
   const selectedTabId = useHS(queryPanel().selectedTabId)
   const contextTabId = useHS('')
   const nameEdit = useHS({ id: '', name: '' })
   const newTab = useHS({show: false, name: ''})
+  const activeIndex = useHS(getTabIndex())
 
   ///////////////////////////  EFFECTS  ///////////////////////////
+
+  React.useEffect(() => {
+    activeIndex.set(getTabIndex())
+  }, [selectedTabId.get()]) // eslint-disable-line
 
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
-  const deleteTab = (tabID: string) => {
+  const hideTab = (tabID: string) => {
     let tabI = -1;
-    for (let j = 0; j < tabs.get().length; j++) {
-      if (tabs[j].id.get() === tabID) { tabI = j; }
+    let connTabs = window.dbnet.getCurrConnectionsTabs()
+    for (let j = 0; j < connTabs.length; j++) {
+      if (connTabs[j].id === tabID) { tabI = j; }
     }
 
     let parentTabI = -1;
-    let parentTabs = tabs.get().filter(v => !v.parent && !v.hidden)
+    let parentTabs = connTabs.filter(v => !v.hidden)
     for (let j = 0; j < parentTabs.length; j++) {
       if (parentTabs[j].id === tabID) { parentTabI = j; }
     }
 
     if (selectedTabId.get() === tabID) {
       if (parentTabI > 0) {
-        selectedTabId.set(parentTabs[parentTabI - 1].id)
+        window.dbnet.selectTab(parentTabs[parentTabI - 1].id)
       } else if (parentTabs.length > 0) {
-        selectedTabId.set(parentTabs[0].id)
+        window.dbnet.selectTab(parentTabs[0].id)
       } else {
         actionTab('add')
       }
     }
-    tabs[tabI].hidden.set(true)
+    getTabState(connTabs[tabI].id).hidden.set(true)
   }
 
   const actionTab = (name: string) => {
@@ -194,17 +229,18 @@ export const TabNames: React.FC<Props> = (props) => {
       return;
     } else if (name === 'del') {
       // delete selected tab
-      deleteTab(jsonClone(selectedTabId.get()))
+      hideTab(jsonClone(selectedTabId.get()))
     } else if (name === 'add') {
       // add new tab
       let newName = newTabName('')
       newTab.name.set(newName)
       newTab.show.set(true)
     } else {
-      let index = queryPanel().get().tabs.map(t => t.name).indexOf(name)
-      let tab = tabs[index].get()
-      if (!tab.selectedChild) createTabChild(tab)
-      selectedTabId.set(tab.id);
+      let connTabs = window.dbnet.getCurrConnectionsTabs()
+      let index = connTabs.map(t => t.name).indexOf(name)
+      let tab = connTabs[index]
+      if (!tab.selectedResult) createTabResult(tab)
+      window.dbnet.selectTab(tab.id);
       window.dbnet.selectConnection(tab.connection || '')
     }
     document.getElementById("table-filter")?.focus();
@@ -224,7 +260,7 @@ export const TabNames: React.FC<Props> = (props) => {
           icon: db.name === contextTab.get()?.database ? 'pi pi-angle-double-right' : '',
           command: () => {
             contextTab.database.set(db.name)
-            selectedTabId.set(jsonClone(selectedTabId.get())) // to refresh
+            window.dbnet.selectTab(jsonClone(selectedTabId.get())) // to refresh
           },
         } as MenuItem
       })
@@ -241,7 +277,7 @@ export const TabNames: React.FC<Props> = (props) => {
       {
         label: 'Close',
         icon: 'pi pi-times',
-        command: () => deleteTab(jsonClone(contextTab.id.get()))
+        command: () => hideTab(jsonClone(contextTab.id.get()))
       },
       {
         separator: true
@@ -264,12 +300,16 @@ export const TabNames: React.FC<Props> = (props) => {
       },
     ]
     // let items : MenuItem[] = []
-
+    
+    let connTabs = window.dbnet.getCurrConnectionsTabs()
     items =  items.concat(
-      tabs.get().filter(t => !t.parent && !t.hidden).map(tab => {
+      connTabs
+        .filter(t => !t.hidden)
+        .map(tab => {
 
         let id = `tab-${tab.name.replaceAll('.', '-')}`
         return {
+          id: id,
           label: tab.name,
           name: tab.name,
           icon: tab.loading ? "pi pi-spin pi-spinner" : '',
@@ -353,24 +393,25 @@ export const TabNames: React.FC<Props> = (props) => {
     return items
   }
 
-  const getTabIndex = () => {
-    let index = tabs.get().filter(t => !t.parent && !t.hidden).map(t => t.id).indexOf(selectedTabId.get());
-    return index + 2
-  }
-
   const setTabIndex = (item: MenuItem) => {
     actionTab(item.name as string)
   }
 
 
   return <>
-    <ContextMenu model={menu()} ref={cm} onHide={() => { }} style={{ fontSize: '11px' }} />
+    <ContextMenu
+      model={menu()}
+      ref={cm}
+      onHide={() => { }}
+      style={{ fontSize: '11px' }}
+    />
     <TabMenu
       id="tab-names-menu"
       model={tabItems()}
-      activeIndex={getTabIndex()}
+      activeIndex={activeIndex.get()}
       onTabChange={(e) => setTabIndex(e.value)}
-    // style={{ width: '100%', position: 'fixed', zIndex: 99, overflowX: "scroll"}}
+      style={{ display: 'table', width: props.width || '100%', overflowX: "scroll"}}
+      // style={{ position: 'fixed', zIndex: 99, overflowX: "scroll"}}
     />
 
     <ConnectionChooser
@@ -385,3 +426,5 @@ export const TabNames: React.FC<Props> = (props) => {
     />
   </>
 }
+
+export const TabNames = withResizeDetector(TabNamesComponent);

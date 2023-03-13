@@ -1,14 +1,12 @@
 import * as React from "react";
 import { Tree } from 'primereact/tree';
-import { copyToClipboard, jsonClone, toastError, zeroPad } from "../utilities/methods";
+import { copyToClipboard, jsonClone, toastError, useIsMounted, zeroPad } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
 import { useHS, useVariable } from "../store/state";
 import { loadMetaTable, makeYAML } from "./MetaTablePanel";
 import { Tooltip } from "primereact/tooltip";
-import { appendSqlToTab, createTabChild, getCurrentParentTabState, getOrCreateParentTabState, getTabState } from "./TabNames";
+import { appendSqlToTab, createTabResult, getCurrentParentTabState, getOrCreateParentTabState, getResultState } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
-import { Menu } from 'primereact/menu';
-import { Button } from "primereact/button";
 import { MenuItem } from "primereact/menuitem";
 import { Connection } from "../state/connection";
 import { Database, Schema, Table } from "../state/schema";
@@ -31,6 +29,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   ///////////////////////////  HOOKS  ///////////////////////////
 
+   // eslint-disable-next-line
   const databasesMenu = React.useRef<any>(null);
 
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -53,10 +52,10 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   React.useEffect(() => {
     if (window.dbnet.connections.length === 0) return
-    let connName = localStorage.getItem("_connection_name")
+    let connName = localStorage.getItem("_connection_name")?.toLowerCase()
     if (!connName) {
       connName = window.dbnet.connections[0].name
-    } else if (!window.dbnet.connections.map(c => c.name).includes(connName)) {
+    } else if (!window.dbnet.connections.map(c => c.name.toLowerCase()).includes(connName)) {
       connName = window.dbnet.connections[0].name
     }
     // let conn = getConnectionState(connName)
@@ -66,6 +65,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const loadConnection = async (name: string, refresh = false) => {
+    if(!name) return
     connection.set(new Connection(window.dbnet.getConnection(name)))
     loading.set(true)
     setTimeout(async () => {
@@ -77,6 +77,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
     }, 10);
   }
 
+  // eslint-disable-next-line
   const getConnectionItems = () => {
 
     return Object.values(window.dbnet.connections).map((c): MenuItem => {
@@ -115,21 +116,22 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   const SchemaTree = () => {
     const leftPanelratio = window.dbnet.state.settingState.leftPaneRatio.get()
-    const childWidth = document.getElementById("left-pane")?.scrollWidth || 370
+    // const childWidth = document.getElementById("left-pane")?.scrollWidth || 370
     const childHeight1 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelratio[0] / 100
     const height = childHeight1? childHeight1 - 139 : ((document.body.scrollHeight / 2) - 60)
     const expandedKeys = useHS(schemaPanel.expandedNodes)
     const selectedKeys = useHS(schemaPanel.selectedNodes);
     const [selectedNodeKey, setSelectedNodeKey] = React.useState<any>('');
     const lastClick = useHS<{ ts: number, key: any }>({ ts: 0, key: '' });
+    const isMounted = useIsMounted()
 
     const nodeTemplate = (node: TreeNode) => {
       let label = <></>
       let database_name = ''
       let schema_name = ''
       let isView = false
-      let maxChars = childWidth / 10
-      node.label = (node.label?.length || 0) < maxChars ? node.label : (node.label?.slice(0,40) || '') + '...'
+      let maxChars = 25
+      node.label = (node.label?.length || 0) < maxChars ? node.label : (node.label?.slice(0,maxChars) || '') + '...'
       if (node.data.type === 'table') {
         label = <span><i className="pi pi-table" style={{fontSize: '12px', paddingLeft: '5px', paddingRight: '5px'}}/> {node.label} </span>
         let table = node.data.data
@@ -367,13 +369,13 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             }
             rows = _.sortBy(rows, (r) => { return [r[0], r[1], r[2], zeroPad(r[3], 3)] })
             
-            let childTab = createTabChild(getCurrentParentTabState().get())
+            let resultTab = createTabResult(getCurrentParentTabState().get())
             let query = new Query({
-              connection: childTab.connection,
-              database: childTab.database,
+              connection: resultTab.connection,
+              database: resultTab.database,
               headers, rows, pulled: true
             })
-            getTabState(childTab.id).query.set(query)
+            getResultState(resultTab.id).query.set(query)
           }
         },
         {
@@ -436,6 +438,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             setTimeout(() => {
               let keys = Object.keys(selectedKeys.get())
               if (keys.length > 1) return // don't load if selecting multi
+              if(!isMounted.current) return
               if(lastClick.ts.get() > 300) loadMetaTable(table)
               lastClick.set({ ts: 0, key: '' })
             }, 320);
@@ -479,7 +482,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
           />
         </a>
 
-        <span
+        {/* <span
           id="schema-databases"
           style={{
             position: 'absolute',
@@ -496,7 +499,7 @@ export const SchemaPanel: React.FC<Props> = (props) => {
             tooltip="Connections"
             aria-haspopup
           />
-        </span>
+        </span> */}
       </h4>
     </div>
   }

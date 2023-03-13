@@ -12,9 +12,10 @@ import (
 )
 
 var (
-	// Db is the maing databse connection
-	Db  *gorm.DB
-	dbx *sqlx.DB
+	// Db is the main databse connection
+	Db   *gorm.DB
+	Dbx  *sqlx.DB
+	Conn database.Connection
 
 	// DropAll signifies to drop all tables and recreate them
 	DropAll = false
@@ -25,10 +26,10 @@ func InitDB() {
 	var err error
 
 	dbURL := g.F("sqlite://%s/.storage.db?_journal=WAL&_timeout=5000", os.Getenv("DBNET_DIR"))
-	conn, err := database.NewConn(dbURL)
+	Conn, err = database.NewConn(dbURL)
 	g.LogFatal(err, "Could not initialize sqlite connection: %s", dbURL)
 
-	Db, err = conn.GetGormConn(&gorm.Config{})
+	Db, err = Conn.GetGormConn(&gorm.Config{})
 	g.LogFatal(err, "Could not connect to sqlite database: %s", dbURL)
 
 	allTables := []interface{}{

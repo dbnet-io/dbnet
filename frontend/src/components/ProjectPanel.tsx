@@ -7,7 +7,6 @@ import { Tree } from "primereact/tree";
 import * as React from "react";
 import { apiGet, apiPost } from "../store/api";
 import { useHS } from "../store/state";
-import { MsgType } from "../store/websocket";
 import { jsonClone, toastError } from "../utilities/methods";
 import { createTab } from "./TabNames";
 import yaml from 'yaml'
@@ -16,6 +15,7 @@ import { ListBox } from "primereact/listbox";
 import { InputText } from "primereact/inputtext";
 import { FileItem } from "../state/workspace";
 import TreeNode from "primereact/treenode";
+import { Routes } from "../state/routes";
 
 interface Props {}
 
@@ -51,11 +51,11 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       overwrite,
       file,
     }
-    return apiPost(MsgType.FileOperation, data)
+    return apiPost(Routes.fileOperation, data)
   }
 
   const getHomeDir = async () => {
-    let resp = await apiGet(MsgType.GetSettings)
+    let resp = await apiGet(Routes.getSettings)
     if (resp.error) throw new Error(resp.error)
     return resp.data.homeDir as string
   }

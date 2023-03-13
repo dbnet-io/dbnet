@@ -2,7 +2,6 @@ import * as React from "react";
 import { ListBox } from 'primereact/listbox';
 import { useHS, useVariable } from "../store/state";
 import { apiGet } from "../store/api";
-import { MsgType } from "../store/websocket";
 import { copyToClipboard, get_duration, new_ts_id, relative_duration, toastError } from "../utilities/methods";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
@@ -12,6 +11,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { submitSQL } from "./TabToolbar";
 import { appendSqlToTab, getCurrentParentTabState, getTabState } from "./TabNames";
 import { Query, QueryStatus } from "../state/query";
+import { Routes } from "../state/routes";
 
 interface Props {}
 
@@ -38,7 +38,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
       procedure: "get_latest",
     }
     try {
-      let resp = await apiGet(MsgType.GetHistory, data1)
+      let resp = await apiGet(Routes.getHistory, data1)
       if (resp.error) throw new Error(resp.error)
       options.set(resp.data.history.map((v: any) => new Query(v)))
     } catch (error) {
@@ -54,7 +54,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
       name: filter,
     }
     try {
-      let resp = await apiGet(MsgType.GetHistory, data1)
+      let resp = await apiGet(Routes.getHistory, data1)
       if (resp.error) throw new Error(resp.error)
       options.set(resp.data.history.map((v: any) => new Query(v)))
     } catch (error) {
@@ -105,7 +105,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           onDoubleClick={(e) => { }}
         >
           {/* {formatTime(query.time)} | {shorten(query.text, 50)} */}
-          {query.conn} | {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
+          {query.connection} | {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
           <span
             style={{
               paddingLeft: '10px',

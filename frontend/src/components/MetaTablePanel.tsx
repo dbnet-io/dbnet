@@ -1,13 +1,12 @@
 import { Button } from "primereact/button";
-import { Column } from "primereact/column";
+import { Column, ColumnBodyOptions } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { InputText } from "primereact/inputtext";
 import { OverlayPanel } from 'primereact/overlaypanel';
 import * as React from "react";
 import { useHS, useVariable } from "../store/state";
 import { State, useState, none } from "@hookstate/core";
-import { MsgType } from "../store/websocket";
-import { copyToClipboard, data_req_to_records, jsonClone, toastError } from "../utilities/methods";
+import { copyToClipboard, jsonClone, toastError } from "../utilities/methods";
 import { ObjectAny } from "../utilities/interfaces";
 import { appendSqlToTab, getOrCreateParentTabState } from "./TabNames";
 import { submitSQL } from "./TabToolbar";
@@ -17,6 +16,7 @@ import { Dropdown } from "primereact/dropdown";
 import { Tooltip } from "primereact/tooltip";
 import { Table, Column as Column2 } from "../state/schema";
 import { formatSql } from "./TabEditor";
+import { makeRoute, Routes } from "../state/routes";
 
 export const makeYAML = (data: ObjectAny) => {
   return '/*--\n' + YAML.stringify(data).trim() + '\n--*/'
@@ -34,26 +34,27 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
   objectPanel.show.set(true)
   try {
     let data1 = {
-      conn: table.connection,
+      connection: table.connection,
       database: table.database,
       schema: table.schema,
       table: table.name,
       procedure: refresh ? 'refresh' : null,
     }
     objectPanel.loading.set(true);
-    let resp = await apiGet(MsgType.GetColumns, data1)
+    let resp = await apiGet(makeRoute(Routes.getTableColumns, data1))
     if (resp.error) throw new Error(resp.error)
+    let records = await resp.records()
     objectPanel.table.set(
       o => {
-        o.columns = data_req_to_records(resp.data).map((r, i) => Object.assign(r, {
+        o.columns = records.map((r, i) => Object.assign(r, {
           id: i + 1,
           name: r?.column_name,
-          type: r?.data_type.toLowerCase(),
+          type: r?.column_type,
         }))
         o.name = table.name
         o.schema = table.schema
         o.database = jsonClone(data1.database)
-        o.connection = jsonClone(data1.conn)
+        o.connection = jsonClone(data1.connection)
         return o
       }
     )
@@ -424,6 +425,18 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   }
 
 
+  const nameBody = (column: Column2, options: ColumnBodyOptions) => {
+    let id = `meta-col-id-${column.name}`
+    return <>
+      {
+        column.name.length > 30 ?
+        <Tooltip target={`#${id}`} position='top' style={{fontSize: '10px'}}>{column.name}</Tooltip>
+        : null
+      }
+      <span id={id}>{column.name}</span>
+    </>
+  }
+
   return (
     <div id='object-panel' className="p-grid p-fluid" style={{ textAlign: 'center' }}>
       <div className="p-col-12 p-md-12" style={{ fontSize: '13px', fontFamily: 'monospace', paddingBottom: '0px' }}>
@@ -693,8 +706,8 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         >
           <Column selectionMode="multiple" headerStyle={{ maxWidth: '7.4em', fontSize: '0.5em' }} bodyStyle={{ maxWidth: '7.4em', fontSize: '0.5em' }}></Column>
           <Column field="id" header="#" headerStyle={{ maxWidth: '3em', textAlign: 'center' }} bodyStyle={{ maxWidth: '3em', textAlign: "center" }} />
-          <Column field="name" header="Name" />
-          <Column field="data_type" header="Type" />
+          <Column field="name" header="Name" headerStyle={{ overflowX: 'hidden', maxWidth: '175px' }} bodyStyle={{ overflowX: 'hidden', maxWidth: '175px' }} className="column-wrap" body={nameBody} />
+          <Column field="type" header="Type" headerStyle={{ overflowX: 'hidden', maxWidth: '135px' }} bodyStyle={{ overflowX: 'hidden', maxWidth: '135px' }} className="column-wrap" />
           {/* <Column field="length" header="Length"/> */}
         </DataTable>
       </div>

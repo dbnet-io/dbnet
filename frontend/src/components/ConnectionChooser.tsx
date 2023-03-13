@@ -56,13 +56,14 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
     <Dialog
       header="Choose a connection" visible={props.show.get()}
       footer={footer()} 
+      style={{width: '20rem', height: props.selectDb && connSelected.get() ? '35rem' : '25rem'}} 
       onHide={() => props.show.set(false)}
     >
       <ListBox 
         value={connSelected.get()}
         options={window.dbnet.connections.map(c => c.name)} 
         onChange={(e) => connSelected.set(e.value)} 
-        listStyle={{fontFamily:'monospace'}}
+        listStyle={{fontFamily:'monospace', height: '15rem'}}
         itemTemplate={itemTemplate}
         style={{width: '15rem'}}
       />
@@ -78,7 +79,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
                       ).map(d => d.name)
                     )} 
           onChange={(e) => dbSelected.set(e.value)} 
-          listStyle={{fontFamily:'monospace'}}
+          listStyle={{fontFamily:'monospace', height: '10rem'}}
           itemTemplate={itemTemplate}
           style={{width: '15rem'}} 
         />

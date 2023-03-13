@@ -6,9 +6,9 @@ import { useHS, useVariable } from "../store/state";
 import { Tooltip } from 'primereact/tooltip';
 import { AutoComplete } from 'primereact/autocomplete';
 import { loadMetaTable } from "./MetaTablePanel";
-import { TauriGetCwd } from "../utilities/tauri";
 import { Connection } from "../state/connection";
 import { Table } from "../state/schema";
+import { Link } from "react-router-dom";
 
 
 
@@ -20,7 +20,8 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   const tableKeys = React.useRef<Record<string, Table>>({})
   const onSelectConnection = useVariable(0)
   const jobPanel = window.dbnet.state.jobPanel
-  const metaPanel = window.dbnet.state.metaPanel
+  // const metaPanel = window.dbnet.state.metaPanel
+  const connections = useHS(window.dbnet.state.workspace.connections)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -35,24 +36,49 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
   const makeItems = () => {
-    const loadConn = (conn: Connection) => {
-      window.dbnet.state.load().then(async () => {
-        await window.dbnet.getDatabases(conn.name)
-        await window.dbnet.getSchemata(conn.name, conn.database)
-      })
+    const loadConn = async (conn: Connection) => {
+      window.dbnet.state.transient.showLoadSpinner.set(true)
+
+      await window.dbnet.state.load()
+      await window.dbnet.loadConnections()
+
+      await window.dbnet.getDatabases(conn.name)
+      await window.dbnet.getSchemata(conn.name, conn.database)
       window.dbnet.selectConnection(conn.name)
+
+      let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[conn.name.toLowerCase()]
+      window.dbnet.selectTab(lastTabID)
+      
+      window.dbnet.state.transient.showLoadSpinner.set(false)
     }
 
-    let connItems: MenuItem[] = window.dbnet.connections.map((c): MenuItem => {
+    let connItems: MenuItem[] = connections.get().map((c): MenuItem => {
       return {
         label: c.name,
         command: () => { loadConn(c) },
         template: (item, options) => {
-          return <a // eslint-disable-line
+          // return <a // eslint-disable-line
+          //   role="menuitem"
+          //   className="p-menuitem-link"
+          //   aria-haspopup="false"
+          //   onClick={() => loadConn(c)}
+          // >
+          //   <span className="p-menuitem-text" style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{item.label}</span>
+          //   {
+          //     c.dbt ?
+          //       <span style={{ paddingLeft: '7px', color: 'green' }}>
+          //         <b>dbt</b>
+          //       </span>
+          //       :
+          //       null
+          //   }
+          // </a>
+          return <Link // eslint-disable-line
             role="menuitem"
             className="p-menuitem-link"
             aria-haspopup="false"
             onClick={() => loadConn(c)}
+            to={`/${c.name}`}
           >
             <span className="p-menuitem-text" style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{item.label}</span>
             {
@@ -63,7 +89,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
                 :
                 null
             }
-          </a>
+          </Link>
         },
       }
     })
@@ -75,11 +101,11 @@ export const TopMenuBar: React.FC<Props> = (props) => {
         // style: {maxHeight: '500px', overflowY: 'scroll'},
         items: connItems,
       },
-      {
-        label: 'Meta Explorer',
-        icon: 'pi pi-fw pi-microsoft',
-        command: () => { metaPanel.show.set(true) },
-      },
+      // {
+      //   label: 'Meta Explorer',
+      //   icon: 'pi pi-fw pi-microsoft',
+      //   command: () => { metaPanel.show.set(true) },
+      // },
       {
         label: 'Extract / Load',
         icon: 'pi pi-fw pi-cloud-upload',
@@ -228,7 +254,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   }
 
   const end = () => <div style={{ paddingRight: "0px" }} className="p-inputgroup">
-    <h3 style={{ paddingRight: '8px', fontFamily: 'monospace' }}>{window.dbnet.currentConnection.name}</h3>
+    <h3 style={{ paddingRight: '8px', fontFamily: 'monospace', }}>
+      {window.dbnet.currentConnection.name}
+    </h3>
 
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
@@ -238,7 +266,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       tooltip="Test"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => { TauriGetCwd() }}
+      onClick={(e) => {  }}
     />
 
     <Button

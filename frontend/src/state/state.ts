@@ -1,10 +1,11 @@
-import { createState, State } from "@hookstate/core"
+import { createState, none, State } from "@hookstate/core"
 import { apiGet, apiPost } from "../store/api"
-import { MsgType } from "../store/websocket"
-import { ObjectAny } from "../utilities/interfaces"
+import { ObjectAny, ObjectString } from "../utilities/interfaces"
 import { jsonClone, toastError } from "../utilities/methods"
+import { Connection } from "./connection"
 import { Job } from "./job"
-import { Query } from "./query"
+import { Query, Result } from "./query"
+import { Routes } from "./routes"
 import { Column, Schema, Table } from "./schema"
 import { Tab } from "./tab"
 import { ProjectPanelState } from "./workspace"
@@ -21,6 +22,7 @@ export class DbNetState {
   objectPanel: State<ObjectPanelState>
   historyPanel: State<HistoryPanelState>
   settingState: State<SettingState>
+  transient: State<ObjectAny>
 
   constructor(data: ObjectAny = {}) {
     this.workspace = createState(new WorkspaceState(data.workspace))
@@ -32,6 +34,7 @@ export class DbNetState {
     this.queryPanel = createState(new QueryPanelState(data.queryPanel))
     this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
     this.settingState = createState(new SettingState(data.settingState))
+    this.transient = createState({} as ObjectAny)
     // this.ws = createState(new Ws())
   }
 
@@ -52,7 +55,7 @@ export class DbNetState {
       },
     }
     try {
-      let resp = await apiPost(MsgType.SaveSession, payload)
+      let resp = await apiPost(Routes.saveSession, payload)
       if (resp.error) throw new Error(resp.error)
     } catch (error) {
       toastError('Could not save session', error)
@@ -65,7 +68,7 @@ export class DbNetState {
     }
 
     try {
-      let resp = await apiGet(MsgType.LoadSession, payload)
+      let resp = await apiGet(Routes.loadSession, payload)
       if (resp.error) throw new Error(resp.error)
       let data = resp.data
       // this.connections.set(data.connections?.map((c: any) =>new Connection(c)))
@@ -78,6 +81,8 @@ export class DbNetState {
       // this.historyPanel.set(new HistoryPanelState(data.historyPanel))
     } catch (error) {
       toastError('Could not load session', error)
+    } finally {
+      window.dbnet.trigger('onStateLoaded')
     }
   }
 }
@@ -86,13 +91,17 @@ class WorkspaceState {
   name: string
   selectedMetaTab: string
   selectedConnection: string
+  selectedConnectionTab: ObjectString
+  connections: Connection[]
   rootDir: string
 
   constructor(data: ObjectAny = {}) {
     this.name = data.name || 'default'
     this.rootDir = data.rootDir
     this.selectedConnection = data.selectedConnection || ''
+    this.connections = data.connections || []
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
+    this.selectedConnectionTab = data.selectedConnectionTab || {}
   }
   
 }
@@ -184,63 +193,52 @@ class ObjectPanelState {
 
 class QueryPanelState {
   tabs: Tab[]
-  tabs2: Record<string, Tab>
+  results: Result[]
   selectedTabId: string
+  selectedResultId: string
   availableCaches: string[] // query result caches available from backend
 
   constructor(data: ObjectAny = {}) {
     this.availableCaches = []
     this.tabs = data.tabs || []
-    this.loadTabs()
-
-    this.tabs2 = data.tabs2 || {}
-    this.loadTabs2()
+    this.results = data.results || []
+    this.loadTabsAndResults()
 
     this.selectedTabId = data.selectedTabId || this.tabs[0].id
+    this.selectedResultId = data.selectedResultId || this.results[0].id
   }
 
-  loadTabs = () => {
+  loadTabsAndResults = () => {
     if (this.tabs.length === 0) {
       let t1 = new Tab({ name: 'Q1' })
-      let c1 = new Tab({ name: 'C1', parent: t1.id })
-      t1.selectedChild = c1.id
-      this.tabs = [t1, c1]
+      let r1 = new Result({ name: 'R1', parent: t1.id })
+      t1.selectedResult = r1.id
+      this.tabs = [t1]
+      this.results = [r1]
+      this.selectedTabId = t1.id
+      this.selectedResultId = r1.id
     } else {
-      this.tabs = this.tabs.map(t => new Tab(t))
-      let child_tabs = []
+      this.tabs = this.tabs
+                    .filter(t => !(t as any).parent) // legacy
+                    .map(t => new Tab(t))
+    }
+
+    if (this.results.length === 0) {
       for (let i = 0; i < this.tabs.length; i++) {
         const tab = this.tabs[i];
-        if (this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
-        if (tab.parent) continue
-        if (!tab.selectedChild || this.getTabIndexByID(tab.selectedChild) === -1) {
-          let child = new Tab({ parent: tab.id })
-          this.tabs[i].selectedChild = child.id
-          child_tabs.push(child)
-        }
+        let r1 = new Result({ name: 'R1', parent: tab.id })
+        this.tabs[i].selectedResult = r1.id
+        this.results.push(r1)
+        this.selectedResultId = r1.id
       }
-      this.tabs = this.tabs.concat(child_tabs)
-    }
-  }
-
-  loadTabs2 = () => {
-    if (Object.keys(this.tabs2).length === 0) {
-      let t1 = new Tab({ name: 'Q1' })
-      let c1 = new Tab({ name: 'C1', parent: t1.id })
-      t1.selectedChild = c1.id
-      this.tabs2[t1.name] = t1
     } else {
-      for (let [k, t] of Object.entries(this.tabs2)) {
-        this.tabs2[k] = new Tab(t)
-      }
-      for (let [k, tab] of Object.entries(this.tabs2)) {
-        if (this.hasCache(tab.query)) this.availableCaches.push(tab.query.id)
-        if (tab.parent) continue
-        if (!tab.selectedChild || !(tab.selectedChild in this.tabs2)) {
-          let child = new Tab({ parent: tab.id })
-          this.tabs2[k].selectedChild = child.id
-          this.tabs2[child.id] = child
-        }
-      }
+      this.results = this.results
+                      .map(r => new Result(r))
+                      .filter(r => this.getTabIndexByID(r.parent) !== -1)
+
+      for (let result of this.results)
+        if (this.hasCache(result.query))
+          this.availableCaches.push(result.query.id)
     }
   }
 
@@ -251,40 +249,61 @@ class QueryPanelState {
   getTabIndexByID = (id: string) => {
     return this.tabs.map(t => t.id).indexOf(id)
   }
-  getTabIndexByName = (name: string) => {
-    return this.tabs.map(t => t.name).indexOf(name)
+
+  getResultIndexByID = (id: string, def = 0) => {
+    let index = this.results.map(r => r.id).indexOf(id)
+    return index === -1 ? def : index
+  }
+
+  getTabIndexByName = (name: string, def = -1) => {
+    let index = this.tabs.map(t => t.name).indexOf(name)
+    return index === -1 ? def : index
   }
 
   getTab = (id: string) => {
     let index = this.getTabIndexByID(id)
-    if (index > -1) {
+    if (index > -1 && this.tabs[index] && this.tabs[index] !== none) {
       return this.tabs[index]
     }
     return this.tabs[0]
   }
+  getResult = (id: string) => {
+    let index = this.getResultIndexByID(id)
+    if (index > -1 && this.results[index] && this.results[index] !== none) {
+      return this.results[index]
+    }
+    return this.results[0]
+  }
+  
   currTab = () => this.getTab(this.selectedTabId)
   currTabIndex = () => this.getTabIndexByID(this.selectedTabId)
+  currResult = () => this.getResult(this.selectedResultId)
+  currResultIndex = () => this.getResultIndexByID(this.selectedResultId)
 
   payload = () => {
     let tabs: Tab[] = []
+    let results: Result[] = []
     let parentTabs: ObjectAny = {}
     for (let tab of this.tabs) {
-      if (tab.parent || tab.hidden) continue
+      if (tab.hidden) continue
       parentTabs[tab.id] = 0
+      tabs.push(jsonClone<Tab>(tab.payload()))
     }
 
-    for (let tab of this.tabs) {
-      let tab_ = jsonClone<Tab>(tab.payload())
-      tab_.query.rows = []
+    for (let result of this.results) {
+      if(!result || result === none ) continue
+      let result_ = jsonClone<Result>(result.payload())
+      result_.query.rows = []
       // clean up rogue child tabs
-      if (tab_.parent && !(tab_.parent in parentTabs)) continue
-      if (tab_.hidden) continue
-      tabs.push(tab_)
+      if (result_.parent && !(result_.parent in parentTabs)) continue
+      results.push(result_)
     }
 
     return {
       tabs: tabs,
+      results: results,
       selectedTabId: this.selectedTabId,
+      selectedResultId: this.selectedResultId,
     }
   }
 }
