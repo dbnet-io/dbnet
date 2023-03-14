@@ -61,12 +61,8 @@ export const Default: React.FC<Props> = (props) => {
     // init load session
     // await globalStore.loadSession(dbnet.selectedConnection)
 
-    await dbnet.getDatabases(dbnet.selectedConnection)
-    await dbnet.getAllSchemata(dbnet.selectedConnection)
-
     // set init tab to current connection/database
-    const queryPanel = window.dbnet.state.queryPanel
-    let tabs = queryPanel.tabs.get().filter(t => !t.hidden)
+    let tabs = window.dbnet.getCurrConnectionsTabs().filter(t => !t.hidden)
     if (tabs.length === 1 && !tabs[0].connection) {
       let tab = getTabState(tabs[0].id)
       let conn = dbnet.getConnection(dbnet.selectedConnection)
@@ -76,6 +72,12 @@ export const Default: React.FC<Props> = (props) => {
         return t
       })
     }
+
+    let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[dbnet.selectedConnection.toLowerCase()]
+    window.dbnet.selectTab(lastTabID)
+
+    await dbnet.getDatabases(dbnet.selectedConnection)
+    dbnet.getAllSchemata(dbnet.selectedConnection)
     // dbnet.trigger('refreshSchemaPanel')
   }
 
@@ -130,22 +132,28 @@ export const Default: React.FC<Props> = (props) => {
             </div>
           </div>
           :
-          <Splitter
-            style={{ height: splitterHeight, marginLeft: '5px' }}
-            stateKey={"splitter"}
-            stateStorage={"local"}
-            onResizeEnd={(e) => debounceRefresh()} 
-            gutterSize={10}
-          >
-            <SplitterPanel className="p-d-flex" style={{maxWidth:'450px'}}>
-              <LeftPane/>
-            </SplitterPanel>
-            <SplitterPanel className="p-d-flex">
-              <RightPane/>
-              {/* <Sessions/> */}
-            </SplitterPanel>
-          </Splitter>
+          null
       }
+
+      <Splitter
+        style={{
+          height: splitterHeight,
+          marginLeft: '5px',
+          display: transient.get().showLoadSpinner ? 'none': null,
+        }}
+        stateKey={"splitter"}
+        stateStorage={"local"}
+        onResizeEnd={(e) => debounceRefresh()} 
+        gutterSize={10}
+      >
+        <SplitterPanel className="p-d-flex" style={{maxWidth:'450px'}}>
+          <LeftPane/>
+        </SplitterPanel>
+        <SplitterPanel className="p-d-flex">
+          <RightPane/>
+          {/* <Sessions/> */}
+        </SplitterPanel>
+      </Splitter>
       </div>
     </div>
   );

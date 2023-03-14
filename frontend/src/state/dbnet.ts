@@ -56,11 +56,15 @@ export class DbNet {
   }
 
   async init() {
+    this.state.transient.showLoadSpinner.set(true)
+
     await this.state.load()
     await this.loadWorkspace() // load last workspace or use default
     await this.loadConnections() // get all connections or create TODO:
     await this.loadHistoryQueries()
     await this.loadHistoryJobs()
+
+    this.state.transient.showLoadSpinner.set(false)
   }
 
   selectConnection(name: string) {

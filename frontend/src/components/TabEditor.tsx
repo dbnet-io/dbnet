@@ -9,6 +9,7 @@ import { format } from "sql-formatter";
 import { saveEditorSelection, setDecoration } from "../state/editor";
 import { loadMetaTable } from "./MetaTablePanel";
 import { Table } from "../state/schema";
+import _ from "lodash";
 
 export const formatSql = (sql: string) => {
   return format(sql, {
@@ -36,9 +37,13 @@ export function TabEditor(props: { tab: State<Tab> }) {
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
   const editorRef = React.useRef<MonacoEditor>(null)
+  const saveDebounce = React.useRef<any>(null)
 
   React.useEffect(() => {
     initEditor(editorRef.current?.editor)
+
+    // save 4 secs after idle
+    saveDebounce.current = _.debounce(() => window.dbnet.state.save(), 4000)
   }, [tab.id.get()]) // eslint-disable-line
 
   const initEditor = (instance?: monaco.editor.IStandaloneCodeEditor) => {
@@ -88,6 +93,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
           sql.set(text) 
           let ed = window.dbnet.editorMap[tab.id.get()]
           saveEditorSelection(tab, ed.instance)
+          saveDebounce.current()
         }}
         // editorWillMount={(monaco) => { }}
         editorDidMount={(instance: monaco.editor.IStandaloneCodeEditor) => initEditor(instance)}

@@ -82,7 +82,8 @@ export const TopMenuBar: React.FC<Props> = (props) => {
             role="menuitem"
             className="p-menuitem-link"
             aria-haspopup="false"
-            onClick={() => loadConn(c)}
+            target="_blank"
+            // onClick={() => loadConn(c)}
             to={`/${c.name}`}
           >
             <span className="p-menuitem-text" style={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>{item.label}</span>
