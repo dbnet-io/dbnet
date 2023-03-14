@@ -17,7 +17,7 @@ const queryPanel = () => window.dbnet.state.queryPanel
 const selectTab = (id: string) => window.dbnet.selectTab(id)
 
 export const createTab = (name: string = '', sql = '', connName: string, dbName: string) => {
-  name = newTabName(name)
+  name = newTabName(name, dbName)
   if (!name.toLowerCase().endsWith('.sql')) {
     let name_arr = name.split('.')
     name = name_arr[name_arr.length - 1]
@@ -152,17 +152,20 @@ export const getOrCreateParentTabState = (connection: string, database: string) 
   return getTabState(connTabs[index].id)
 }
 
-export const newTabName = (name: string) => {
-  // let prefix = 'Q'
-  let prefix = new Date().toISOString().split('T')[0] + '_'
+export const newTabName = (name: string, dbName?: string) => {
+  let prefix = new Date().toISOString().split('T')[0]
+  if(dbName) prefix = dbName
+
   // add new tab
-  let tabNames = queryPanel().tabs.get().map(t => t.name)
-  let i = tabNames.length + 1;
-  let newName = name !== ''? name : `${prefix}${i}`
+  let tabNames = window.dbnet.getCurrConnectionsTabs().map(t => t.name)
+  let newName = name ? name : prefix
+
+  let i = 0;
   while (tabNames.includes(newName)) {
     i++;
-    newName = name !== ''? `${name}${i}` : `${prefix}${i}`;
+    newName = name ? `${name}_${i}` : `${prefix}_${i}`;
   }
+
   return newName
 }
 
@@ -233,8 +236,6 @@ const TabNamesComponent: React.FC<Props> = (props) => {
       hideTab(jsonClone(selectedTabId.get()))
     } else if (name === 'add') {
       // add new tab
-      let newName = newTabName('')
-      newTab.name.set(newName)
       newTab.show.set(true)
     } else {
       let connTabs = window.dbnet.getCurrConnectionsTabs()
@@ -420,7 +421,7 @@ const TabNamesComponent: React.FC<Props> = (props) => {
       onSelect={(connSelected: string, dbSelected: string) => {
         if(!connSelected) return toastError('Please select a connection')
         if(!dbSelected) return toastError('Please select a database')
-        createTab(newTab.name.get(), '', connSelected, dbSelected)
+        createTab('', '', connSelected, dbSelected)
         newTab.show.set(false)
       }}
     />
