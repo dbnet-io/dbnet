@@ -167,11 +167,12 @@ export const newTabName = (name: string) => {
 }
 
 const getTabIndex = () => {
-  let connTabs = window.dbnet.getCurrConnectionsTabs()
-  let index = connTabs
+  let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[window.dbnet.selectedConnection.toLowerCase()]
+  let index = window.dbnet.getCurrConnectionsTabs()
                 .filter(t => !t.hidden)
                 .map(t => t.id)
-                .indexOf(queryPanel().selectedTabId.get());
+                .indexOf(lastTabID);
+  if(index === -1) index = 0
   return index + 2
 }
 
@@ -241,7 +242,6 @@ const TabNamesComponent: React.FC<Props> = (props) => {
       let tab = connTabs[index]
       if (!tab.selectedResult) createTabResult(tab)
       window.dbnet.selectTab(tab.id);
-      window.dbnet.selectConnection(tab.connection || '')
     }
     document.getElementById("table-filter")?.focus();
   };

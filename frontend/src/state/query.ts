@@ -20,6 +20,12 @@ export interface QueryRequest {
   export?: 'csv' | 'json' | 'jsonlines';
 }
 
+export interface Header {
+  name: string;
+  type: string;
+  dbType: string;
+}
+
 export class Query {
   id: string
   connection: string
@@ -30,7 +36,7 @@ export class Query {
   status: QueryStatus
   text: string
   err: string
-  headers: string[]
+  headers: Header[]
   rows: any[][]
   limit: number
   affected: number
@@ -58,7 +64,7 @@ export class Query {
     let row = this.rows[n]
     let data: { n: number, name: string, value: any }[] = []
     for (let i = 0; i < this.headers.length; i++) {
-      data.push({ n: i + 1, name: this.headers[i], value: `${row[i]}` })
+      data.push({ n: i + 1, name: this.headers[i].name, value: `${row[i]}` })
     }
     return data
   }

@@ -13,7 +13,7 @@ interface Props {}
 export const RightPane: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
 
-  const tabId = window.dbnet.state.queryPanel.selectedTabId
+  const tabId = useHS(window.dbnet.state.queryPanel.selectedTabId)
   ///////////////////////////  EFFECTS  ///////////////////////////
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////

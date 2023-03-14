@@ -1322,9 +1322,9 @@
     "@hapi/hoek" "^9.0.0"
 
 "@hookstate/core@^3.0.3":
-  version "3.0.7"
-  resolved "https://registry.npmjs.org/@hookstate/core/-/core-3.0.7.tgz"
-  integrity sha512-9aOGwD4tezrXJ7AkiPg0MJ8d9TiRCusf537zPOV4vOJmNn/tyMDMDxd1T4OlqKvNurVTzs9BEIMOuq5OduV7/w==
+  version "3.0.13"
+  resolved "https://registry.yarnpkg.com/@hookstate/core/-/core-3.0.13.tgz#827c92166399cd4ae227d3c7ae76445e388ce3e8"
+  integrity sha512-dzx6Rz1M5/c/F1zPEspnONMUvkJD1BzepuuGkqoh+KDNhgWrklGW9OVQAuK+DZFyamCTb3/1GW2Vu4IDhXMexA==
 
 "@hookstate/logger@^3.0.0":
   version "3.0.0"

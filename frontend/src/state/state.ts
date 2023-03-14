@@ -23,6 +23,7 @@ export class DbNetState {
   historyPanel: State<HistoryPanelState>
   settingState: State<SettingState>
   transient: State<ObjectAny>
+  broadcast: BroadcastChannel
 
   constructor(data: ObjectAny = {}) {
     this.workspace = createState(new WorkspaceState(data.workspace))
@@ -35,7 +36,33 @@ export class DbNetState {
     this.historyPanel = createState(new HistoryPanelState(data.historyPanel))
     this.settingState = createState(new SettingState(data.settingState))
     this.transient = createState({} as ObjectAny)
-    // this.ws = createState(new Ws())
+    this.broadcast = new BroadcastChannel('dbnet')
+
+    this.broadcast.onmessage = (e: MessageEvent) => {
+      if((e.data.type as string) === 'localTabResults')
+        this.handleLocalTabResults(e.data)
+    }
+  }
+
+  handleLocalTabResults(data: ObjectAny) {
+    if((data.connection as string).toLowerCase() === window.dbnet.selectedConnection.toLowerCase())
+      return // do not overwrite self
+
+    let tabs = (data.payload.tabs as Tab[]).map(t => new Tab(t))
+    let results = (data.payload.results as Result[]).map(r => new Result(r))
+
+    for(let tab of tabs) {
+      let index = this.queryPanel.get().getTabIndexByID(tab.id)
+      if(index === -1) this.queryPanel.tabs.merge([tab])
+      else this.queryPanel.tabs[index].set(tab)
+    }
+
+    for(let result of results) {
+      let index = this.queryPanel.get().getResultIndexByID(result.id)
+      if(index === -1) this.queryPanel.results.merge([result])
+      else this.queryPanel.results[index].set(result)
+    }
+
   }
 
   save = async () => {
@@ -60,6 +87,16 @@ export class DbNetState {
     } catch (error) {
       toastError('Could not save session', error)
     }
+
+    // broadcast localTabResults
+    let localTabResults = this.queryPanel.get().payload(
+      window.dbnet.selectedConnection
+    )
+    this.broadcast.postMessage({
+      connection: window.dbnet.selectedConnection,
+      type: 'localTabResults',
+      payload: localTabResults,
+    })
   }
 
   load = async () => {
@@ -90,7 +127,8 @@ export class DbNetState {
 class WorkspaceState {
   name: string
   selectedMetaTab: string
-  selectedConnection: string
+  selectedConnectionName: string
+  selectedConnection: Connection
   selectedConnectionTab: ObjectString
   connections: Connection[]
   rootDir: string
@@ -98,7 +136,8 @@ class WorkspaceState {
   constructor(data: ObjectAny = {}) {
     this.name = data.name || 'default'
     this.rootDir = data.rootDir
-    this.selectedConnection = data.selectedConnection || ''
+    this.selectedConnectionName = data.selectedConnectionName || ''
+    this.selectedConnection = data.selectedConnection || new Connection()
     this.connections = data.connections || []
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
     this.selectedConnectionTab = data.selectedConnectionTab || {}
@@ -280,12 +319,13 @@ class QueryPanelState {
   currResult = () => this.getResult(this.selectedResultId)
   currResultIndex = () => this.getResultIndexByID(this.selectedResultId)
 
-  payload = () => {
+  payload = (connection?: string) => {
     let tabs: Tab[] = []
     let results: Result[] = []
     let parentTabs: ObjectAny = {}
     for (let tab of this.tabs) {
       if (tab.hidden) continue
+      if (connection && tab.connection?.toLowerCase() !== connection.toLowerCase()) continue 
       parentTabs[tab.id] = 0
       tabs.push(jsonClone<Tab>(tab.payload()))
     }

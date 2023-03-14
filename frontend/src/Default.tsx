@@ -42,7 +42,7 @@ export const Default: React.FC<Props> = (props) => {
   const Init = async () => {
     await dbnet.init()
 
-    if(location) {
+    if(location && !dbnet.selectedConnection) {
       dbnet.selectConnection(location.pathname.replace('/', ''))
     }
 
@@ -73,7 +73,7 @@ export const Default: React.FC<Props> = (props) => {
         return t
       })
     }
-    dbnet.trigger('refreshSchemaPanel')
+    // dbnet.trigger('refreshSchemaPanel')
   }
 
 

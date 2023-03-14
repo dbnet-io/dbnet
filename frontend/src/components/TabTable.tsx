@@ -10,7 +10,7 @@ import { getResultState, getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
 import { getDexieDb } from "../state/dbnet";
 import { Query, QueryStatus, Result } from "../state/query";
-import DataEditor, { DataEditorProps, DataEditorRef, GridCellKind, GridColumn, GridMouseEventArgs, Item } from "@glideapps/glide-data-grid";
+import DataEditor, { DataEditorProps, DataEditorRef, GridCellKind, GridColumn, GridMouseEventArgs, HeaderClickedEventArgs, Item } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { Tooltip } from "primereact/tooltip";
@@ -124,23 +124,63 @@ const TabTableComponent: React.FC<Props> = (props) => {
     let row = rows[cell[1]]
     let data: { n: number, name: string, value: any }[] = []
     for (let i = 0; i < props.result.query.headers.get().length; i++) {
-      data.push({ n: i + 1, name: props.result.query.headers.get()[i], value: `${row[i]}` })
+      data.push({ n: i + 1, name: props.result.query.headers.get()[i].name, value: `${row[i]}` })
     }
     tab.rowView.rows.set(data)
     result.lastTableSelection.set([cell[1], cell[0], cell[1], cell[0]])
   }
 
   const onHover = (e: GridMouseEventArgs) => {
+
+    // clean up others
+    document.querySelectorAll('.header-tooltip-cell').forEach(e => e.remove())
+
     if(e.kind === 'out-of-bounds') return
+
+    if(e.kind === 'cell') return
+
+    console.log(e)
+
+    let x = e.bounds.x
+    let y = e.bounds.y
+
+    let colIndex = e.location[0]
+    let header = props.result.query.headers?.get()[colIndex]
+    if(!header || !header.dbType) return
+
+    let width = header.dbType.length * 7
+    width = width < e.bounds.width ? e.bounds.width : width
+
+    var span = document.createElement('span')
+    span.innerText = header.dbType
+    span.className = 'header-tooltip-cell'
+    span.style.fontSize = '13px';
+    span.style.textAlign = 'center';
+    span.style.alignContent = 'center';
+    span.style.justifyContent = 'center';
+    span.style.backgroundColor = '#d3d3d3';
+    span.style.borderRadius = '5px';
+    span.style.height = 15 + 'px';
+    span.style.width = width + 'px';
+    span.style.position = "absolute";
+    span.style.left = x + 'px';
+    span.style.top = y - 19 + 'px';
+    span.setAttribute('data-pr-tooltip', header.name)
+    span.setAttribute('data-pr-position', 'top')
+    document.getElementById('result-panel')?.appendChild(span)
+    console.log(span)
   }
 
   // const glideCols = React.useMemo<GridColumn[]>(
   //   () => props.tab.query.headers.get()?.map(h => { return { title: h, id: h }}) || []
   // , [props.tab.query.headers] );
   const glideCols : GridColumn[] = props.result.query.headers?.get()?.map(h => { 
+    let name = h?.name || ''
+    let width = name.length * 9.5
     return {
-      title: h,
-      id: h,
+      title: name,
+      id: name,
+      width: width < 100 ? 100 : width,
       // icon: GridColumnIcon.HeaderDate,
       // icon: GridColumnIcon.HeaderString,
       themeOverride: {
@@ -233,6 +273,7 @@ const TabTableComponent: React.FC<Props> = (props) => {
     />
   } else {
     output = <>
+      <Tooltip target='.header-tooltip'/>
       <DataEditor
         ref={ref}
         getCellContent={glideGetData}
@@ -245,6 +286,8 @@ const TabTableComponent: React.FC<Props> = (props) => {
         rowHeight={25}
         minColumnWidth={100}
         showSearch={showSearch}
+        onHeaderClicked={(colIndex: number, event: HeaderClickedEventArgs) => {
+        }}
         // showMinimap={true}
         // onGridSelectionChange={afterSelection}
         // smoothScrollX={true}

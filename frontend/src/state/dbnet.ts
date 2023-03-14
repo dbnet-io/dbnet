@@ -71,6 +71,8 @@ export class DbNet {
     }
     if(this.selectedConnection === name) return
     this.selectedConnection = name
+    this.state.workspace.selectedConnectionName.set(name)
+    this.state.workspace.selectedConnection.set(this.getConnection(name))
     window.history.replaceState(null, name, '/' + name);
     localStorage.setItem("_connection_name", name)
     this.trigger('onSelectConnection')
@@ -321,7 +323,7 @@ export class DbNet {
     if (index > -1) {
       return this.connections[index]
     } else if (connName !== '') {
-      // console.log(`did not find connection ${connName}`)
+      console.log(`did not find connection ${connName}`)
     }
     return new Connection()
   }
@@ -397,9 +399,9 @@ export class DbNet {
         }
 
         query.err = resp.data?.err
-        query.headers = await resp.headers().map(h => h.name)
+        query.headers = await resp.headers()
         if(req.export) {
-          query.headers = ['message']
+          query.headers = [{name: 'message', type: 'string', dbType: 'string'}]
           query.rows = [['File Generated.']]
           resp.download(`${req.connection}-${req.database}`.toLowerCase(), req.export)
         } else {

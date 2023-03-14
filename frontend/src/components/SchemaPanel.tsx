@@ -52,9 +52,9 @@ export const SchemaPanel: React.FC<Props> = (props) => {
 
   React.useEffect(() => {
     if (window.dbnet.connections.length === 0) return
-    let connName = localStorage.getItem("_connection_name")?.toLowerCase()
+    let connName = window.dbnet.selectedConnection?.toLowerCase()
     if (!connName) {
-      connName = window.dbnet.connections[0].name
+      connName = localStorage.getItem("_connection_name")?.toLowerCase() || window.dbnet.connections[0].name
     } else if (!window.dbnet.connections.map(c => c.name.toLowerCase()).includes(connName)) {
       connName = window.dbnet.connections[0].name
     }

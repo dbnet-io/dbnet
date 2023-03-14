@@ -43,7 +43,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       await window.dbnet.loadConnections()
 
       await window.dbnet.getDatabases(conn.name)
-      await window.dbnet.getSchemata(conn.name, conn.database)
+      // await window.dbnet.getSchemata(conn.name, conn.database)
+
+      // will trigger schema refresh on SchemaPanel
       window.dbnet.selectConnection(conn.name)
 
       let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[conn.name.toLowerCase()]

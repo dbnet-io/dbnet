@@ -21,6 +21,7 @@ export const RowViewPanel: React.FC<Props> = (props) => {
   };
   
   ///////////////////////////  JSX  ///////////////////////////
+  if(!parentTab?.rowView?.show?.get()) return <></>
   
   return (
     <Dialog 
