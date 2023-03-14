@@ -31,18 +31,18 @@ export class Connection {
   name: string
   type: ConnType
   database: string
-  dbt: boolean
+  source: string
   databases: Record<string, Database>
   data: ObjectString;
   schemas: Schema[]
   recentOmniSearches: { [key: string]: number; }
 
   constructor(data: ObjectAny = {}) {
-    this.name = data.name || ''
+    this.name = data.name?.toLowerCase() || ''
     this.type = data.type
     this.data = data.data
     this.database = data.database || ''
-    this.dbt = data.dbt || false
+    this.source = data.source || ''
     this.schemas = data.schemas || []
     this.databases = data.databases || {}
     for (let k of Object.keys(this.databases)) {
@@ -50,6 +50,8 @@ export class Connection {
     }
     this.recentOmniSearches = data.recentOmniSearches || {}
   }
+
+  get dbt() { return this.source.includes('dbt')}
 
   getAllSchemas = () => {
     let schemas: Schema[] = []

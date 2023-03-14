@@ -310,3 +310,8 @@ font-size: 9px !important;
 	width: 5px !important;
 	margin-left: 3px;
 }
+
+.column-wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+}

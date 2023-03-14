@@ -8,22 +8,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flarco/dbio"
+	"github.com/dbnet-io/dbnet/server"
+	"github.com/dbnet-io/dbnet/store"
+	dbRestServer "github.com/dbrest-io/dbrest/server"
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
-	"github.com/flarco/scruto/server"
-	"github.com/flarco/scruto/store"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	srv = server.NewServer()
+	srv      = server.NewServer()
+	routeMap = lo.KeyBy(server.StandardRoutes, func(r echo.Route) string {
+		return r.Name
+	})
+	dbRestRouteMap = lo.KeyBy(dbRestServer.StandardRoutes, func(r echo.Route) string {
+		return r.Name
+	})
 )
 
 func TestAll(t *testing.T) {
-	defer srv.Cleanup()
+	defer srv.Close()
 	go srv.Start()
 	time.Sleep(1 * time.Second)
 	// testDbtServer(t)
@@ -36,16 +43,11 @@ func TestAll(t *testing.T) {
 	testSaveSession(t)
 	testLoadSession(t)
 	testGetHistory(t)
-	testJob(t)
 }
 
-func handleMsg(msg net.Message) net.Message {
-	return server.Handlers[msg.Type](msg)
-}
-
-func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
+func postRequest(route echo.Route, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
 	headers := map[string]string{"Content-Type": "application/json"}
-	url := g.F("http://localhost:%s%s", srv.Port, route.String())
+	url := g.F("http://localhost:%s%s", srv.Port, route.Path)
 	g.P(url)
 	_, respBytes, err := net.ClientDo("POST", url, strings.NewReader(g.Marshal(data1)), headers)
 	if err != nil {
@@ -62,7 +64,7 @@ func postRequest(route server.RouteName, data1 map[string]interface{}) (data2 ma
 	return
 }
 
-func getRequest(route server.RouteName, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
+func getRequest(route echo.Route, data1 map[string]interface{}) (data2 map[string]interface{}, err error) {
 	headers := map[string]string{"Content-Type": "application/json"}
 	vals := url.Values{}
 	for k, v := range data1 {
@@ -76,7 +78,7 @@ func getRequest(route server.RouteName, data1 map[string]interface{}) (data2 map
 		}
 		vals.Set(k, val)
 	}
-	url := g.F("http://localhost:%s%s?%s", srv.Port, route.String(), vals.Encode())
+	url := g.F("http://localhost:%s%s?%s", srv.Port, route.Path, vals.Encode())
 	g.P(url)
 	_, respBytes, err := net.ClientDo("GET", url, nil, headers, 5)
 	if err != nil {
@@ -130,7 +132,7 @@ func testSubmitSQL(t *testing.T) {
 		"text", "select * from housing.landwatch2 limit 138",
 		"wait", true,
 	)
-	data, err := postRequest(server.RouteSubmitSQL, m)
+	data, err := postRequest(dbRestRouteMap["submitSQL"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -158,7 +160,7 @@ func testCancelSQL(t *testing.T) {
 		"wait", false,
 	)
 
-	data, err := postRequest(server.RouteSubmitSQL, m)
+	data, err := postRequest(dbRestRouteMap["submitSQL"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -166,7 +168,7 @@ func testCancelSQL(t *testing.T) {
 		m["id"] = data["id"].(string)
 	}
 
-	data, err = postRequest(server.RouteCancelSQL, m)
+	data, err = postRequest(dbRestRouteMap["cancelSQL"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -174,7 +176,7 @@ func testCancelSQL(t *testing.T) {
 
 	// try to get more rows, should create new query id
 	m["wait"] = true
-	data, err = postRequest(server.RouteSubmitSQL, m)
+	data, err = postRequest(dbRestRouteMap["submitSQL"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -183,7 +185,7 @@ func testCancelSQL(t *testing.T) {
 
 func testGetConnections(t *testing.T) {
 	m := g.M("id", g.NewTsID())
-	data, err := getRequest(server.RouteGetConnections, m)
+	data, err := getRequest(dbRestRouteMap["getConnections"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -196,7 +198,7 @@ func testGetSchemas(t *testing.T) {
 		"id", g.NewTsID(),
 		"conn", "PG_BIONIC",
 	)
-	data, err := getRequest(server.RouteGetSchemas, m)
+	data, err := getRequest(dbRestRouteMap["getConnectionSchemas"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -210,7 +212,7 @@ func testGetTables(t *testing.T) {
 		"conn", "PG_BIONIC",
 		"schema", "public",
 	)
-	data, err := getRequest(server.RouteGetTables, m)
+	data, err := getRequest(dbRestRouteMap["getSchemaTables"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -228,7 +230,7 @@ func testGetColumns(t *testing.T, tableName string) {
 		"schema", "public",
 		"table", tableName,
 	)
-	data, err := getRequest(server.RouteGetColumns, m)
+	data, err := getRequest(dbRestRouteMap["getTableColumns"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -245,7 +247,7 @@ func testSaveSession(t *testing.T) {
 			"test", "ing",
 		),
 	)
-	_, err := postRequest(server.RouteSaveSession, m)
+	_, err := postRequest(routeMap["saveSession"], m)
 	g.AssertNoError(t, err)
 }
 
@@ -255,7 +257,7 @@ func testLoadSession(t *testing.T) {
 		"conn", "PG_BIONIC_TEST",
 		"name", "default",
 	)
-	data, err := getRequest(server.RouteLoadSession, m)
+	data, err := getRequest(routeMap["loadSession"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -272,7 +274,7 @@ func testGetHistory(t *testing.T) {
 		"conn", "PG_BIONIC",
 		"procedure", "get_latest",
 	)
-	data, err := getRequest(server.RouteGetHistory, m)
+	data, err := getRequest(routeMap["getHistory"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -284,7 +286,7 @@ func testGetHistory(t *testing.T) {
 		"procedure", "search",
 		"name", "select",
 	)
-	data, err = getRequest(server.RouteGetHistory, m)
+	data, err = getRequest(routeMap["getHistory"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -302,7 +304,7 @@ func testFileOps(t *testing.T) {
 			"body", body,
 		),
 	)
-	data, err := postRequest(server.RouteFileOperation, m)
+	data, err := postRequest(routeMap["fileOperation"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -314,7 +316,7 @@ func testFileOps(t *testing.T) {
 			"path", "/tmp/",
 		),
 	)
-	data, err = postRequest(server.RouteFileOperation, m)
+	data, err = postRequest(routeMap["fileOperation"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -328,7 +330,7 @@ func testFileOps(t *testing.T) {
 			"path", "/tmp/hello.txt",
 		),
 	)
-	data, err = postRequest(server.RouteFileOperation, m)
+	data, err = postRequest(routeMap["fileOperation"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
@@ -342,69 +344,8 @@ func testFileOps(t *testing.T) {
 			"path", "/tmp/hello.txt",
 		),
 	)
-	data, err = postRequest(server.RouteFileOperation, m)
+	data, err = postRequest(routeMap["fileOperation"], m)
 	if !g.AssertNoError(t, err) {
 		return
 	}
-}
-
-func testDbtServer(t *testing.T) {
-	id := g.NewTsID()
-	m := g.M(
-		"data", g.M(
-			"profile", "test",
-			"projDir", "/__/tmp/TestDbt",
-			"request", g.M(
-				"id", id,
-				"method", "status",
-				"jsonrpc", "2.0",
-			),
-		),
-	)
-	data, err := postRequest(server.RouteSubmitDbt, m)
-	if !g.AssertNoError(t, err) {
-		return
-	}
-
-	result := cast.ToStringMap(data["result"])
-	assert.EqualValues(t, id, data["id"])
-	assert.NotEmpty(t, result["pid"])
-}
-
-func testJob(t *testing.T) {
-	id := g.NewTsID()
-	srcFileName := "file://test/test1.1.csv"
-	config := g.M(
-		"source", g.M(
-			"stream", srcFileName,
-		),
-		"target", g.M(
-			"conn", "PG_BIONIC",
-			"object", "public.test1",
-			"mode", "drop",
-		),
-	)
-
-	m := g.M(
-		"id", id,
-		"source", g.M(
-			"type", dbio.TypeFileLocal,
-			"name", srcFileName,
-			"database", "",
-		),
-		"target", g.M(
-			"type", dbio.TypeDbPostgres,
-			"name", "PG_BIONIC",
-			"database", "DB1",
-		),
-		"config", config,
-	)
-	data, err := postRequest(server.RouteExtractLoad, m)
-	if !g.AssertNoError(t, err) {
-		return
-	}
-
-	assert.EqualValues(t, id, data["id"])
-	assert.EqualValues(t, "success", data["status"])
-	assert.Empty(t, data["error"])
 }

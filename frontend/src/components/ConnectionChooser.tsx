@@ -7,7 +7,7 @@ import React from "react"
 import { useHS } from "../store/state"
 
 export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boolean, onSelect: (connName: string, dbName: string) => void}) => {
-  const connSelected = useHS('')
+  const connSelected = useHS(window.dbnet.selectedConnection)
   const dbSelected = useHS('')
   const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name)
 
@@ -16,11 +16,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
       let conn = window.dbnet.getConnection(connSelected.get())
 
       if(Object.keys(conn.databases).length === 0) {
-        window.dbnet.getDatabases(connSelected.get()).then(
-          _ => {
-            if(Object.keys(conn.databases).length > 0) connSelected.set(connSelected.get())
-          }
-        )
+        window.dbnet.getDatabases(connSelected.get())
       }
     }
   },[connSelected.get()]) // eslint-disable-line
@@ -54,18 +50,20 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
 
   return  (
     <Dialog
-      header="Choose a connection" visible={props.show.get()}
+      header="Choose a Database" visible={props.show.get()}
       footer={footer()} 
+      style={{width: '20rem', height: props.selectDb && connSelected.get() ? '20rem' : '10rem'}} 
       onHide={() => props.show.set(false)}
     >
-      <ListBox 
+      {/* <ListBox 
         value={connSelected.get()}
-        options={window.dbnet.connections.map(c => c.name)} 
+        // options={window.dbnet.connections.map(c => c.name)} 
+        options={[window.dbnet.selectedConnection]} 
         onChange={(e) => connSelected.set(e.value)} 
-        listStyle={{fontFamily:'monospace'}}
+        listStyle={{fontFamily:'monospace', height: '5rem'}}
         itemTemplate={itemTemplate}
         style={{width: '15rem'}}
-      />
+      /> */}
       {
         props.selectDb && connSelected.get() ?
         <ListBox 
@@ -78,7 +76,7 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
                       ).map(d => d.name)
                     )} 
           onChange={(e) => dbSelected.set(e.value)} 
-          listStyle={{fontFamily:'monospace'}}
+          listStyle={{fontFamily:'monospace', height: '10rem'}}
           itemTemplate={itemTemplate}
           style={{width: '15rem'}} 
         />

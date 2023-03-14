@@ -6,26 +6,27 @@ import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../uti
 
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
-import { getTabState } from "./TabNames";
+import { getResultState, getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
 import { getDexieDb } from "../state/dbnet";
-import { Tab } from "../state/tab";
-import { Query, QueryStatus } from "../state/query";
-import DataEditor, { DataEditorProps, DataEditorRef, GridCellKind, GridColumn, GridMouseEventArgs, Item } from "@glideapps/glide-data-grid";
+import { Query, QueryStatus, Result } from "../state/query";
+import DataEditor, { DataEditorProps, DataEditorRef, GridCellKind, GridColumn, GridMouseEventArgs, HeaderClickedEventArgs, Item } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { Tooltip } from "primereact/tooltip";
+import { withResizeDetector } from 'react-resize-detector';
 
 const PrettyTable = require('prettytable');
 
 var durationInterval : NodeJS.Timeout 
 
 interface Props {
-  tab: State<Tab>
+  result: State<Result>
+  width?: number;
+  height?: number;
 }
 
-export const pullResult = async (tabState: State<Tab>) => {
-  let tab = getTabState(tabState.id.get())
+export const pullResult = async (resultState: State<Result>) => {
+  let tab = getTabState(resultState.parent.get())
 
   tab.loading.set(true);
   try {
@@ -33,19 +34,19 @@ export const pullResult = async (tabState: State<Tab>) => {
     const db = getDexieDb()
     let cachedQ = await db.table('queries')
         .where('id')
-        .equals(tab.query.id.get())
+        .equals(resultState.query.id.get())
         .first()
     
     if(cachedQ) {
       let query = new Query(cachedQ)
-      let tab = getTabState(query.tab)
-      tab.set(
-        t => {
-          t.query = query
-          t.query.pulled = true
-          t.query.duration = Math.round(query.duration*100)/100
-          t.loading = false
-          return t
+      let result = getResultState(query.result)
+      result.set(
+        r => {
+          r.query = query
+          r.query.pulled = true
+          r.query.duration = Math.round(query.duration*100)/100
+          r.loading = false
+          return r
         }
       )
     }
@@ -56,45 +57,47 @@ export const pullResult = async (tabState: State<Tab>) => {
 }
 
 
-export const fetchRows = async (tabState: State<Tab>) => {
-  let tab = getTabState(tabState.id.get())
-  if(tab.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
+export const fetchRows = async (result: State<Result>) => {
+  let tab = getTabState(result.parent.get())
+  if(result.query.status.get() === QueryStatus.Completed) { return toastInfo('No more rows.') }
 
-  tab.loading.set(true);
+  result.loading.set(true);
   if(tab.resultLimit.get() >= 5000) {
     tab.resultLimit.set(5000)
     toastInfo("Can only fetch a max of 5000 rows for preview. Export to CSV / Excel to view more rows.")
-  } else if(tab.query.rows.length <= tab.resultLimit.get()) { 
+  } else if(result.query.rows.length <= tab.resultLimit.get()) { 
     // submit with higher limit
     tab.resultLimit.set(v => v * 2)
-    refreshResult(tab)
+    refreshResult(result)
     return
   } else {
     tab.resultLimit.set(v => v * 2)
   }
-  tab.loading.set(false)
+  result.loading.set(false)
 }
 
-export const TabTable: React.FC<Props> = (props) => {
+const TabTableComponent: React.FC<Props> = (props) => {
+  // const resultHeight = props.height ? props.height : document.getElementById("result-panel")?.parentElement?.clientHeight
   const resultHeight = document.getElementById("result-panel")?.parentElement?.clientHeight
-  const resultWidth = (document.getElementById("result-panel")?.parentElement?.clientWidth || 500) - 15
+  const resultWidth = props.width ? props.width - 15 : 500
   const tableHeight = !resultHeight || resultHeight < 200 ? 200 : resultHeight-85
   const ref = React.useRef<DataEditorRef | null>(null);
-  const tab = props.tab
+  const result = props.result
+  const tab = getTabState(props.result.parent.get())
   // const [showSearch, setShowSearch] = React.useState(false);
   const showSearch = false
   
   const filteredRows = React.useRef<any[]>([])
   const filterRows = () => {
     // return []
-    if(!props.tab.query.rows.get() || props.tab.query.rows.length === 0) { 
+    if(!props.result.query.rows.get() || props.result.query.rows.length === 0) { 
       filteredRows.current = []
       return []
     }
-    let data = jsonClone<any[][]>(props.tab.query.rows.get())
-    let filters = props.tab.filter.get().toLowerCase().split(' ')
+    let data = jsonClone<any[][]>(props.result.query.rows.get())
+    let filters = props.result.filter.get().toLowerCase().split(' ')
     let data2: any[][] = []
-    let limit = tab.resultLimit.get() > -1 ? tab.resultLimit.get() : 9999999999999
+    let limit = result.limit.get() > -1 ? result.limit.get() : 9999999999999
     for (let ri = 0; ri < data.length && ri < limit; ri++) {
       const row = data[ri];
       let include = filters.map(v => false)
@@ -119,24 +122,61 @@ export const TabTable: React.FC<Props> = (props) => {
     let rows = filteredRows.current
     let row = rows[cell[1]]
     let data: { n: number, name: string, value: any }[] = []
-    for (let i = 0; i < props.tab.query.headers.get().length; i++) {
-      data.push({ n: i + 1, name: props.tab.query.headers.get()[i], value: `${row[i]}` })
+    for (let i = 0; i < props.result.query.headers.get().length; i++) {
+      data.push({ n: i + 1, name: props.result.query.headers.get()[i].name, value: `${row[i]}` })
     }
     tab.rowView.rows.set(data)
-    tab.lastTableSelection.set([cell[1], cell[0], cell[1], cell[0]])
+    result.lastTableSelection.set([cell[1], cell[0], cell[1], cell[0]])
   }
 
   const onHover = (e: GridMouseEventArgs) => {
+
+    // clean up others
+    document.querySelectorAll('.header-tooltip-cell').forEach(e => e.remove())
+
     if(e.kind === 'out-of-bounds') return
+
+    if(e.kind === 'cell') return
+
+    let x = e.bounds.x
+    let y = e.bounds.y
+
+    let colIndex = e.location[0]
+    let header = props.result.query.headers?.get()[colIndex]
+    if(!header || !header.dbType) return
+
+    let width = header.dbType.length * 7
+    width = width < e.bounds.width ? e.bounds.width : width
+
+    var span = document.createElement('span')
+    span.innerText = header.dbType
+    span.className = 'header-tooltip-cell'
+    span.style.fontSize = '13px';
+    span.style.textAlign = 'center';
+    span.style.alignContent = 'center';
+    span.style.justifyContent = 'center';
+    span.style.backgroundColor = '#d3d3d3';
+    span.style.borderRadius = '5px';
+    span.style.height = 15 + 'px';
+    span.style.width = width + 'px';
+    span.style.position = "absolute";
+    span.style.left = x + 'px';
+    span.style.top = y - 19 + 'px';
+    span.setAttribute('data-pr-tooltip', header.name)
+    span.setAttribute('data-pr-position', 'top')
+    document.getElementById('result-panel')?.appendChild(span)
   }
 
   // const glideCols = React.useMemo<GridColumn[]>(
   //   () => props.tab.query.headers.get()?.map(h => { return { title: h, id: h }}) || []
   // , [props.tab.query.headers] );
-  const glideCols : GridColumn[] = props.tab.query.headers?.get()?.map(h => { 
+  const glideCols : GridColumn[] = props.result.query.headers?.get()?.map(h => { 
+    let name = h?.name || ''
+    let width = name.length * 9.5 // eslint-disable-line
     return {
-      title: h,
-      id: h,
+      title: name,
+      id: name,
+      // width: width < 100 ? 100 : width,
       // icon: GridColumnIcon.HeaderDate,
       // icon: GridColumnIcon.HeaderString,
       themeOverride: {
@@ -162,25 +202,25 @@ export const TabTable: React.FC<Props> = (props) => {
             fontFamily: 'monospace'
           }
       }
-  }, [props.tab.query.rows.get()]); // eslint-disable-line
+  }, [props.result.query.rows.get()]); // eslint-disable-line
 
   let output = <></>
 
-  if (props?.tab?.loading?.get()) {
+  if (props?.result?.loading?.get()) {
     // set progress spinner if still running
-    output = <Progress tab={tab} resultWidth={resultWidth} tableHeight={tableHeight}/>
-  } else if(props?.tab?.query.err.get()) {
+    output = <Progress result={result} resultWidth={resultWidth} tableHeight={tableHeight}/>
+  } else if(props?.result?.query.err.get()) {
     // set error if found
-    let err = props.tab.query.err.get() + "\n\nFor SQL:\n" + props.tab.query.text.get()
+    let err = props.result.query.err.get() + "\n\nFor SQL:\n" + props.result.query.text.get()
     output = <InputTextarea
       value={err}
       style={{height: tableHeight, width: resultWidth, color:'red', fontSize:'16px'}}
       readOnly
     />
-  } else if(props?.tab?.showText.get()) {
+  } else if(tab?.showText.get()) {
     // show rows as text
     let pt = new PrettyTable()
-    pt.fieldNames(props.tab.query.headers.get())
+    pt.fieldNames(props.result.query.headers.get())
     for(let row of rows) {
       pt.addRow(row.join('$|$').split('$|$'))
     }
@@ -189,10 +229,10 @@ export const TabTable: React.FC<Props> = (props) => {
       style={{height: tableHeight, width: resultWidth, fontSize:'13px', fontFamily:'monospace'}}
       readOnly
     />
-  } else if(props?.tab?.query.text.get().includes('ddl_view') || props?.tab?.query.text.get().includes('ddl_table')) {
+  } else if(props?.result?.query.text.get().includes('ddl_view') || props?.result?.query.text.get().includes('ddl_table')) {
     let ddl = ''
     try {
-      ddl = props.tab.query.get().rows.map(r => r[0]).join('\n') 
+      ddl = props.result.query.get().rows.map(r => r[0]).join('\n') 
     } catch (error) {
       LogError(error)
     }
@@ -205,8 +245,8 @@ export const TabTable: React.FC<Props> = (props) => {
       }}
       readOnly
     />
-  } else if(props?.tab?.query.affected.get() !== -1) {
-    let text = `Total Rows Affected: ${props.tab.query.affected.get()}`
+  } else if(props?.result?.query.affected.get() !== -1) {
+    let text = `Total Rows Affected: ${props.result.query.affected.get()}`
     output = <InputTextarea
       value={text}
       style={{
@@ -216,7 +256,7 @@ export const TabTable: React.FC<Props> = (props) => {
       }}
       readOnly
     />
-  } else if(rows.length === 0 && props.tab.query.headers?.length > 0) {
+  } else if(rows.length === 0 && props.result.query.headers?.length === 0) {
     let text = `No Rows Returned.`
     output = <InputTextarea
       value={text}
@@ -240,7 +280,12 @@ export const TabTable: React.FC<Props> = (props) => {
         headerHeight={25}
         rowHeight={25}
         minColumnWidth={100}
+        maxColumnAutoWidth={500}
+        scaleToRem={true}
         showSearch={showSearch}
+        onHeaderClicked={(colIndex: number, event: HeaderClickedEventArgs) => {
+        }}
+        // onColumnResize={onColumnResize}
         // showMinimap={true}
         // onGridSelectionChange={afterSelection}
         // smoothScrollX={true}
@@ -249,6 +294,7 @@ export const TabTable: React.FC<Props> = (props) => {
         getCellsForSelection={true}
         rowMarkers="clickable-number"
         onCellClicked={afterCellSelection}
+        onCellActivated={afterCellSelection}
         theme={{
           editorFontSize: '11.5px',
           baseFontStyle: 'font-size: 11.5px; font-family: monospace',
@@ -259,17 +305,16 @@ export const TabTable: React.FC<Props> = (props) => {
 
   return (
     <div style={{fontSize:'9.5px', overflowX: "hidden"}}>
-      <Tooltip></Tooltip>
       {output}
     </div>
   );
 }
 
+export const TabTable = withResizeDetector(TabTableComponent);
 
-
-const Progress: React.FC<{tab: State<Tab>, tableHeight: number, resultWidth: number}> = (props) => {
+const Progress: React.FC<{result: State<Result>, tableHeight: number, resultWidth: number}> = (props) => {
   const duration = useVariable('')
-  const tab = props.tab
+  const result = props.result
 
   React.useEffect(()=>{
     return () => {
@@ -278,15 +323,15 @@ const Progress: React.FC<{tab: State<Tab>, tableHeight: number, resultWidth: num
   }, []) // eslint-disable-line
 
   React.useEffect(()=>{
-    if(tab.loading.get()) {
+    if(result.loading.get()) {
       durationInterval = setInterval(() => {
-        duration.set(get_duration(Math.round((new Date().getTime() - tab.query.time.get()) / 1000)))
+        duration.set(get_duration(Math.round((new Date().getTime() - result.query.time.get()) / 1000)))
       }, 100)
     } else {
       duration.set('loading...')
       clearInterval(durationInterval)
     }
-  }, [tab.loading.get()]) // eslint-disable-line
+  }, [result.loading.get()]) // eslint-disable-line
 
   return <div style={{height: props.tableHeight, width: props.resultWidth, textAlign:'center'}}>
     <ProgressSpinner style={{width: '50px', height: '50px'}} strokeWidth="8" fill="#EEEEEE" animationDuration=".5s"/>

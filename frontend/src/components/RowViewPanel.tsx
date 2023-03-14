@@ -1,35 +1,39 @@
+import { State } from "@hookstate/core";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import * as React from "react";
+import { Result } from "../state/query";
+import { Tab } from "../state/tab";
 import { useHS } from "../store/state";
-import { getTabState } from "./TabNames";
 
-interface Props {}
+interface Props {
+  tab: State<Tab>
+  result: State<Result>
+}
 
 export const RowViewPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const queryPanel = window.dbnet.state.queryPanel
-  const tabIndex = queryPanel.get().currTabIndex() || 0
-  const childTab = useHS(getTabState(queryPanel.tabs[tabIndex].selectedChild.get()))
-  const parentTab = getTabState(childTab.parent.get() || '')
+  const resultTab = useHS(props.result)
+  const parentTab = useHS(props.tab)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   let handleKeywordKeyPress = (e: React.KeyboardEvent) =>{
-    if(e.key === 'Escape') { childTab.rowView.filter.set('') }
+    if(e.key === 'Escape') { parentTab.rowView.filter.set('') }
   };
   
   ///////////////////////////  JSX  ///////////////////////////
+  if(!parentTab?.rowView?.show?.get()) return <></>
   
   return (
     <Dialog 
       header={<p style={{margin:0, textAlign:'center'}}>{parentTab?.get()?.name}</p>}
-      visible={childTab.rowView.show.get()}
+      visible={parentTab.rowView.show.get()}
       modal={false}
       position="right"
-      onHide={()=>{ childTab.rowView.show.set(false) }}
+      onHide={()=>{ parentTab.rowView.show.set(false) }}
       style={{width: `${(window.innerWidth)/7*2}px`, minWidth: '400px'}}
       closeOnEscape={false}
     >
@@ -37,16 +41,16 @@ export const RowViewPanel: React.FC<Props> = (props) => {
       <div className="p-col-12">
         <InputText
           className="p-inputtext-sm"
-          value={childTab.rowView.filter.get()}
-          onChange={(e) => childTab.rowView.filter.set((e.target as HTMLInputElement).value)}
+          value={parentTab.rowView.filter.get()}
+          onChange={(e) => parentTab.rowView.filter.set((e.target as HTMLInputElement).value)}
           onKeyDown={handleKeywordKeyPress}
           placeholder="Filter..."
         />
       </div>
     </div>
       <DataTable
-        value={childTab.rowView.get().rows}
-        loading={childTab.loading.get()}
+        value={parentTab.rowView.get().rows}
+        loading={resultTab.loading.get()}
         rowHover={true}
         scrollable={true}
         scrollHeight={`${(window.innerHeight)/3*2}px`}
@@ -54,7 +58,7 @@ export const RowViewPanel: React.FC<Props> = (props) => {
         className="p-datatable-sm p-datatable-gridlines"
         style={{fontSize:'11px'}} 
         dataKey="column_name"
-        globalFilter={childTab.rowView.filter.get()}
+        globalFilter={parentTab.rowView.filter.get()}
       >
         <Column
           field="n" header="N"

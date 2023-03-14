@@ -111,6 +111,8 @@ export const MetaExplorer: React.FC<Props> = (props) => {
 
   const refreshData = (filter='') => { 
     let conn = window.dbnet.getConnection(window.dbnet.selectedConnection)
+    if(!conn.name) return
+    
     let data: MetaRecord[] = [];
     
     // comma is OR, space is AND
@@ -277,9 +279,10 @@ export const MetaExplorer: React.FC<Props> = (props) => {
                 where ${rec.column} is not null limit 50`
     }
     let req : QueryRequest = {
-      conn: window.dbnet.currentConnection.name,
+      connection: window.dbnet.currentConnection.name,
       database: rec.database,
       text: sql,
+      headless: true,
     }
     loadingState[rec.key].set(true)
     let query = await window.dbnet.submitQuery(req)
