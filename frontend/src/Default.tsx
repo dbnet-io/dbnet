@@ -55,6 +55,9 @@ export const Default: React.FC<Props> = (props) => {
     // choose conn if needed
     if(!dbnet.selectedConnection) return chooseConnection.set(true)
 
+    // set title
+    document.title = `${dbnet.selectedConnection.toUpperCase()}`
+
     // init load session
     // await globalStore.loadSession(dbnet.selectedConnection)
 

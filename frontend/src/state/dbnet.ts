@@ -69,6 +69,7 @@ export class DbNet {
     if (!name || !this.connections.map(c => c.name.toLowerCase()).includes(name.toLowerCase())) {
       return toastError(`Connection ${name} not found`)
     }
+    document.title = `${name.toUpperCase()}`
     if(this.selectedConnection === name) return
     this.selectedConnection = name
     this.state.workspace.selectedConnectionName.set(name)
@@ -398,6 +399,7 @@ export class DbNet {
           continue
         }
 
+        query.duration = ((new Date()).getTime() - query.time) / 1000
         query.err = resp.data?.err
         query.headers = await resp.headers()
         if(req.export) {
