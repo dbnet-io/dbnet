@@ -1,18 +1,22 @@
+import { State } from "@hookstate/core";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
 import * as React from "react";
+import { Result } from "../state/query";
+import { Tab } from "../state/tab";
 import { useHS } from "../store/state";
-import { getResultState, getTabState } from "./TabNames";
 
-interface Props {}
+interface Props {
+  tab: State<Tab>
+  result: State<Result>
+}
 
 export const RowViewPanel: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
-  const queryPanel = window.dbnet.state.queryPanel
-  const resultTab = useHS(getResultState(queryPanel.get().currResult()?.id))
-  const parentTab = getTabState(resultTab?.get()?.parent || '')
+  const resultTab = useHS(props.result)
+  const parentTab = useHS(props.tab)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   ///////////////////////////  FUNCTIONS  ///////////////////////////

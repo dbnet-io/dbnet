@@ -286,10 +286,9 @@ export function TabToolbar(props: { result: State<Result> }) {
             tooltipOptions={{ position: 'top' }}
             onClick={() => {
               // console.log(props.hotTable.current?.hotInstance)
-              // console.log(props.hotTable.current?.hotInstance.countRows())
               let startCol = result.lastTableSelection.get()[1]
               let endCol = result.lastTableSelection.get()[3]
-              copyToClipboard(result.query.headers.get().filter((h, i) => i >= startCol && i <= endCol).join('\n'))
+              copyToClipboard(result.query.headers.get().map(h => h.name).filter((h, i) => i >= startCol && i <= endCol).join('\n'))
             }}
           />
 

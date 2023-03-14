@@ -4,6 +4,7 @@ import (
 	"os"
 	"time"
 
+	dbRestState "github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
@@ -37,7 +38,7 @@ func InitDB() {
 		&TableColumn{},
 		&TableColumnStats{},
 		&Job{},
-		&Query{},
+		&dbRestState.Query{},
 		&Session{},
 	}
 

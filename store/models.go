@@ -5,9 +5,7 @@ import (
 
 	"database/sql/driver"
 
-	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
-	"github.com/jmoiron/sqlx"
 	"github.com/slingdata-io/sling-cli/core/sling"
 )
 
@@ -98,32 +96,6 @@ func (r *Rows) Scan(value interface{}) error {
 // Value return json value, implement driver.Valuer interface
 func (r Rows) Value() (driver.Value, error) {
 	return g.JSONValuer(r, "[]")
-}
-
-// Query represents a query
-type Query struct {
-	ID              string          `json:"id" query:"id" gorm:"primaryKey"`
-	Conn            string          `json:"conn" query:"conn" gorm:"index"`
-	Database        string          `json:"database" query:"database" gorm:"index"`
-	Tab             string          `json:"tab" query:"tab"`
-	Text            string          `json:"text" query:"text"`
-	Time            int64           `json:"time" query:"time" gorm:"index:idx_query_time"`
-	Duration        float64         `json:"duration" query:"duration"`
-	Status          QueryStatus     `json:"status" query:"status"`
-	Err             string          `json:"err" query:"err"`
-	Headers         Headers         `json:"headers" query:"headers" gorm:"headers"`
-	Rows            Rows            `json:"rows" query:"rows" gorm:"-"`
-	Context         g.Context       `json:"-" gorm:"-"`
-	Result          *sqlx.Rows      `json:"-" gorm:"-"`
-	Columns         []iop.Column    `json:"-" gorm:"-"`
-	Stream          *iop.Datastream `json:"-" gorm:"-"`
-	Limit           int             `json:"limit" query:"limit" gorm:"-"` // -1 is unlimited
-	Wait            bool            `json:"wait" query:"wait" gorm:"-"`
-	UpdatedDt       time.Time       `json:"-" gorm:"autoUpdateTime"`
-	Done            chan struct{}   `json:"-" gorm:"-"`
-	Affected        int64           `json:"affected" gorm:"-"`
-	Error           error           `json:"-" gorm:"-"`
-	IsFieldAnalysis bool            `json:"-" gorm:"-"`
 }
 
 // Job represents a job

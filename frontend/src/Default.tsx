@@ -5,7 +5,6 @@ import * as React from "react";
 import { useLocation } from "react-router-dom";
 import { ConnectionChooser } from "./components/ConnectionChooser";
 import { JobPanel } from "./components/JobPanel";
-import { RowViewPanel } from "./components/RowViewPanel";
 import { getTabState } from "./components/TabNames";
 import { TopMenuBar } from "./components/TopMenuBar";
 import { LeftPane } from "./panes/LeftPane";
@@ -109,7 +108,6 @@ export const Default: React.FC<Props> = (props) => {
       <JobPanel/>
       {/* <PreviewPanel /> */}
       {/* <MetaExplorer/> */}
-      <RowViewPanel />
       <ConnectionChooser
         show={chooseConnection}
         selectDb={false}

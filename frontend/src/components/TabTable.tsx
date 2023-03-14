@@ -13,7 +13,6 @@ import { Query, QueryStatus, Result } from "../state/query";
 import DataEditor, { DataEditorProps, DataEditorRef, GridCellKind, GridColumn, GridMouseEventArgs, HeaderClickedEventArgs, Item } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
-import { Tooltip } from "primereact/tooltip";
 import { withResizeDetector } from 'react-resize-detector';
 
 const PrettyTable = require('prettytable');
@@ -139,8 +138,6 @@ const TabTableComponent: React.FC<Props> = (props) => {
 
     if(e.kind === 'cell') return
 
-    console.log(e)
-
     let x = e.bounds.x
     let y = e.bounds.y
 
@@ -168,7 +165,6 @@ const TabTableComponent: React.FC<Props> = (props) => {
     span.setAttribute('data-pr-tooltip', header.name)
     span.setAttribute('data-pr-position', 'top')
     document.getElementById('result-panel')?.appendChild(span)
-    console.log(span)
   }
 
   // const glideCols = React.useMemo<GridColumn[]>(
@@ -176,11 +172,11 @@ const TabTableComponent: React.FC<Props> = (props) => {
   // , [props.tab.query.headers] );
   const glideCols : GridColumn[] = props.result.query.headers?.get()?.map(h => { 
     let name = h?.name || ''
-    let width = name.length * 9.5
+    let width = name.length * 9.5 // eslint-disable-line
     return {
       title: name,
       id: name,
-      width: width < 100 ? 100 : width,
+      // width: width < 100 ? 100 : width,
       // icon: GridColumnIcon.HeaderDate,
       // icon: GridColumnIcon.HeaderString,
       themeOverride: {
@@ -273,7 +269,6 @@ const TabTableComponent: React.FC<Props> = (props) => {
     />
   } else {
     output = <>
-      <Tooltip target='.header-tooltip'/>
       <DataEditor
         ref={ref}
         getCellContent={glideGetData}
@@ -285,9 +280,12 @@ const TabTableComponent: React.FC<Props> = (props) => {
         headerHeight={25}
         rowHeight={25}
         minColumnWidth={100}
+        maxColumnAutoWidth={500}
+        scaleToRem={true}
         showSearch={showSearch}
         onHeaderClicked={(colIndex: number, event: HeaderClickedEventArgs) => {
         }}
+        // onColumnResize={onColumnResize}
         // showMinimap={true}
         // onGridSelectionChange={afterSelection}
         // smoothScrollX={true}
@@ -296,6 +294,7 @@ const TabTableComponent: React.FC<Props> = (props) => {
         getCellsForSelection={true}
         rowMarkers="clickable-number"
         onCellClicked={afterCellSelection}
+        onCellActivated={afterCellSelection}
         theme={{
           editorFontSize: '11.5px',
           baseFontStyle: 'font-size: 11.5px; font-family: monospace',
@@ -306,15 +305,12 @@ const TabTableComponent: React.FC<Props> = (props) => {
 
   return (
     <div style={{fontSize:'9.5px', overflowX: "hidden"}}>
-      <Tooltip></Tooltip>
       {output}
     </div>
   );
 }
 
 export const TabTable = withResizeDetector(TabTableComponent);
-// export const TabTable = TabTableComponent;
-
 
 const Progress: React.FC<{result: State<Result>, tableHeight: number, resultWidth: number}> = (props) => {
   const duration = useVariable('')

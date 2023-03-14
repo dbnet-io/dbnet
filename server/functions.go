@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/dbnet-io/dbnet/store"
 	dbRestServer "github.com/dbrest-io/dbrest/server"
@@ -41,9 +42,11 @@ func init() {
 
 func queryMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
+		start := time.Now().Unix()
 		reqErr := next(c) // process to get response
 		if query, ok := c.Get("query").(*dbRestState.Query); ok && query != nil {
 			req := c.Get("request").(*dbRestServer.Request)
+			query.Start = start
 			go g.LogError(processQuery(req, query), "could not process query")
 		}
 		return reqErr
@@ -64,7 +67,9 @@ func schemataMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func processQuery(req *dbRestServer.Request, query *dbRestState.Query) (err error) {
-	return
+	query.Conn = strings.ToLower(query.Conn)
+	query.Database = strings.ToLower(query.Database)
+	return store.Sync("queries", query)
 }
 
 func processSchemataData(req *dbRestServer.Request, data *iop.Dataset) (err error) {

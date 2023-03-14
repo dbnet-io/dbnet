@@ -6,7 +6,7 @@ export enum QueryStatus {
   Completed = 'completed',
   Submitted = 'submitted',
   Cancelled = 'cancelled',
-  Errored = 'errorred',
+  Errored = 'errored',
 }
 
 export interface QueryRequest { 

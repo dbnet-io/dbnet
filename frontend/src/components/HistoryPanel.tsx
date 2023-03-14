@@ -7,11 +7,10 @@ import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
 import _ from "lodash";
 import { Tooltip } from "primereact/tooltip";
-import { InputTextarea } from 'primereact/inputtextarea';
-import { submitSQL } from "./TabToolbar";
-import { appendSqlToTab, getCurrentParentTabState, getTabState } from "./TabNames";
+import { getTabState } from "./TabNames";
 import { Query, QueryStatus } from "../state/query";
 import { Routes } from "../state/routes";
+import { ObjectAny } from "../utilities/interfaces";
 
 interface Props {}
 
@@ -23,6 +22,9 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const filter = useHS(window.dbnet.state.historyPanel.filter)
   const tabId = window.dbnet.state.queryPanel.selectedTabId
   const tabLoading = useHS(getTabState(tabId.get()).loading)
+  const leftPanelratio = window.dbnet.state.settingState.leftPaneRatio.get()
+  const childHeight1 = (document.getElementById("left-pane")?.scrollHeight as number) * leftPanelratio[0] / 100
+  const height = childHeight1? childHeight1 - 110 : ((document.body.scrollHeight / 2) - 60)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -31,16 +33,29 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   }, [filter.get(), tabLoading.get()])// eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
+  const makeQueryObject = (data: ObjectAny) => {
+    return new Query({
+      id: data.id,
+      connection: data.conn,
+      database: data.database,
+      time: data.start * 1000,
+      duration: data.end - data.start,
+      text: data.text,
+      err: data.err,
+      status: data.status,
+    })
+  }
+
   const getLatest = async () => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: window.dbnet.connections.map(c => c.name).join(','),
+      conn: window.dbnet.selectedConnection,
       procedure: "get_latest",
     }
     try {
       let resp = await apiGet(Routes.getHistory, data1)
       if (resp.error) throw new Error(resp.error)
-      options.set(resp.data.history.map((v: any) => new Query(v)))
+      options.set(resp.data.history.map((v: any) => makeQueryObject(v)))
     } catch (error) {
       toastError(error, "Could not get latest history entries")
     }
@@ -49,14 +64,14 @@ export const HistoryPanel: React.FC<Props> = (props) => {
   const doSearch = async (filter: string) => {
     let data1 = {
       id: new_ts_id('hist.'),
-      conn: window.dbnet.connections.map(c => c.name).join(','),
+      conn: window.dbnet.selectedConnection,
       procedure: "search",
       name: filter,
     }
     try {
       let resp = await apiGet(Routes.getHistory, data1)
       if (resp.error) throw new Error(resp.error)
-      options.set(resp.data.history.map((v: any) => new Query(v)))
+      options.set(resp.data.history.map((v: any) => makeQueryObject(v)))
     } catch (error) {
       toastError(error, "Could not get latest history entries")
     }
@@ -105,7 +120,8 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           onDoubleClick={(e) => { }}
         >
           {/* {formatTime(query.time)} | {shorten(query.text, 50)} */}
-          {query.connection} | {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
+          {/* {query.connection} | {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b> */}
+          {formatTime(query.time)} <b>{relative_duration(new Date(query.time), true, true)}</b>
           <span
             style={{
               paddingLeft: '10px',
@@ -143,20 +159,22 @@ export const HistoryPanel: React.FC<Props> = (props) => {
           options={options.get()}
           onChange={(e) => {
             if (!e.value) { return }
-            selectedQuery.set(e.value)
+            // selectedQuery.set(e.value)
+            copyToClipboard(e.value.text + ';', "Query copied to clipboard")
           }}
           metaKeySelection={true}
           optionLabel="name"
           itemTemplate={ItemTemplate}
           style={{ width: '100%' }}
           listStyle={{
-            minHeight: `${(window.innerHeight - 195) / 3 * 2}px`,
-            maxHeight: `${(window.innerHeight - 195) / 3 * 2}px`,
+            height: height + 'px',
+            // minHeight: `${(window.innerHeight - 195) / 3 * 2}px`,
+            // maxHeight: `${(window.innerHeight - 195) / 3 * 2}px`,
             fontSize: '12px',
           }}
         />
       </div>
-      <div className="p-col-12 p-md-12" style={{ paddingTop: '7px' }}>
+      {/* <div className="p-col-12 p-md-12" style={{ paddingTop: '7px' }}>
         <InputTextarea
           style={{
             fontSize: '11px', fontFamily: 'monospace',
@@ -202,7 +220,7 @@ export const HistoryPanel: React.FC<Props> = (props) => {
             }}
           />
         </span>
-      </div>
+      </div> */}
     </div>
   );
 };

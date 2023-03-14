@@ -7,6 +7,7 @@ import { TabTable } from "../components/TabTable";
 import { useHS } from "../store/state";
 import { jsonClone } from "../utilities/methods";
 import { SubTabs } from "../components/SubTabs";
+import { RowViewPanel } from "../components/RowViewPanel";
 
 interface Props {}
 
@@ -29,6 +30,7 @@ export const RightPane: React.FC<Props> = (props) => {
           <div id="work-input" style={{padding: '8px', width: '100%'}}>
             <TabNames/>
             <TabEditor tab={tab}/>
+            <RowViewPanel tab={tab} result={resultTab}/>
           </div>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex" style={{overflowY: "scroll", height: "200px", minHeight:"100px"}}>

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/dbnet-io/dbnet/store"
+	dbRestState "github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/g"
 	"github.com/labstack/echo/v5"
 )
@@ -68,11 +69,11 @@ func GetHistory(c echo.Context) (err error) {
 		return g.ErrJSON(http.StatusBadRequest, err, "invalid get history request")
 	}
 
-	entries := []store.Query{}
+	entries := []dbRestState.Query{}
 	conns := strings.Split(req.Conn, ",")
 	switch req.Procedure {
 	case "get_latest":
-		err = store.Db.Order("time desc").Limit(100).
+		err = store.Db.Order("start desc").Limit(100).
 			Where("conn in (?)", conns).Find(&entries).Error
 
 	case "search":
@@ -87,7 +88,7 @@ func GetHistory(c echo.Context) (err error) {
 			orArr = append(orArr, "("+strings.Join(andWhere, " and ")+")")
 		}
 		whereStr := strings.Join(orArr, " or ")
-		err = store.Db.Order("time desc").Limit(100).
+		err = store.Db.Order("start desc").Limit(100).
 			Where(whereStr, whereValues...).Find(&entries).Error
 	}
 
