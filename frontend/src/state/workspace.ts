@@ -47,6 +47,19 @@ export class ProjectPanelState {
 
 }
 
+export class WorkPanelState {
+  fileNodes: TreeNode[]
+  expandedNodes: ObjectAny
+  selectedNodes: ObjectAny
+
+  constructor(data: ObjectAny = {}) {
+    this.fileNodes = data.fileNodes || []
+    this.expandedNodes = data.expandedNodes || {}
+    this.selectedNodes = data.selectedNodes || {}
+  }
+
+}
+
 
 interface DbtProject {
   'name': string

@@ -8,7 +8,7 @@ import { Query, Result } from "./query"
 import { Routes } from "./routes"
 import { Column, Schema, Table } from "./schema"
 import { Tab } from "./tab"
-import { ProjectPanelState } from "./workspace"
+import { ProjectPanelState, WorkPanelState } from "./workspace"
 
 
 export class DbNetState {
@@ -17,6 +17,7 @@ export class DbNetState {
   queryPanel: State<QueryPanelState>
   jobPanel: State<JobPanelState>
   projectPanel: State<ProjectPanelState>
+  workPanel: State<WorkPanelState>
   schemaPanel: State<SchemaPanelState>
   metaPanel: State<MetaPanelState>
   objectPanel: State<ObjectPanelState>
@@ -28,6 +29,7 @@ export class DbNetState {
   constructor(data: ObjectAny = {}) {
     this.workspace = createState(new WorkspaceState(data.workspace))
     this.projectPanel = createState(new ProjectPanelState(data.projectPanel))
+    this.workPanel = createState(new WorkPanelState(data.workPanel))
     this.schemaPanel = createState(new SchemaPanelState(data.schemaPanel))
     this.metaPanel = createState(new MetaPanelState(data.metaPanel))
     this.objectPanel = createState(new ObjectPanelState(data.objectPanel))

@@ -17,6 +17,8 @@ const queryPanel = () => window.dbnet.state.queryPanel
 const selectTab = (id: string) => window.dbnet.selectTab(id)
 
 export const createTab = (name: string = '', sql = '', connName: string, dbName: string) => {
+  if(!dbName) dbName = window.dbnet.getConnection(connName).database
+  
   name = newTabName(name, dbName)
   if (!name.toLowerCase().endsWith('.sql')) {
     let name_arr = name.split('.')
@@ -226,6 +228,7 @@ const TabNamesComponent: React.FC<Props> = (props) => {
       }
     }
     getTabState(connTabs[tabI].id).hidden.set(true)
+    window.dbnet.selectTab(selectedTabId.get()) // refresh
   }
 
   const actionTab = (name: string) => {
@@ -303,8 +306,7 @@ const TabNamesComponent: React.FC<Props> = (props) => {
     // let items : MenuItem[] = []
     
     let connTabs = window.dbnet.getCurrConnectionsTabs()
-    items =  items.concat(
-      connTabs
+    let tabItems = connTabs
         .filter(t => !t.hidden)
         .map(tab => {
 
@@ -389,7 +391,9 @@ const TabNamesComponent: React.FC<Props> = (props) => {
           })
         } as MenuItem
       })
-    )
+
+    // items = items.concat(_.sortBy(tabItems, (o) => o.name))
+    items = items.concat(tabItems)
 
     return items
   }

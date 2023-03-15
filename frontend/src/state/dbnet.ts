@@ -88,6 +88,9 @@ export class DbNet {
     if(!id) {
       let tab = getOrCreateParentTabState(this.selectedConnection, this.currentConnection.database)
       id = tab.id.get()
+    } else {
+      let tab = getTabState(id)
+      tab.hidden.set(false)
     }
 
     this.state.queryPanel.selectedTabId.set(id)

@@ -4,9 +4,9 @@ import { useHS } from "../store/state";
 import { HistoryPanel } from "../components/HistoryPanel";
 import { SchemaPanel } from "../components/SchemaPanel";
 import { useState } from "@hookstate/core";
-import { ProjectPanel } from "../components/ProjectPanel";
 import { Splitter, SplitterPanel } from "primereact/splitter";
 import { MetaTablePanel } from "../components/MetaTablePanel";
+import { WorkPanel } from "../components/WorkPanel";
 
 interface Props {}
 
@@ -51,7 +51,7 @@ export const LeftPane: React.FC<Props> = (props) => {
           <div className="p-col-12 p-md-12" style={{paddingTop: '0px', paddingBottom: '0px'}}>
               { 
                 tabValue.get() === "Work" ?
-                <ProjectPanel/> : null
+                <WorkPanel/> : null
               }
               { 
                 tabValue.get() === "Schema" ?

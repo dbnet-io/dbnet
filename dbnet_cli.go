@@ -28,12 +28,12 @@ var cliServe = &g.CliSC{
 		{
 			Name:        "host",
 			Type:        "string",
-			Description: "The host to use. (default 0.0.0.0)",
+			Description: "The host to use. (default: 0.0.0.0)",
 		},
 		{
 			Name:        "port",
 			Type:        "string",
-			Description: "The port to use (default 5897)",
+			Description: "The port to use (default: 5897)",
 		},
 	},
 }

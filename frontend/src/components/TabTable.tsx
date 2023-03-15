@@ -149,7 +149,7 @@ const TabTableComponent: React.FC<Props> = (props) => {
     width = width < e.bounds.width ? e.bounds.width : width
 
     var span = document.createElement('span')
-    span.innerText = header.dbType
+    span.innerText = header.dbType.toUpperCase()
     span.className = 'header-tooltip-cell'
     span.style.fontSize = '13px';
     span.style.textAlign = 'center';
