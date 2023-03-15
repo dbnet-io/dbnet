@@ -237,7 +237,7 @@ func telemetry(action string) {
 		"action", action,
 		"machine_id", machineID,
 	)
-	net.ClientDo("POST", state.RudderstackURL, strings.NewReader(g.Marshal(payload)), nil)
+	net.ClientDo("POST", env.RudderstackURL, strings.NewReader(g.Marshal(payload)), nil)
 
 }
 
