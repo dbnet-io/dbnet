@@ -1,0 +1,50 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: dbnet
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: .
+    
+    env:
+      - CGO_ENABLED=1
+
+    goarch:
+      - amd64
+      # - arm64
+    goos:
+      - darwin
+    ldflags:
+      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}'"
+
+universal_binaries:
+  - id: dbnet
+    replace: false
+  
+archives:
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Runtime.Goos }}_{{ .Runtime.Goarch }}_checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}"
+
+release:
+  mode: replace
+  header: |
+    ## dbNet {{ .Tag }} ({{ .Date }})
+
+brews:
+  - name: dbnet
+    tap:
+      owner: dbnet-io
+      name: homebrew-dbnet
+      branch: main
+    
+    homepage: https://github.com/dbnet-io/dbnet
+
+    description: "A database client that lets your SQL superpowers shine."

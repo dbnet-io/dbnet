@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/dbrest-io/dbrest v0.0.30
-	github.com/flarco/dbio v0.3.226
+	github.com/flarco/dbio v0.3.227
 	github.com/flarco/g v0.1.55
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/jmoiron/sqlx v1.2.0

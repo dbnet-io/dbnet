@@ -42,7 +42,7 @@ export const Default: React.FC<Props> = (props) => {
     await dbnet.init()
 
     if(location && !dbnet.selectedConnection) {
-      dbnet.selectConnection(location.pathname.replace('/', ''))
+      dbnet.selectConnection(location.hash.replace('#', '').replace('/', ''))
     }
 
     if(dbnet.connections.length === 0) {
@@ -108,16 +108,22 @@ export const Default: React.FC<Props> = (props) => {
       <JobPanel/>
       {/* <PreviewPanel /> */}
       {/* <MetaExplorer/> */}
-      <ConnectionChooser
-        show={chooseConnection}
-        selectDb={false}
-        onSelect={(connSelected: string) => {
-          if(!connSelected) return toastError('Please select a connection')
-          chooseConnection.set(false)
-          dbnet.selectConnection(connSelected)
-          Init()
-        }}
-      />
+     {
+      chooseConnection.get() ?
+        <ConnectionChooser
+          show={chooseConnection}
+          selectDb={false}
+          onSelect={(connSelected: string) => {
+            if(!connSelected) return toastError('Please select a connection')
+            chooseConnection.set(false)
+            dbnet.selectConnection(connSelected)
+            Init()
+          }}
+        />
+        :
+        null
+      }
+
       <div style={{ paddingBottom: '7px' }}>
         <TopMenuBar/>
       </div>

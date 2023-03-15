@@ -48,7 +48,8 @@ export class DbNet {
     this.db = getDexieDb()
     this.workspace = new Workspace()
     this.editor = new Editor()
-    this.selectedConnection = options.connectionName?.replace('/', '') || ''
+    this.selectedConnection = options.connectionName?.replace('#', '').replace('/', '') || ''
+    console.log(options.connectionName)
     this.triggerMap = {} as TriggerMapRecord
     this.state = new DbNetState()
     this.editorMap = {}
@@ -78,7 +79,7 @@ export class DbNet {
     this.selectedConnection = name
     this.state.workspace.selectedConnectionName.set(name)
     this.state.workspace.selectedConnection.set(this.getConnection(name))
-    window.history.replaceState(null, name, '/' + name);
+    window.history.replaceState(null, name, '/#/' + name);
     localStorage.setItem("_connection_name", name)
     this.trigger('onSelectConnection')
   }

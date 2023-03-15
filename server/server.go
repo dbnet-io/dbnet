@@ -26,6 +26,15 @@ type Server struct {
 //go:embed app
 var appFiles embed.FS
 
+var contentHandler = echo.WrapHandler(http.FileServer(http.FS(appFiles)))
+
+var contentRewrite = middleware.Rewrite(map[string]string{
+	"/":         "/app/index.html",
+	"/*":        "/app/$1",
+	"/static/*": "/app/static/$1",
+	"/assets/*": "/app/assets/$1",
+})
+
 // RouteName is the name of a route
 type RouteName string
 
@@ -61,8 +70,7 @@ func NewServer() *Server {
 	}))
 
 	// embedded files
-	contentHandler := echo.WrapHandler(http.FileServer(http.FS(appFiles)))
-	contentRewrite := middleware.Rewrite(map[string]string{"/*": "/app/$1"})
+	e.GET(RouteIndex.String()+"*", contentHandler, contentRewrite)
 
 	// add routes
 	for _, route := range StandardRoutes {
@@ -85,8 +93,6 @@ func NewServer() *Server {
 
 		e.AddRoute(route)
 	}
-
-	e.GET(RouteIndex.String()+"*", contentHandler, contentRewrite)
 
 	port := os.Getenv("PORT")
 	if port == "" {

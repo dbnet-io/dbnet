@@ -11,7 +11,7 @@ import 'primeicons/primeicons.css';
 import { Toast } from 'primereact/toast';
 import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import { DbNet } from './state/dbnet';
-import { BrowserRouter, Route } from 'react-router-dom';
+import { HashRouter, Route } from 'react-router-dom';
 import { Default } from './Default';
 
 // this is to extends the window global functions
@@ -34,7 +34,7 @@ export const App = () => {
   useWindowSize()
 
   const location = window.location
-  const state = React.useRef<DbNet>(new DbNet({ connectionName: location?.pathname }))
+  const state = React.useRef<DbNet>(new DbNet({ connectionName: location?.hash }))
   window.dbnet = state.current
   
   ///////////////////////////  EFFECTS  ///////////////////////////
@@ -49,9 +49,9 @@ export const App = () => {
 
   return <>
     <Toast ref={toast} />
-    <BrowserRouter>
+    <HashRouter>
       <Route path="*" render={() => <Default/>} />
-    </BrowserRouter>
+    </HashRouter>
   </>
   
 }

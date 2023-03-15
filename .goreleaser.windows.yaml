@@ -1,0 +1,48 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: dbNet
+
+before:
+  hooks:
+    - go mod edit -dropreplace='github.com/flarco/g' go.mod
+    - go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+    - go mod tidy
+
+builds:
+  - main: .
+    
+    env:
+      - CGO_ENABLED=1
+
+    goarch:
+      - amd64
+      # - arm64
+    goos:
+      - windows
+    ldflags:
+      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}'"
+
+archives:
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Runtime.Goos }}_{{ .Runtime.Goarch }}_checksums.txt"
+
+snapshot:
+  name_template: "{{ incpatch .Version }}"
+
+release:
+  mode: replace
+  header: |
+    ## dbNet {{ .Tag }} ({{ .Date }})
+
+scoop:
+  name: dbnet
+  bucket:
+    owner: dbnet-io
+    name: scoop-dbnet
+    branch: main
+
+  homepage: https:/github.com/dbnet-io/dbnet
+
+  description: "A database client that lets your SQL superpowers shine."

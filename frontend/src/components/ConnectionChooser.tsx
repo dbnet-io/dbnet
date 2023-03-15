@@ -50,20 +50,11 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
 
   return  (
     <Dialog
-      header="Choose a Database" visible={props.show.get()}
+      header={connSelected.get() ? "Choose a Database" : "Choose a Connection"} visible={props.show.get()}
       footer={footer()} 
-      style={{width: '20rem', height: props.selectDb && connSelected.get() ? '20rem' : '10rem'}} 
+      style={{width: '20rem', height: props.selectDb && connSelected.get() ? '20rem' : '20rem'}} 
       onHide={() => props.show.set(false)}
     >
-      {/* <ListBox 
-        value={connSelected.get()}
-        // options={window.dbnet.connections.map(c => c.name)} 
-        options={[window.dbnet.selectedConnection]} 
-        onChange={(e) => connSelected.set(e.value)} 
-        listStyle={{fontFamily:'monospace', height: '5rem'}}
-        itemTemplate={itemTemplate}
-        style={{width: '15rem'}}
-      /> */}
       {
         props.selectDb && connSelected.get() ?
         <ListBox 
@@ -81,7 +72,14 @@ export const ConnectionChooser = (props: { show: State<boolean>, selectDb: boole
           style={{width: '15rem'}} 
         />
         :
-        null
+        <ListBox 
+          value={connSelected.get()}
+          options={window.dbnet.connections.map(c => c.name)} 
+          onChange={(e) => connSelected.set(e.value)} 
+          listStyle={{fontFamily:'monospace', height: '10rem'}}
+          itemTemplate={itemTemplate}
+          style={{width: '15rem'}}
+        />
       }
     </Dialog>
   )

@@ -12,6 +12,27 @@ import (
 
 var StandardRoutes = []echo.Route{
 	{
+		Name:        "Static",
+		Method:      "GET",
+		Path:        "/static/:folder/:name",
+		Handler:     contentHandler,
+		Middlewares: []echo.MiddlewareFunc{contentRewrite},
+	},
+	{
+		Name:        "Assets Root",
+		Method:      "GET",
+		Path:        "/assets/:name",
+		Handler:     contentHandler,
+		Middlewares: []echo.MiddlewareFunc{contentRewrite},
+	},
+	{
+		Name:        "Assets Connections",
+		Method:      "GET",
+		Path:        "/assets/:folder/:name",
+		Handler:     contentHandler,
+		Middlewares: []echo.MiddlewareFunc{contentRewrite},
+	},
+	{
 		Name:    "getSettings",
 		Method:  "GET",
 		Path:    "/get-settings",
