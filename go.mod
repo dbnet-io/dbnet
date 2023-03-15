@@ -4,10 +4,13 @@ go 1.19
 
 require (
 	github.com/dbrest-io/dbrest v0.0.37
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/flarco/dbio v0.3.227
 	github.com/flarco/g v0.1.55
 	github.com/getsentry/sentry-go v0.11.0
+	github.com/integrii/flaggy v1.5.2
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/labstack/echo/v5 v5.0.0-20220201181537-ed2888cfa198
 	github.com/samber/lo v1.25.0
@@ -101,7 +104,6 @@ require (
 	github.com/googleapis/gax-go/v2 v2.5.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/integrii/flaggy v1.5.2 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.11.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

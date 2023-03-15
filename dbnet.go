@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
+	"time"
 
-	"github.com/dbnet-io/dbnet/server"
 	"github.com/dbnet-io/dbnet/store"
 	"github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/g"
-	"github.com/skratchdot/open-golang/open"
 )
+
+var ctx = g.NewContext(context.Background())
+var interrupted = false
 
 func init() {
 	if os.Getenv("DBNET_DIR") == "" {
@@ -22,11 +27,37 @@ func init() {
 
 func main() {
 	state.NoRestriction = true // allow all on dbREST
-	go store.Loop()
-	srv := server.NewServer()
-	srv.Start()
-}
+	exitCode := 11
+	done := make(chan struct{})
+	interrupt := make(chan os.Signal, 1)
+	kill := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	signal.Notify(kill, syscall.SIGTERM)
 
-func openBrowser(port int) {
-	open.Run(g.F("http://localhost:%d", port))
+	go func() {
+		defer close(done)
+		exitCode = cliInit()
+	}()
+
+	select {
+	case <-done:
+		os.Exit(exitCode)
+	case <-kill:
+		println("\nkilling process...")
+		os.Exit(111)
+	case <-interrupt:
+		if cliServe.Sc.Used {
+			println("\ninterrupting...")
+			interrupted = true
+
+			ctx.Cancel()
+
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+			}
+		}
+		os.Exit(exitCode)
+		return
+	}
 }

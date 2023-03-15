@@ -18,6 +18,7 @@ import (
 
 // Server is the main server
 type Server struct {
+	Host       string
 	Port       string
 	EchoServer *echo.Echo
 	StartTime  time.Time
@@ -29,7 +30,6 @@ var appFiles embed.FS
 var contentHandler = echo.WrapHandler(http.FileServer(http.FS(appFiles)))
 
 var contentRewrite = middleware.Rewrite(map[string]string{
-	"/":         "/app/index.html",
 	"/*":        "/app/$1",
 	"/static/*": "/app/static/$1",
 	"/assets/*": "/app/assets/$1",
@@ -99,7 +99,13 @@ func NewServer() *Server {
 		port = "5987"
 	}
 
+	host := os.Getenv("HOST")
+	if host == "" {
+		host = "0.0.0.0" // default
+	}
+
 	return &Server{
+		Host:       host,
 		Port:       port,
 		EchoServer: e,
 	}
@@ -117,7 +123,7 @@ func (srv *Server) Start() {
 	}()
 
 	srv.StartTime = time.Now()
-	if err := srv.EchoServer.Start(":" + srv.Port); err != http.ErrServerClosed {
+	if err := srv.EchoServer.Start(srv.Host + ":" + srv.Port); err != http.ErrServerClosed {
 		g.LogFatal(g.Error(err, "could not start server"))
 	}
 }
@@ -130,7 +136,7 @@ func (srv *Server) Loop() {
 }
 
 func (srv *Server) Hostname() string {
-	return g.F("http://localhost:%s", srv.Port)
+	return g.F("http://%s:%s", srv.Host, srv.Port)
 }
 
 func (srv *Server) Close() {

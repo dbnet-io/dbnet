@@ -67,3 +67,4 @@ test.db
 server/app/*
 dbnet-*
 server/app/index.html
+dbnet
