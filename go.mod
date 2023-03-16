@@ -3,10 +3,10 @@ module github.com/dbnet-io/dbnet
 go 1.19
 
 require (
-	github.com/dbrest-io/dbrest v0.0.37
+	github.com/dbrest-io/dbrest v0.0.38
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/flarco/dbio v0.3.227
-	github.com/flarco/g v0.1.55
+	github.com/flarco/dbio v0.3.228
+	github.com/flarco/g v0.1.56
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/integrii/flaggy v1.5.2
 	github.com/jmoiron/sqlx v1.2.0
@@ -15,7 +15,7 @@ require (
 	github.com/labstack/echo/v5 v5.0.0-20220201181537-ed2888cfa198
 	github.com/samber/lo v1.25.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/slingdata-io/sling-cli v0.87.73
+	github.com/slingdata-io/sling-cli v0.87.78
 	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.8.1
 	gorm.io/gorm v1.20.7
