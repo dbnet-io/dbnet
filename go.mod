@@ -3,7 +3,7 @@ module github.com/dbnet-io/dbnet
 go 1.19
 
 require (
-	github.com/dbrest-io/dbrest v0.0.38
+	github.com/dbrest-io/dbrest v0.0.39
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/flarco/dbio v0.3.228
 	github.com/flarco/g v0.1.56
