@@ -53,6 +53,15 @@ export class Connection {
 
   get dbt() { return this.source.includes('dbt')}
 
+  get firstDatabase() {
+      let database = ''
+      if(Object.keys(this.databases).length > 0) {
+        let first = Object.keys(this.databases)[0]
+        database = this.databases[first]?.name 
+      }
+      return database
+  }
+
   getAllSchemas = () => {
     let schemas: Schema[] = []
     try {

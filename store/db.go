@@ -1,9 +1,9 @@
 package store
 
 import (
-	"os"
 	"time"
 
+	"github.com/dbnet-io/dbnet/env"
 	dbRestState "github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/dbio/database"
 	"github.com/flarco/g"
@@ -26,7 +26,7 @@ var (
 func InitDB() {
 	var err error
 
-	dbURL := g.F("sqlite://%s/.storage.db?_journal=WAL&_timeout=5000", os.Getenv("DBNET_DIR"))
+	dbURL := g.F("sqlite://%s/.storage.db?_journal=WAL&_timeout=5000", env.HomeDir)
 	Conn, err = database.NewConn(dbURL)
 	g.LogFatal(err, "Could not initialize sqlite connection: %s", dbURL)
 

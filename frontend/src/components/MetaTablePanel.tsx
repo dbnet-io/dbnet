@@ -127,53 +127,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       return this.validateFunc(this.data)
     }
 
-    // createJSX = () : JSX.Element => {
-    //   const objectPanel = window.dbnet.state.objectPanel
-    //   const selectedColumns = window.dbnet.state.objectPanel.table.selectedColumns  
-    //   interface Input {
-    //     schema: string
-    //     table: string
-    //     fields: string[]
-    //     group_expr: string
-    //   }
-
-    //   const input = useHS<Input>({
-    //     schema: objectPanel.table.schema.get(),
-    //     table: objectPanel.table.name.get(),
-    //     fields: selectedColumns.get().map(v => v.name),
-    //     group_expr: '',
-    //   } as Input)
-
-    //   const submit = () => {
-    //     // validate
-    //     let error = this.validate()
-    //     if(error) return toastError(error)
-    //     this.submit(objectPanel.table.name.get(), input.get()) 
-    //   }
-
-    //   return <>
-    //     <div className="p-grid p-fluid">
-    //       <div className="p-col-12 p-md-12" >
-    //         <InputText
-    //           value={input.group_expr.get()}
-    //           className="p-inputtext-sm"
-    //           placeholder="concat(col1, col2)"
-    //           type="text"
-    //           onChange={(e:any) => { input.group_expr.set(e.target.value) }}
-    //           onKeyUp={(e) => onEnterSubmit(e, submit)}
-    //         /> 
-    //       </div>
-    //       <div className="p-col-12 p-md-12" >
-    //         <Button
-    //           label="Submit"
-    //           onClick={(e) => submit()}
-    //         />
-    //       </div>
-    //     </div>
-    //   </>
-    // }
-
-
     submit = async (tabName: string, input: ObjectAny, sql = '') => {
       if (!sql) {
         let data = {
@@ -226,6 +179,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   const hideForms = () => {
     for (let key of forms.keys) { forms[key].show.set(false) }
+    (op.current as any).hide()
   }
 
   const getSelectedColsOrAll = () => {
@@ -377,6 +331,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
       if (!input.t1_field.get().trim()) error = 'Please select columns to compare'
       if (error) {
         props.form.show.set(false)
+        hideOverlay()
         return toastError(error)
       }
     }, []) // eslint-disable-line
@@ -474,14 +429,14 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           {/* <br /> */}
 
           <a // eslint-disable-line
-            href="#"
+            href={window.location.hash}
             title="Copy name to clipboard"
             onClick={() => { copyToClipboard(table.get().fullName()) }}
           >
             <i className="pi pi-copy" style={{ 'fontSize': '0.9em', paddingLeft: '5px' }}></i>
           </a>
           <a  // eslint-disable-line
-            href="#"
+            href={window.location.hash}
             title="Search history of this object"
             onClick={() => {
               window.dbnet.state.historyPanel.filter.set(objectPanel.table.name.get())
@@ -493,7 +448,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         </span>
       </div>
 
-      <div className="p-col-12 p-md-12 p-inputgroup work-buttons" style={{ overflowX: 'hidden' }}>
+      <div className="p-col-12 p-md-12 p-inputgroup work-buttons" style={{ overflowX: 'hidden', paddingTop: '3px', paddingBottom: '3px', maxHeight: '40px' }}>
         <Tooltip
           target={`#history-panel-back`}
           style={{
@@ -663,9 +618,32 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           }}
         />
 
+        <Button
+          icon="pi pi-check-circle"
+          tooltip="Compare Columns"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-help"
+          onClick={(e) => { hideForms(); (op.current as any).show(e); forms.compareColumns.show.set(true) }}
+        />
+
+        {/* <Button
+          icon="pi pi-chart-bar"
+          tooltip="Counts over time"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-rounded p-button-help"
+          onClick={(e) => { hideForms(); forms.countOverTime.show.set(true) }}
+        /> */}
+
+        <Button
+          icon="pi pi-chart-bar"
+          tooltip="Stats by group"
+          tooltipOptions={{ position: 'top' }}
+          className="p-button-sm p-button-success"
+          onClick={(e) => { hideForms(); (op.current as any).show(e); forms.statsByGroup.show.set(true) }}
+        />
 
 
-        <Button icon="pi pi-bell" className="p-button-warning" />
+        {/* <Button icon="pi pi-bell" className="p-button-warning" /> */}
         <Button
           icon="pi pi-trash"
           className="p-button-danger"
@@ -718,30 +696,6 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
         showCloseIcon
         style={{ maxWidth: '350px' }}
         onHide={() => { hideForms() }}>
-
-        <Button
-          icon="pi pi-chart-bar"
-          tooltip="Counts over time"
-          tooltipOptions={{ position: 'top' }}
-          className="p-button-sm p-button-rounded p-button-help"
-          onClick={(e) => { hideForms(); forms.countOverTime.show.set(true) }}
-        />
-
-        <Button
-          icon="pi pi-chart-bar"
-          tooltip="Stats by group"
-          tooltipOptions={{ position: 'top' }}
-          className="p-button-sm p-button-rounded p-button-success"
-          onClick={(e) => { hideForms(); forms.statsByGroup.show.set(true) }}
-        />
-
-        <Button
-          icon="pi pi-check-circle"
-          tooltip="Compare Columns"
-          tooltipOptions={{ position: 'top' }}
-          className="p-button-sm p-button-rounded p-button-help"
-          onClick={(e) => { hideForms(); forms.compareColumns.show.set(true) }}
-        />
 
         {forms.countOverTime.show.get() ? <CountOverTime form={forms.countOverTime} /> : null}
         {forms.compareColumns.show.get() ? <CompareColumns form={forms.compareColumns} /> : null}

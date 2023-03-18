@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"path"
 	"syscall"
 	"time"
 
@@ -17,11 +16,6 @@ var ctx = g.NewContext(context.Background())
 var interrupted = false
 
 func init() {
-	if os.Getenv("DBNET_DIR") == "" {
-		os.Setenv("DBNET_DIR", path.Join(g.UserHomeDir(), "dbnet"))
-		os.MkdirAll(os.Getenv("DBNET_DIR"), 0755)
-	}
-
 	store.InitDB()
 }
 

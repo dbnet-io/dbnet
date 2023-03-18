@@ -21,6 +21,9 @@ func init() {
 	// other sources of creds
 	env.SetHomeDir("sling")  // https://github.com/slingdata-io/sling
 	env.SetHomeDir("dbrest") // https://github.com/dbrest-io/dbrest
+
+	// create home dir
+	os.MkdirAll(HomeDir, 0755)
 }
 
 func LoadDbNetEnvFile() (ef env.EnvFile) {

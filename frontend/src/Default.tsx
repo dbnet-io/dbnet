@@ -53,6 +53,7 @@ export const Default: React.FC<Props> = (props) => {
 
     // choose conn if needed
     if(!dbnet.selectedConnection) return chooseConnection.set(true)
+    await dbnet.getDatabases(dbnet.selectedConnection)
 
     // set title
     document.title = `${dbnet.selectedConnection.toUpperCase()}`
@@ -75,7 +76,6 @@ export const Default: React.FC<Props> = (props) => {
     let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[dbnet.selectedConnection.toLowerCase()]
     window.dbnet.selectTab(lastTabID)
 
-    await dbnet.getDatabases(dbnet.selectedConnection)
     dbnet.getAllSchemata(dbnet.selectedConnection)
     // dbnet.trigger('refreshSchemaPanel')
   }
@@ -112,8 +112,7 @@ export const Default: React.FC<Props> = (props) => {
       chooseConnection.get() ?
         <ConnectionChooser
           show={chooseConnection}
-          selectDb={false}
-          onSelect={(connSelected: string) => {
+          onSelect={(connSelected: string, dbName: string) => {
             if(!connSelected) return toastError('Please select a connection')
             chooseConnection.set(false)
             dbnet.selectConnection(connSelected)
@@ -150,7 +149,7 @@ export const Default: React.FC<Props> = (props) => {
         onResizeEnd={(e) => debounceRefresh()} 
         gutterSize={10}
       >
-        <SplitterPanel className="p-d-flex" style={{maxWidth:'450px'}}>
+        <SplitterPanel className="p-d-flex" style={{maxWidth:'400px'}}>
           <LeftPane/>
         </SplitterPanel>
         <SplitterPanel className="p-d-flex">

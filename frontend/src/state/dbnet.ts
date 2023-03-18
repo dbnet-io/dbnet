@@ -75,6 +75,7 @@ export class DbNet {
     }
     document.title = `${name.toUpperCase()}`
     if(this.selectedConnection === name) return
+
     this.selectedConnection = name
     this.state.workspace.selectedConnectionName.set(name)
     this.state.workspace.selectedConnection.set(this.getConnection(name))
@@ -85,7 +86,7 @@ export class DbNet {
 
   selectTab(id: string) {
     if(!id) {
-      let tab = getOrCreateParentTabState(this.selectedConnection, this.currentConnection.database)
+      let tab = getOrCreateParentTabState(this.selectedConnection, this.currentConnection.firstDatabase)
       id = tab.id.get()
     } else {
       let tab = getTabState(id)
@@ -207,8 +208,9 @@ export class DbNet {
 
   async getDatabases(connName: string) {
     try {
-      if(!connName) return
-      let connection = this.currentConnection
+      let i = this.getConnectionIndex(connName)
+      if(!connName || i === -1) return
+      let connection = this.connections[i]
       let route = makeRoute(Routes.getConnectionDatabases, { connection: connName })
       let resp = await apiGet(route)
       if (resp.error) throw new Error(resp.error)
@@ -221,11 +223,8 @@ export class DbNet {
             databases[name.toLowerCase()] = new Database({ name: name.toUpperCase() })
           }
         })
-        connection.databases = databases
-        this.getConnection(connName).databases = databases
-        if (connection.database === '') {
-          connection.database = records[0].name.toUpperCase()
-        }
+
+        this.connections[i].databases = databases
         this.trigger('refreshSchemaPanel')
       } else {
         toastError('No Databases found!')
@@ -307,13 +306,14 @@ export class DbNet {
       }
 
       database = database.toLowerCase()
-      let conn = this.getConnection(connName)
+      let i = this.getConnectionIndex(connName)
+      let conn = this.connections[i]
       if (!Object.keys(conn.databases).includes(database)) {
-        conn.databases[database] = new Database({ name: database.toUpperCase(), schemas: schemas })
+        this.connections[i].databases[database] = new Database({ name: database.toUpperCase(), schemas: schemas })
         return
       }
 
-      conn.databases[database].schemas = Object.values(schemas)
+      this.connections[i].databases[database].schemas = Object.values(schemas)
       this.trigger('refreshSchemaPanel')
     } catch (error) {
       return error as string
@@ -326,14 +326,20 @@ export class DbNet {
   }
 
   getConnection(connName: string) {
-    connName = connName.toLowerCase()
-    let index = this.connections.map(c => c.name.toLowerCase()).indexOf(connName)
+    let index = this.getConnectionIndex(connName)
     if (index > -1) {
+      let conn = this.connections[index]
+      if(!conn.database) this.connections[index].database = conn.firstDatabase
       return this.connections[index]
     } else if (connName !== '') {
       console.log(`did not find connection ${connName}`)
     }
     return new Connection()
+  }
+
+  getConnectionIndex(connName: string) {
+    connName = connName.toLowerCase()
+    return this.connections.map(c => c.name.toLowerCase()).indexOf(connName)
   }
 
   async submitQuery(req: QueryRequest) { 
@@ -349,7 +355,9 @@ export class DbNet {
 
     if (req.text.trim().endsWith(';'))
       req.text = req.text.trim().slice(0, -1).trim()
-    
+    if (!req.text)
+      return toastError('Blank Query Submitted')
+
     let query = new Query({
       id: new_ts_id('query.'),
       connection: req.connection,
@@ -403,7 +411,6 @@ export class DbNet {
         if (resp.error) throw new Error(resp.error)
         if (resp.response.status === 202) {
           let payload = await resp.json()
-          console.log(payload)
           if(payload?.text) query.text = payload.text
           result?.query?.text.set(query.text)
           headers["X-Request-Continue"] = "true"

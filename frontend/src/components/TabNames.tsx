@@ -421,7 +421,6 @@ const TabNamesComponent: React.FC<Props> = (props) => {
 
     <ConnectionChooser
       show={newTab.show}
-      selectDb={true}
       onSelect={(connSelected: string, dbSelected: string) => {
         if(!connSelected) return toastError('Please select a connection')
         if(!dbSelected) return toastError('Please select a database')
