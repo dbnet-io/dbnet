@@ -49,7 +49,6 @@ export class DbNet {
     this.workspace = new Workspace()
     this.editor = new Editor()
     this.selectedConnection = options.connectionName?.replace('#', '').replace('/', '') || ''
-    console.log(options.connectionName)
     this.triggerMap = {} as TriggerMapRecord
     this.state = new DbNetState()
     this.editorMap = {}
@@ -403,6 +402,10 @@ export class DbNet {
         let resp = await apiPost(makeRoute(Routes.postConnectionSQL, query), query.text, headers)
         if (resp.error) throw new Error(resp.error)
         if (resp.response.status === 202) {
+          let payload = await resp.json()
+          console.log(payload)
+          if(payload?.text) query.text = payload.text
+          result?.query?.text.set(query.text)
           headers["X-Request-Continue"] = "true"
           continue
         }
