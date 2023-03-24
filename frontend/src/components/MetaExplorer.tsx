@@ -515,7 +515,7 @@ export const MetaExplorer: React.FC<Props> = (props) => {
       <h2 style={{ margin: '0px' }}>
         Meta Explorer
 
-        <a href="#;" title="Refresh All" style={{ paddingLeft: '9px'}}>
+        <a href={window.location.hash} title="Refresh All" style={{ paddingLeft: '9px'}}>
           <i
             style={{ color: 'orange', fontSize: '0.8em' }}
             className={ metaPanel.loading.get() ? "pi pi-spin pi-spinner":"pi pi-refresh"}

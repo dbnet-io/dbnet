@@ -21,7 +21,7 @@ export const PreviewPanel: React.FC<Props> = (props) => {
       onDoubleClick={() => { copyToClipboard(objectView.name.get()) }}
     >
       <strong>{objectView.name.get()}</strong>
-      <a href="#;" onClick={(e) => { copyToClipboard(objectView.name.get()) }}>
+      <a href={window.location.hash} onClick={(e) => { copyToClipboard(objectView.name.get()) }}>
         <i className="pi pi-copy" style={{ 'fontSize': '0.9em' }}></i>
       </a>
     </span> */}

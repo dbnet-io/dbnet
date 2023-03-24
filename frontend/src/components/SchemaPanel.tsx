@@ -85,7 +85,7 @@ export const SchemaPanelComponent: React.FC<Props> = (props) => {
       <h4 style={{ textAlign: 'center', margin: '-0px' }}>
         {connection.name.get().toUpperCase()}
         {/* refresh */}
-        <a href="#;" title="Refresh All">
+        <a href={window.location.hash} title="Refresh All">
           <i
             style={{ color: 'orange', fontSize: '0.9em', paddingLeft: '5px' }}
             className="pi pi-refresh"
@@ -157,7 +157,7 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
     let database_name = ''
     let schema_name = ''
     let isView = false
-    let maxChars = parseInt(`${childWidth ? childWidth / 10 : 25}`)
+    let maxChars = parseInt(`${childWidth ? childWidth / 12 : 25}`)
     node.label = (node.label?.length || 0) < maxChars ? node.label : (node.label?.slice(0,maxChars) || '') + '...'
     if (node.data.type === 'table') {
       label = <span><i className="pi pi-table" style={{fontSize: '12px', paddingLeft: '5px', paddingRight: '5px'}}/> {node.label} </span>

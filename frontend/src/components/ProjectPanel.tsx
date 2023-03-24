@@ -342,7 +342,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
       <div className="p-col-12 p-md-12" style={{paddingTop: '7px', paddingBottom: '7px'}}>
         <b>{shortRoot()}</b>
         <span style={{paddingLeft: '10px'}}>
-          <a href="#;">
+          <a href={window.location.hash}>
             <i 
               className="pi pi-folder-open"
               onClick={async () => { chooseFolder.set(true) }}
@@ -350,7 +350,7 @@ export const ProjectPanel: React.FC<Props> = (props) => {
           </a>
         </span>
         <span style={{paddingLeft: '10px'}}>
-        <a href="#;">
+        <a href={window.location.hash}>
           <i 
             className="pi pi-refresh"
             onClick={() => refreshRoot()}

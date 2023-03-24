@@ -453,6 +453,8 @@ export class DbNet {
       // cache results
       getDexieDb().table('queries').put(jsonClone(query))
     } catch (error) {
+      tab?.loading.set(false)
+      result?.loading.set(false)
       toastError(error)
       query.err = `${error}`
     }

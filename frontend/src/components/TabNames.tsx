@@ -362,7 +362,7 @@ const TabNamesComponent: React.FC<Props> = (props) => {
               <a
                 id={id}
                 data-pr-position="top"
-                href="#"
+                href={window.location.hash}
                 className={options.className}
                 target={item.target}
                 onClick={options.onClick}

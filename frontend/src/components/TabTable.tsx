@@ -6,7 +6,7 @@ import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../uti
 
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
-import { getResultState, getTabState } from "./TabNames";
+import { getTabState } from "./TabNames";
 import { refreshResult } from "./TabToolbar";
 import { getDexieDb } from "../state/dbnet";
 import { Query, QueryStatus, Result } from "../state/query";
@@ -26,9 +26,7 @@ interface Props {
 }
 
 export const pullResult = async (resultState: State<Result>) => {
-  let tab = getTabState(resultState.parent.get())
 
-  tab.loading.set(true);
   try {
     // put in IndexedDb
     const db = getDexieDb()
@@ -39,12 +37,11 @@ export const pullResult = async (resultState: State<Result>) => {
     
     if(cachedQ) {
       let query = new Query(cachedQ)
-      let result = getResultState(query.result)
-      result.set(
+      if(query.rows.length === 0) return
+      resultState.set(
         r => {
           r.query = query
-          r.query.pulled = true
-          r.query.duration = Math.round(query.duration*100)/100
+          r.from_cache = true
           r.loading = false
           return r
         }
@@ -53,7 +50,6 @@ export const pullResult = async (resultState: State<Result>) => {
   } catch (error) {
     toastError(error)
   }
-  tab.loading.set(false)
 }
 
 
@@ -115,6 +111,12 @@ const TabTableComponent: React.FC<Props> = (props) => {
     filteredRows.current = data2
     return data2
   }
+
+  React.useEffect(() => {
+    if(!result.from_cache.get() && result.query.rows.length === 0) {
+      pullResult(result)
+    }
+  }, [tab.selectedResult.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
   // const afterSelection = (r1: number, c1: number, r2: number, c2: number, preventScrolling: object, selectionLayerLevel: number) => {

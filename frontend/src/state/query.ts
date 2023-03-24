@@ -80,6 +80,7 @@ export class Result {
   limit: number
   parent: string
   pinned: boolean
+  from_cache: boolean
   refreshInterval: number
   lastTableSelection: number[] // r1,c1,r2,c22
 
@@ -99,6 +100,7 @@ export class Result {
     this.lastTableSelection = data.lastTableSelection || [0, 0, 0, 0]
     this.connection = data.connection
     this.database = data.database
+    this.from_cache = false
 
     let parent_name = this.getParentTabName()
     this.id = data.id || new_ts_id(`result-${this.name || parent_name}.`)
