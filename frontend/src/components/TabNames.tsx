@@ -133,7 +133,7 @@ export const getResultState = (resultID: string) => {
 }
 
 export const getCurrentParentTabState = () => {
-  let index = queryPanel().get().currResultIndex()
+  let index = queryPanel().get().currTabIndex()
   return queryPanel().tabs[index]
 }
 

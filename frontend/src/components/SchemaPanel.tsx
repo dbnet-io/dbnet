@@ -10,7 +10,7 @@ import { submitSQL } from "./TabToolbar";
 import { Connection } from "../state/connection";
 import { Database, Schema, Table } from "../state/schema";
 import _ from "lodash";
-import { Query } from "../state/query";
+import { Header, Query } from "../state/query";
 import TreeNode from "primereact/treenode";
 import { withResizeDetector } from 'react-resize-detector';
 import { State } from "@hookstate/core";
@@ -387,7 +387,7 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
             tables = tables.concat(schema.tables)
           }
 
-          let headers = ['database_name', 'schema_name', 'table_name', 'column_id', 'column_name', 'column_type']
+          let headers : Header[] = ['database_name', 'schema_name', 'table_name', 'column_id', 'column_name', 'column_type'].map(v => { return {name: v, type: '', dbType: ''} })
           let rows: any[] = []
           for (let table of tables) {
             for (let column of table.columns) {
