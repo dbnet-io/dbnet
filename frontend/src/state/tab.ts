@@ -43,7 +43,7 @@ export class Tab {
   }
 
   payload = () => {
-    return jsonClone({
+    return jsonClone<Tab>({
       id: this.id,
       name: this.name,
       editor: {

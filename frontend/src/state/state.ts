@@ -329,12 +329,12 @@ class QueryPanelState {
       if (tab.hidden) continue
       if (connection && tab.connection?.toLowerCase() !== connection.toLowerCase()) continue 
       parentTabs[tab.id] = 0
-      tabs.push(jsonClone<Tab>(tab.payload()))
+      tabs.push(tab.payload())
     }
 
     for (let result of this.results) {
       if(!result || result === none ) continue
-      let result_ = jsonClone<Result>(result.payload())
+      let result_ = result.payload()
       result_.query.rows = []
       // clean up rogue child tabs
       if (result_.parent && !(result_.parent in parentTabs)) continue

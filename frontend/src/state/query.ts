@@ -69,6 +69,25 @@ export class Query {
     return data
   }
 
+  payload = () => {
+    return jsonClone<Query>({
+      id: this.id,
+      connection: this.connection,
+      database: this.database,
+      result: this.result,
+      time: this.time,
+      duration: this.duration,
+      text: this.text,
+      err: this.err,
+      status: this.status,
+      headers: this.headers,
+      rows: [],
+      pulled: this.pulled,
+      limit: this.limit,
+      affected: this.affected,
+    })
+  }
+
 }
 
 export class Result {
@@ -116,13 +135,13 @@ export class Result {
   }
 
   payload = () => {
-    return jsonClone({
+    return jsonClone<Result>({
       id: this.id,
       name: this.name,
       loading: this.loading,
       filter: this.filter,
       limit: this.limit,
-      query: this.query,
+      query: this.query.payload(),
       parent: this.parent,
       connection: this.connection,
       database: this.database,
