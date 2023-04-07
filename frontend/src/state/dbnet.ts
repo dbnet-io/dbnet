@@ -349,10 +349,10 @@ export class DbNet {
     if(req.tab_id) tab = getTabState(req.tab_id)
     if(req.result_id) result = getResultState(req.result_id)
 
-    if(result)
+    if(result?.limit?.get())
       // set limit to fetch, and save in cache
-      req.limit = result.limit.get() > 5000 ? 5000 : result.limit.get() < 500 && result.limit.get() > -1 ? 500 : req.limit
-
+      req.limit = result.limit.get() > 5000 ? 5000 : result.limit.get() < 500 && result.limit.get() > -1 ? 500 : result.limit.get()
+    
     if (req.text.trim().endsWith(';'))
       req.text = req.text.trim().slice(0, -1).trim()
     if (!req.text)
