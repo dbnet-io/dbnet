@@ -147,11 +147,13 @@ const TabTableComponent: React.FC<Props> = (props) => {
     let header = props.result.query.headers?.get()[colIndex]
     if(!header || !header.dbType) return
 
-    let width = header.dbType.length * 7
-    width = width < e.bounds.width ? e.bounds.width : width
 
     var span = document.createElement('span')
     span.innerText = header.dbType.toUpperCase()
+    span.innerText = header.name.toUpperCase()
+    span.innerText = `${header.name.toUpperCase()} (${header.dbType.toUpperCase()})`
+    let width = span.innerText.length * 8
+
     span.className = 'header-tooltip-cell'
     span.style.fontSize = '13px';
     span.style.textAlign = 'center';
@@ -160,7 +162,7 @@ const TabTableComponent: React.FC<Props> = (props) => {
     span.style.backgroundColor = '#d3d3d3';
     span.style.borderRadius = '5px';
     span.style.height = 15 + 'px';
-    span.style.width = width + 'px';
+    span.style.width = (width < e.bounds.width ? e.bounds.width : width) + 'px';
     span.style.position = "absolute";
     span.style.left = x + 'px';
     span.style.top = y - 19 + 'px';
