@@ -43,7 +43,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
     initEditor(editorRef.current?.editor)
 
     // save 4 secs after idle
-    saveDebounce.current = _.debounce(() => window.dbnet.state.save(), 4000)
+    saveDebounce.current = _.debounce(() => window.dbnet.state.save(), 60000)
   }, [tab.id.get()]) // eslint-disable-line
 
   const initEditor = (instance?: monaco.editor.IStandaloneCodeEditor) => {
