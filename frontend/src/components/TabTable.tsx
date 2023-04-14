@@ -224,7 +224,7 @@ const TabTableComponent: React.FC<Props> = (props) => {
   } else if(tab?.showText.get()) {
     // show rows as text
     let pt = new PrettyTable()
-    pt.fieldNames(props.result.query.headers.get())
+    pt.fieldNames(props.result.query.headers.get().map(v => v.name))
     for(let row of rows) {
       pt.addRow(row.join('$|$').split('$|$'))
     }

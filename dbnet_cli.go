@@ -144,7 +144,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 		return false, g.Error("Must specify query or file (with --query or --file)")
 	}
 
-	connName := cast.ToString(c.Vals["name"])
+	connName := cast.ToString(c.Vals["conn"])
 	start := time.Now()
 	conn, err := state.GetConnInstance(connName, "")
 	if err != nil {
@@ -161,7 +161,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 
 	g.Info("Successful! Duration: %d seconds", end.Unix()-start.Unix())
 
-	return
+	return true, nil
 }
 
 func conns(c *g.CliSC) (ok bool, err error) {
