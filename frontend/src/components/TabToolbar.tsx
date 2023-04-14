@@ -17,10 +17,10 @@ import { setDecoration } from "../state/editor";
 import { Routes, makeRoute } from "../state/routes";
 import { InputNumber } from 'primereact/inputnumber';
 
-export const cancelSQL = async (tab: State<Result>) => {
+export const cancelSQL = async (result: State<Result>) => {
   let data1 = {
-    id: tab.query.id.get(),
-    connection: tab.connection.get(),
+    id: result.query.id.get(),
+    connection: result.connection.get(),
   }
 
   try {
@@ -301,7 +301,7 @@ export function TabToolbar(props: { result: State<Result> }) {
               let data = []
               const sep = '\t'
 
-              data.push(result.query.headers.get().join(sep))
+              data.push(result.query.headers.get().map(h => h.name).join(sep))
               for (let row of result.query.rows.get()) {
                 let newRow = []
                 for (let val of row) {

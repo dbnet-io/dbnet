@@ -392,6 +392,14 @@ export class DbNet {
       // set limit to fetch, and save in cache
       query.limit = result.limit.get() > 5000 ? 5000 : result.limit.get() < 500 && result.limit.get() > -1 ? 500 : result.limit.get()
 
+    result?.set(
+      r => {
+        r.query = query
+        if(tab) r.parent = tab.id.get()
+        return r
+      }
+    )
+
     // cleanup
     cleanupDexieDb()
     
