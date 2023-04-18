@@ -301,7 +301,7 @@ export function TabToolbar(props: { result: State<Result> }) {
               let data = []
               const sep = '\t'
 
-              data.push(result.query.headers.get().map(h => h.name).join(sep))
+              data.push(result.query.headers?.get().map(h => h.name).join(sep))
               for (let row of result.query.rows.get()) {
                 let newRow = []
                 for (let val of row) {
