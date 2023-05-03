@@ -381,7 +381,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
 
 
   const nameBody = (column: Column2, options: ColumnBodyOptions) => {
-    let id = `meta-col-id-${column.name}`
+    let id = `meta-col-id-${column.name.split(' ')[0]}`
     return <>
       {
         column.name.length > 30 ?
