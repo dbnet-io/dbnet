@@ -274,13 +274,13 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
           let table = nodeKeyToTable(keys[0])
           if (keys.length > 1) {
             let sql = countTables
-              .map(t => `select '${t.fullName()}' as table_name, count(*) cnt from ${t.fullName()}`)
+              .map(t => `select '${t.fdqn()}' as table_name, count(*) cnt from ${t.fdqn()}`)
               .join(' UNION ALL\n') + ';'
             let tab = getOrCreateParentTabState(table.connection, table.database)
             let block = appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql, undefined, block)
           } else {
-            let sql = `select '${table.fullName()}' as table_name, count(*) cnt from ${table.fullName()};`
+            let sql = `select '${table.fdqn()}' as table_name, count(*) cnt from ${table.fdqn()};`
             let tab = getOrCreateParentTabState(table.connection, table.database)
             let block = appendSqlToTab(tab.id.get(), sql)
             submitSQL(tab, sql, undefined, block)

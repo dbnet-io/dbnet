@@ -33,6 +33,7 @@ const defaultOptions : monaco.editor.IStandaloneEditorConstructionOptions = {
 export function TabEditor(props: { tab: State<Tab> }) {
   const tab = useHS(props.tab)
   const sql = useHS(tab.editor.text);
+  const tabUpdatedAt = useHS(tab.updated_at);
   const options = useHS<monaco.editor.IStandaloneEditorConstructionOptions>(defaultOptions)
   // const editorHeight = sql.get().split('\n').length*15
   const editorHeight = document.getElementById("work-input")?.parentElement?.clientHeight
@@ -91,6 +92,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
         options={options.get()}
         onChange={(text: string) => { 
           sql.set(text) 
+          tabUpdatedAt.set(new Date().getTime())
           let ed = window.dbnet.editorMap[tab.id.get()]
           saveEditorSelection(tab, ed.instance)
           saveDebounce.current()

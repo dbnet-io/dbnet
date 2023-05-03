@@ -139,7 +139,11 @@ export const getCurrentParentTabState = () => {
 
 export const getOrCreateParentTabState = (connection: string, database: string) => {
   let currTab = getCurrentParentTabState()
-  if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database?.toUpperCase()) return currTab
+
+  // don't change tab
+  if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() ) return currTab
+
+  // if(currTab.connection.get()?.toUpperCase() === connection.toUpperCase() && currTab.database.get()?.toUpperCase() === database?.toUpperCase()) return currTab
 
   let connTabs = window.dbnet.getCurrConnectionsTabs()
   let index = connTabs

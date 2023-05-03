@@ -20,6 +20,8 @@ export class Tab {
   file: FileItem | undefined
   connection: string | undefined
   database: string | undefined
+  created_at: number
+  updated_at: number
 
   rowView: RowView
   showText: boolean
@@ -37,6 +39,8 @@ export class Tab {
     this.file = data.file
     this.connection = data.connection
     this.database = data.database
+    this.created_at = data.created_at || new Date().getTime()
+    this.updated_at = data.updated_at || new Date().getTime()
 
     this.id = data.id || new_ts_id(`tab-${this.name}.`)
     if (!this.name) this.name = this.id.slice(-7)
@@ -59,6 +63,8 @@ export class Tab {
       connection: this.connection,
       database: this.database,
       showText: this.showText,
+      created_at: this.created_at,
+      updated_at: this.updated_at,
     })
   }
 }

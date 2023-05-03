@@ -555,7 +555,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let cols = selectedColumns.get().length === 0 ? ['*'] : getSelectedColsOrAll()
-            let sql = `select ${cols.join(', ')} from ${table.get().fullName()} limit 500;`
+            let sql = `select ${cols.join(', ')} from ${table.get().fdqn()} limit 500;`
             sql = cols.length > 3 ? formatSql(sql) : sql
             appendAndSubmit(table.get().connection, table.get().database, sql)
           }}
