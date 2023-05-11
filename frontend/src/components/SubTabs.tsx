@@ -7,6 +7,7 @@ import { ContextMenu } from "primereact/contextmenu";
 import { jsonClone } from "../utilities/methods";
 import { Tab } from "../state/tab";
 import { MenuItem } from "primereact/menuitem";
+import { Tooltip } from "primereact/tooltip";
 
 const queryPanel = () => window.dbnet.state.queryPanel
 
@@ -46,20 +47,30 @@ export function SubTabs(props: { tab: State<Tab>; }) {
     // let index = queryPanel.get().getTabIndexByID(resultTabId)
 
     // we want the double click to pin / unpin
+    let id = `result-tab-${resultTabId.replaceAll('.', '-')}`
     return <>
-      <span
-        onDoubleClick={() => {
-          resultTab.pinned.set(v => !v) 
-          props.tab.selectedResult.set(resultTabId)
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          contextResultId.set(jsonClone(resultTabId))
-          cm.current?.show(e as any)
-        }}
-      >
-        {options.element}
-      </span>
+        <Tooltip
+          target={`#${id}`}
+          style={{fontSize: '10px', fontFamily: 'monospace', minWidth: '230px', maxWidth: '400px', maxHeight: '500px', }}
+          position='top'
+        >
+          <pre style={{whiteSpace: 'pre-wrap'}}>{resultTab.query.text.get()}</pre>
+        </Tooltip>
+
+        <span
+          id={id}
+          onDoubleClick={() => {
+            resultTab.pinned.set(v => !v) 
+            props.tab.selectedResult.set(resultTabId)
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault()
+            contextResultId.set(jsonClone(resultTabId))
+            cm.current?.show(e as any)
+          }}
+        >
+          {options.element}
+        </span>
     </>
   }
   

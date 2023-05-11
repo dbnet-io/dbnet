@@ -71,7 +71,7 @@ export function TabToolbar(props: { result: State<Result> }) {
     let sql = result.query.text.get()
     let parentTab = getTabState(result.parent.get() || '')
     if (sql.trim() !== '') {
-      submitSQL(parentTab, sql)
+      submitSQL(parentTab, sql, result.get())
       sqlOp.current.hide(e)
     }
   }
