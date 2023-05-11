@@ -104,7 +104,12 @@ export const AddResultAndCleanup = (result: Result, numResults = 3) => {
 
   queryPanel().results.set(
     results => {
+      // remove old errors
+      results = results.filter(r => !r.query.err)
+
+      // add new result
       results.push(result)
+
       
       if(results.filter(r => is_match(r)).length <= numResults) return results
 
