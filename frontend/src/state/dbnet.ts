@@ -220,7 +220,7 @@ export class DbNet {
         records.forEach((r) => {
           let name = (r.name as string)
           if (!(name.toLowerCase() in databases)) {
-            databases[name.toLowerCase()] = new Database({ name: name.toUpperCase() })
+            databases[name.toLowerCase()] = new Database({ name: name })
           }
         })
 
@@ -242,8 +242,8 @@ export class DbNet {
       await this.getDatabases(conn.name)
     }
 
-    for (let dbName of Object.keys(conn.databases)) {
-      promises.push(this.getSchemata(conn.name, dbName, refresh))
+    for (let database of Object.values(conn.databases)) {
+      promises.push(this.getSchemata(conn.name, database.name, refresh))
     }
     let results : (string | undefined)[] = []
     for (let promise of promises) results.push(await promise)
@@ -269,6 +269,7 @@ export class DbNet {
       if (resp.error) return resp.error as string
       let records = await resp.records()
 
+      let connection = this.getConnection(connName)
       let schemas: { [key: string]: Schema; } = {}
       let tables: { [key: string]: Table; } = {}
       for (let row of records) {
@@ -279,10 +280,11 @@ export class DbNet {
         if (!(tableKey in tables)) {
           tables[tableKey] = new Table({
             connection: connName,
-            database: database.toUpperCase(),
+            database: database,
             schema: row.schema_name,
             name: row.table_name,
             isView: row.table_type === 'view',
+            dialect: connection.type,
             columns: [],
           })
         }
@@ -305,15 +307,15 @@ export class DbNet {
         schemas[tables[key].schema].tables.push(tables[key])
       }
 
-      database = database.toLowerCase()
+      let database_key = database.toLowerCase()
       let i = this.getConnectionIndex(connName)
       let conn = this.connections[i]
-      if (!Object.keys(conn.databases).includes(database)) {
-        this.connections[i].databases[database] = new Database({ name: database.toUpperCase(), schemas: schemas })
+      if (!Object.keys(conn.databases).includes(database_key)) {
+        this.connections[i].databases[database_key] = new Database({ name: database, schemas: schemas })
         return
       }
 
-      this.connections[i].databases[database].schemas = Object.values(schemas)
+      this.connections[i].databases[database_key].schemas = Object.values(schemas)
       this.trigger('refreshSchemaPanel')
     } catch (error) {
       return error as string
