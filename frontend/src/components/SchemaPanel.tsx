@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Tree } from 'primereact/tree';
+import { Tree, TreeEventNodeParams } from 'primereact/tree';
 import { copyToClipboard, jsonClone, toastError, useIsMounted, zeroPad } from "../utilities/methods";
 import { ContextMenu } from 'primereact/contextmenu';
 import { useHS, useVariable } from "../store/state";
@@ -215,6 +215,33 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
       </span>
     )
   }
+
+  const onSelect = (e: TreeEventNodeParams) => {
+      let table = new Table(e.node.data.data)
+      let ts = (new Date()).getTime()
+      if (e.node.data.type === 'table') {
+        if (lastClick.ts.get() === 0) {
+          lastClick.set({ ts: ts, key: e.node.key?.toString() })
+        } else if (ts - lastClick.ts.get() < 320 && e.node.key === lastClick.key.get()) {
+          // simulate double click
+          loadMetaTable(table)
+          selectAll(table)
+          lastClick.set({ ts: 0, key: '' })
+          return
+        } else {
+          lastClick.set({ ts: ts, key: e.node.key })
+        }
+        
+        // single click
+        setTimeout(() => {
+          let keys = Object.keys(selectedKeys.get())
+          if (keys.length > 1) return // don't load if selecting multi
+          if(!isMounted.current) return
+          if(lastClick.ts.get() > 300) loadMetaTable(table)
+          lastClick.set({ ts: 0, key: '' })
+        }, 320);
+      }
+    }
 
 
   const menu = () => {
@@ -437,32 +464,7 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
       metaKeySelection={true}
       expandedKeys={expandedKeys.get()}
       onToggle={e => expandedKeys.set(e.value)}
-      onSelect={e => {
-        let table = new Table(e.node.data.data)
-        let ts = (new Date()).getTime()
-        if (e.node.data.type === 'table') {
-          if (lastClick.ts.get() === 0) {
-            lastClick.set({ ts: ts, key: e.node.key?.toString() })
-          } else if (ts - lastClick.ts.get() < 320 && e.node.key === lastClick.key.get()) {
-            // simulate double click
-            loadMetaTable(table)
-            selectAll(table)
-            lastClick.set({ ts: 0, key: '' })
-            return
-          } else {
-            lastClick.set({ ts: ts, key: e.node.key })
-          }
-          
-          // single click
-          setTimeout(() => {
-            let keys = Object.keys(selectedKeys.get())
-            if (keys.length > 1) return // don't load if selecting multi
-            if(!isMounted.current) return
-            if(lastClick.ts.get() > 300) loadMetaTable(table)
-            lastClick.set({ ts: 0, key: '' })
-          }, 320);
-        }
-      }}
+      onSelect={e => onSelect(e)}
       onSelectionChange={e => selectedKeys.set(e.value as any)}
       contextMenuSelectionKey={selectedNodeKey}
       onContextMenuSelectionChange={event => {

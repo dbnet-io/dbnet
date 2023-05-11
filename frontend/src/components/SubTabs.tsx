@@ -51,7 +51,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
     return <>
         <Tooltip
           target={`#${id}`}
-          style={{fontSize: '10px', fontFamily: 'monospace', minWidth: '230px', maxWidth: '400px', maxHeight: '500px', }}
+          style={{fontSize: '10px', fontFamily: 'monospace', minWidth: '230px', maxWidth: '400px', maxHeight: '400px', overflowY: 'hidden'}}
           position='top'
         >
           <pre style={{whiteSpace: 'pre-wrap'}}>{resultTab.query.text.get()}</pre>
