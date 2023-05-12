@@ -9,7 +9,8 @@ var proc
 function createWindow() {
   // launch app 
   process.stdout.write(`launching: ${execPath}`+'\n')
-  let command = spawn(execPath, ['serve'], {});
+  process.env.DBNET_APP = 'true';
+  let command = spawn(execPath, ['serve']);
   command.stdout.on('data', data => {
     console.log(`stdout: ${data}`);
   });

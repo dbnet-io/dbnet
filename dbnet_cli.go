@@ -114,8 +114,10 @@ func serve(c *g.CliSC) (ok bool, err error) {
 	g.Info("Serving @ %s", srv.Hostname())
 
 	go func() {
-		time.Sleep(100 * time.Millisecond)
-		openBrowser(srv.Port)
+		if !isApp {
+			time.Sleep(100 * time.Millisecond)
+			openBrowser(srv.Port)
+		}
 	}()
 
 	srv.Start()

@@ -10,10 +10,12 @@ import (
 	"github.com/dbnet-io/dbnet/store"
 	"github.com/dbrest-io/dbrest/state"
 	"github.com/flarco/g"
+	"github.com/spf13/cast"
 )
 
 var ctx = g.NewContext(context.Background())
 var interrupted = false
+var isApp = cast.ToBool(os.Getenv("DBNET_APP"))
 
 func init() {
 	store.InitDB()
