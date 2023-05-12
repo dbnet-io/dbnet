@@ -21,9 +21,10 @@ import (
 )
 
 var cliServe = &g.CliSC{
-	Name:        "serve",
-	Description: "launch the dbnet server",
-	ExecProcess: serve,
+	Name:                "serve",
+	Description:         "launch the dbnet server",
+	ExecuteWithoutFlags: true,
+	ExecProcess:         serve,
 	Flags: []g.Flag{
 		{
 			Name:        "host",
