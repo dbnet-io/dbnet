@@ -53,6 +53,9 @@ export const loadMetaTable = async (table: Table, refresh = false, fromHistory =
         }))
         o.name = table.name
         o.schema = table.schema
+        o.dialect = table.dialect
+        o.sql = table.sql
+        o.isView = table.isView
         o.database = jsonClone(data1.database)
         o.connection = jsonClone(data1.connection)
         return o
