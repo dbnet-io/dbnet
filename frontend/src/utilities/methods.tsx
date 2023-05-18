@@ -4,6 +4,7 @@ import { Toast, ToastMessage } from 'primereact/toast';
 import { FormEvent, RefObject, useEffect, useRef } from "react";
 import * as Sentry from "@sentry/react";
 import { State } from "@hookstate/core";
+const crypto = require('crypto')
 
 export const alpha  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const alphanumeric  = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -15,6 +16,10 @@ export const serialize = function(obj: ObjectString) : string {
       str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
     }
   return str.join("&");
+}
+
+export const md5 = (text: string) : string => {
+  return crypto.createHash('md5').update(text).digest('hex')
 }
 
 export const dict = function(arr : Array<{ [key: string]: string }>, key: string) {

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useHS } from "../store/state";
 import { none } from "@hookstate/core";
-import { jsonClone, toastError } from "../utilities/methods";
+import { jsonClone, md5, toastError } from "../utilities/methods";
 import { Tooltip } from "primereact/tooltip";
 import { ContextMenu } from "primereact/contextmenu";
 import { TabMenu } from 'primereact/tabmenu';
@@ -319,7 +319,8 @@ const TabNamesComponent: React.FC<Props> = (props) => {
         .filter(t => !t.hidden)
         .map(tab => {
 
-        let id = `tab-${tab.name.replaceAll('.', '-')}`
+        
+        let id = `tab-${md5(tab.name)}`
         return {
           id: id,
           label: tab.name,
