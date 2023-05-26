@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/dbrest-io/dbrest v0.0.39
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/flarco/dbio v0.3.230
-	github.com/flarco/g v0.1.56
+	github.com/flarco/dbio v0.3.239
+	github.com/flarco/g v0.1.58
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/integrii/flaggy v1.5.2
 	github.com/jmoiron/sqlx v1.2.0

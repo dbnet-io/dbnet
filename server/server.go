@@ -59,14 +59,13 @@ func NewServer() *Server {
 
 	// CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "http://localhost:3001", "tauri://localhost", "https://custom-protocol-taurilocalhost"},
+		// AllowOrigins: []string{"http://localhost:5987", "http://localhost:3000", "http://localhost:3001", "tauri://localhost", "https://custom-protocol-taurilocalhost"},
 		// AllowCredentials: true,
 		// AllowHeaders: []string{"*"},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-Request-ID", "X-Request-Columns", "X-Request-Continue", "access-control-allow-origin", "access-control-allow-headers"},
-		// AllowOriginFunc: func(origin string) (bool, error) {
-		// 	println(origin)
-		// 	return false, nil
-		// },
+		AllowOriginFunc: func(origin string) (bool, error) {
+			return true, nil
+		},
 	}))
 
 	// embedded files
