@@ -41,8 +41,8 @@ snapshot:
 dockers:
   - dockerfile: 'docker/Dockerfile'
     image_templates:
-    - "dbnet/dbnet:latest"
-    - "dbnet/dbnet:{{ .Tag }}"
+    - "dbnetio/dbnet:latest"
+    - "dbnetio/dbnet:{{ .Tag }}"
 
 release:
   mode: replace
