@@ -10,6 +10,7 @@ env:
 
 jobs:
   build-frontend:
+    timeout-minutes: 15
 
     # runs-on: ubuntu-latest
     runs-on: self-hosted
@@ -140,7 +141,7 @@ jobs:
           path: server/app
 
       - name: Configure git for private modules
-        run: git config --global url."https://flarco:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
+        run: git config --global url."https://flarco:$env:GITHUB_TOKEN@github.com".insteadOf "https://github.com"
 
       - name: Run GoReleaser
         # uses: flarco/goreleaser-action@master
