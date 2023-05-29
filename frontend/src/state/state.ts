@@ -1,7 +1,7 @@
 import { createState, none, State } from "@hookstate/core"
 import { apiGet, apiPost } from "../store/api"
 import { ObjectAny, ObjectString } from "../utilities/interfaces"
-import { jsonClone, toastError } from "../utilities/methods"
+import { toastError } from "../utilities/methods"
 import { Connection } from "./connection"
 import { Job } from "./job"
 import { Query, Result } from "./query"
@@ -69,18 +69,18 @@ export class DbNetState {
 
   save = async () => {
     // localStorage.setItem("_connection_name", this.workspace.selectedConnection.get());
-    
+
     let payload = {
       name: this.workspace.name.get(),
 
       data: {
-        workspace: jsonClone(this.workspace.get()),
-        // projectPanel: jsonClone(this.projectPanel.get()),
-        queryPanel: jsonClone(this.queryPanel.get().payload()),
-        schemaPanel: jsonClone(this.schemaPanel.get()),
-        settingState: jsonClone(this.settingState.get()),
-        objectPanel: jsonClone(this.objectPanel.get()),
-        // historyPanel: jsonClone(this.historyPanel.get()),
+        workspace: this.workspace.get(),
+        // projectPanel: this.projectPanel.get(),
+        queryPanel: this.queryPanel.get().payload(),
+        schemaPanel: this.schemaPanel.get(),
+        settingState: this.settingState.get(),
+        objectPanel: this.objectPanel.get(),
+        // historyPanel: this.historyPanel.get(),
       },
     }
     try {

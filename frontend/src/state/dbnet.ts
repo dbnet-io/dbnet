@@ -193,6 +193,7 @@ export class DbNet {
     
     // set current conn
     if(!this.selectedConnection) this.selectConnection(`${localStorage.getItem("_connection_name")}`)
+    this.trigger('onSelectConnection')
   }
 
   async loadWorkspace() {
