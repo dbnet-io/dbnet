@@ -1,11 +1,13 @@
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
-project_name: dbNet
+project_name: dbnet
 
 before:
   hooks:
     - go mod edit -dropreplace='github.com/flarco/g' go.mod
     - go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+    - go mod edit -dropreplace='github.com/dbrest-io/dbrest' go.mod
+    - go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
     - go mod tidy
 
 builds:

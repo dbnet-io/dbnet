@@ -4,6 +4,10 @@ project_name: dbnet
 
 before:
   hooks:
+    - go mod edit -dropreplace='github.com/flarco/g' go.mod
+    - go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+    - go mod edit -dropreplace='github.com/dbrest-io/dbrest' go.mod
+    - go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
     - go mod tidy
 
 builds:
@@ -14,7 +18,7 @@ builds:
 
     goarch:
       - amd64
-      # - arm64
+      - arm64
     goos:
       - darwin
     ldflags:
