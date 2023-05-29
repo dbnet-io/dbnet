@@ -38,6 +38,11 @@ jobs:
         cd dbnet
 
         bash scripts/build.frontend.sh
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: webapp-dist
+        path: server/app
 
   release-brew:
     timeout-minutes: 20
