@@ -30,6 +30,7 @@ var (
 )
 
 func TestAll(t *testing.T) {
+	srv.Port = "7890"
 	defer srv.Close()
 	go srv.Start()
 	time.Sleep(1 * time.Second)
