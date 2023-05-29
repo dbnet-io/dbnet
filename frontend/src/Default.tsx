@@ -53,7 +53,7 @@ export const Default: React.FC<Props> = (props) => {
 
     // choose conn if needed
     if(!dbnet.selectedConnection) return chooseConnection.set(true)
-    await dbnet.getDatabases(dbnet.selectedConnection)
+    dbnet.getDatabases(dbnet.selectedConnection)
 
     // set title
     document.title = `${dbnet.selectedConnection.toUpperCase()}`
@@ -76,7 +76,11 @@ export const Default: React.FC<Props> = (props) => {
     let lastTabID = window.dbnet.state.workspace.selectedConnectionTab.get()[dbnet.selectedConnection.toLowerCase()]
     window.dbnet.selectTab(lastTabID)
 
+
+    window.dbnet.state.schemaPanel.loading.set(true)
     dbnet.getAllSchemata(dbnet.selectedConnection)
+      .finally(() => window.dbnet.state.schemaPanel.loading.set(false))
+    
     // dbnet.trigger('refreshSchemaPanel')
   }
 
@@ -138,25 +142,30 @@ export const Default: React.FC<Props> = (props) => {
           null
       }
 
-      <Splitter
-        style={{
-          height: splitterHeight,
-          marginLeft: '5px',
-          display: transient.get().showLoadSpinner ? 'none': null,
-        }}
-        stateKey={"splitter"}
-        stateStorage={"local"}
-        onResizeEnd={(e) => debounceRefresh()} 
-        gutterSize={10}
-      >
-        <SplitterPanel className="p-d-flex" style={{maxWidth:'400px'}}>
-          <LeftPane/>
-        </SplitterPanel>
-        <SplitterPanel className="p-d-flex">
-          <RightPane/>
-          {/* <Sessions/> */}
-        </SplitterPanel>
-      </Splitter>
+     {
+      !chooseConnection.get() ?
+        <Splitter
+          style={{
+            height: splitterHeight,
+            marginLeft: '5px',
+            display: transient.get().showLoadSpinner ? 'none': null,
+          }}
+          stateKey={"splitter"}
+          stateStorage={"local"}
+          onResizeEnd={(e) => debounceRefresh()} 
+          gutterSize={10}
+        >
+          <SplitterPanel className="p-d-flex" style={{maxWidth:'400px'}}>
+            <LeftPane/>
+          </SplitterPanel>
+          <SplitterPanel className="p-d-flex">
+            <RightPane/>
+            {/* <Sessions/> */}
+          </SplitterPanel>
+        </Splitter>
+          :
+          null
+      }
       </div>
     </div>
   );

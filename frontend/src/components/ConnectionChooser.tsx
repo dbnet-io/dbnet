@@ -6,6 +6,7 @@ import { ListBox } from "primereact/listbox"
 import React from "react"
 import { useHS } from "../store/state"
 import { jsonClone, useIsMounted } from "../utilities/methods"
+import { ProgressSpinner } from "primereact/progressspinner"
 
 export const ConnectionChooser = (props: { show: State<boolean>, onSelect: (connName: string, dbName: string) => void}) => {
   const connSelected = useHS(window.dbnet.selectedConnection)
@@ -13,18 +14,23 @@ export const ConnectionChooser = (props: { show: State<boolean>, onSelect: (conn
   const dbSelected = useHS('')
   const dbtConns = () : string[] => window.dbnet.connections.filter(c => c.dbt).map(c => c.name)
   const isMounted = useIsMounted()
+  const loading = useHS(false)
 
   React.useEffect(()=>{
     if(connSelected.get()) {
       let conn = window.dbnet.getConnection(connSelected.get())
 
       if(Object.keys(conn.databases).length === 0) {
-        window.dbnet.getDatabases(connSelected.get()).then(
-          () => {
-            if(!isMounted.current) return
-            databases.set(jsonClone(window.dbnet.currentConnection.databases))
-          }
-        )
+        loading.set(true)
+        window.dbnet.getDatabases(connSelected.get())
+          .then(
+            () => {
+              if(!isMounted.current) return
+              databases.set(jsonClone(window.dbnet.currentConnection.databases))
+            }
+          ).finally(() => {
+            if(isMounted.current) loading.set(false) 
+          })
       }
     }
   },[connSelected.get()]) // eslint-disable-line
@@ -64,6 +70,11 @@ export const ConnectionChooser = (props: { show: State<boolean>, onSelect: (conn
       onHide={() => props.show.set(false)}
     >
       {
+        loading.get() ?
+            <div style={{position: 'absolute', top: `40%`, left: '45%'}}>
+              <ProgressSpinner style={{width: '40px', height: '40px'}} strokeWidth="5" fill="#EEEEEE" animationDuration=".5s"/>
+            </div>
+        :
         connSelected.get() ?
         <ListBox 
           value={dbSelected.get()}
