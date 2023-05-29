@@ -1,4 +1,4 @@
-name: Test & Build, Release
+name: Build & Release
 
 on:
   workflow_dispatch:
@@ -14,10 +14,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Node 14
+    - name: Set up Node 16
       uses: actions/setup-node@v1
       with:
-        node-version: '14.x'
+        node-version: '16.x'
 
     - name: Cache NPM
       id: cache-npm
@@ -31,144 +31,97 @@ jobs:
     - name: Build frontend
       run: |
         bash scripts/build.frontend.sh
-    
-    - uses: actions/upload-artifact@v2
-      with:
-        name: webapp-dist
-        path: server/app
-  
-  build-backend:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+
+  release-brew:
+    timeout-minutes: 20
+    runs-on: [self-hosted, macOS, ARM64]
+    # runs-on: macos-latest
     needs: [build-frontend]
-    runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v2
-  
-    - name: Build Backend
-      run: |
-        export WORK_FOLDER=/__/work/${GITHUB_RUN_NUMBER}
-        mkdir -p $WORK_FOLDER
-        cp -r . $WORK_FOLDER/scruto
-
-        # since gh-runner is ubuntu:focal, need this to avoid error: version `GLIBC_2.28' not found
-        docker run --rm -v /__:/__ -v $WORK_FOLDER:/work --workdir /work/scruto flarco/devbox:base bash -c "source /__/devbox/.env.sh && bash scripts/build.backend.sh"
-
-        rm -rf $WORK_FOLDER/scruto
-  
-  test:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
-    
-    needs: [build-backend]
-
-    runs-on: self-hosted
-    
-    steps:
-        
-    - uses: actions/checkout@v2
-  
-    - name: Run Go Tests
-      run: |
-        source /__/devbox/.env.sh
-        bash scripts/prep.gomod.sh
-        export _DEBUG=''
-        cp -f /__/docker-data/devbox/root/dbnet/.dbnet.yaml /root/dbnet/.dbnet.yaml
-        bash scripts/test.sh
-
-  release:
-    needs: [build-backend, test]
-    runs-on: ${{ matrix.os }}
-    # if: github.event.pull_request.merged
-
-    strategy:
-      matrix:
-        os: [ macos-latest, ubuntu-latest, windows-2016 ]
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Dump context
-      env:
-        JOB_CONTEXT: ${{ toJson(job) }}
-        MATRIX_CONTEXT: ${{ toJson(matrix) }}
-        RUNNER_CONTEXT: ${{ toJson(runner) }}
-      run: |
-        echo "JOB_CONTEXT -> $JOB_CONTEXT"
-        echo "MATRIX_CONTEXT -> $MATRIX_CONTEXT"
-        echo "RUNNER_CONTEXT -> $RUNNER_CONTEXT"
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
       
-    - name: Set up GoLang
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.19'
-        cache: true
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20
 
-    - name: Set up Node 14
-      uses: actions/setup-node@v1
-      with:
-        node-version: '14.x'
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
 
-    - uses: actions/download-artifact@v2
-      with:
-        name: webapp-dist
-    
-    - name: Prepare Build (Unix)
-      if: runner.os != 'windows'
-      run: |
-        export GO_BIN_FOLDER=$HOME/go/bin
-        export TMPDIR=~/tmp/
-        export PATH=$GO_BIN_FOLDER:$PATH
-        mkdir -p $TMPDIR
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --skip-validate -f .goreleaser.mac.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
 
-    - name: Prepare Build (Windows)
-      if: runner.os == 'windows'
-      run: |
-        setx TMPDIR "C:\Users\runneradmin\tmp"
-        setx PATH "%PATH%;C:\Users\runneradmin\go\bin"
-        setx GO111MODULE "auto"
-        mkdir C:\Users\runneradmin\tmp
-        
-    - name: Build DbNet (Linux)
-      if: runner.os == 'linux'
-      run: |
-        echo "Building DbNet"
-        bash scripts/prep.gomod.sh
-        GOOS=linux GOARCH=amd64 go build -o dbNet *.go
+  release-linux:
+    runs-on: ubuntu-20.04
+    # runs-on: [self-hosted, Linux]
+    timeout-minutes: 20
+    needs: [build-frontend]
 
-    - name: Build DbNet (Mac)
-      if: runner.os == 'macOS'
-      run: |
-        echo "Building DbNet"
-        bash scripts/prep.gomod.sh
-        GOOS=darwin GOARCH=amd64 go build -o dbnet-x86_64-apple-darwin *.go
-        /bin/cp -f dbnet-x86_64-apple-darwin frontend/resources/mac/bin/
-        
-        cd frontend
-        npm install
-        npm run dist
-        mv dbNet-darwin-x64/dbNet.app ..
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       
-    - name: Build DbNet (Windows)
-      if: runner.os == 'windows'
-      run: |
-        echo "Building DbNet.exe"
-        setx GOOS "windows"
-        setx GOARCH "386"
-        setx GO111MODULE "auto"
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20
 
-        go mod edit -dropreplace='github.com/flarco/g' go.mod
-        go mod edit -dropreplace='github.com/flarco/dbio' go.mod
-        go get github.com/flarco/g@HEAD
-        go get github.com/flarco/dbio@HEAD
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
 
-        go build -o dbNet.exe github.com/dbnet-io/dbnet
+      - name: Run GoReleaser
+        # uses: flarco/goreleaser-action@master
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --skip-validate -f .goreleaser.linux.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          
 
-    - name: Release Binaries to Github
-      uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest-${{ runner.os }}"
-        prerelease: true
-        title: "Latest: ${{ runner.os }}"
-        files: |
-          dbNet*
+  release-windows:
+    runs-on: windows-latest
+    # runs-on: [self-hosted, Linux]
+    timeout-minutes: 20
+    needs: [build-frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
+
+      - name: Run GoReleaser
+        # uses: flarco/goreleaser-action@master
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          

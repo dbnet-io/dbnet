@@ -1,0 +1,86 @@
+name: Bump
+
+on: 
+  workflow_dispatch:
+  push:
+
+jobs:
+  bump:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      new_version: ${{ steps.tag_version.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ github.event.inputs.tag }}
+
+  build-frontend:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+
+    # runs-on: ubuntu-latest
+    runs-on: self-hosted
+    needs: [bump]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Node 16
+      uses: actions/setup-node@v1
+      with:
+        node-version: '16.x'
+
+    - name: Cache NPM
+      id: cache-npm
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+      
+    - name: Build frontend
+      run: |
+        bash scripts/build.frontend.sh
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: webapp-dist
+        path: server/app
+  
+
+  build-backend:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    needs: [bump]
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+  
+    - name: Build Backend
+      run: go build -o dbnet
+  
+
+  test:
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    
+    needs: [build-backend]
+
+    runs-on: self-hosted
+    
+    steps:
+        
+    - uses: actions/checkout@v2
+  
+    - name: Run Go Tests
+      env:
+        ENVKEY: ${{ secrets.ENVKEY }}
+      run: |
+        /__/bin/envkey-source -f --dot-env > .env
+        
+        docker run --rm --env-file .env -v /__/docker-data/devbox/root/go:/root/go -v /__:/__ -v /tmp:/tmp -v $PWD:/work --workdir /work flarco/devbox:base bash -c "bash scripts/prep.gomod.sh && bash scripts/test.sh"
