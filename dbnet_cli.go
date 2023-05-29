@@ -20,6 +20,8 @@ import (
 	"github.com/spf13/cast"
 )
 
+var telemetryMap = g.M("start_time", time.Now().UnixMicro())
+
 var cliServe = &g.CliSC{
 	Name:                "serve",
 	Description:         "launch the dbnet server",
@@ -98,11 +100,11 @@ func serve(c *g.CliSC) (ok bool, err error) {
 		os.Setenv("HOST", cast.ToString(host))
 	}
 
-	ef := env.LoadDbNetEnvFile()
-	ec := connection.EnvConns{EnvFile: &ef}
-	if len(ec.List()) == 0 {
+	if len(connection.GetLocalConns(true)) == 0 {
 		g.Warn("No connections have been defined. Please create some proper environment variables. See https://docs.dbnet.io for more details.")
 		return true, g.Error("No connections have been defined")
+	} else if conns := connection.GetLocalConns(false); len(conns) == 1 {
+		telemetryMap["conn_type"] = conns[0].Connection.Type.String()
 	}
 
 	go store.Loop()
@@ -157,10 +159,14 @@ func exec(c *g.CliSC) (ok bool, err error) {
 	g.Info("Executing...")
 
 	_, err = conn.Exec(sql)
-	if err != nil {
-		g.LogFatal(err, "could not execute query")
-	}
 	end := time.Now()
+
+	telemetryMap["conn_type"] = conn.GetType().String()
+	telemetryMap["end_time"] = end.UnixMicro()
+
+	telemetry("exec")
+
+	g.LogFatal(err, "could not execute query")
 
 	g.Info("Successful! Duration: %d seconds", end.Unix()-start.Unix())
 
@@ -224,7 +230,7 @@ func cliInit() int {
 }
 
 func telemetry(action string) {
-	// set DBnet_TELEMETRY=FALSE to disable
+	// set DBNET_TELEMETRY=FALSE to disable
 	if val := os.Getenv("DBNET_TELEMETRY"); val != "" {
 		if !cast.ToBool(val) {
 			return
@@ -240,6 +246,11 @@ func telemetry(action string) {
 		"action", action,
 		"machine_id", machineID,
 	)
+
+	for k, v := range telemetryMap {
+		payload[k] = v
+	}
+
 	net.ClientDo("POST", env.RudderstackURL, strings.NewReader(g.Marshal(payload)), nil)
 
 }
@@ -257,7 +268,7 @@ func checkVersion() {
 	case strings.Contains(execFileName, "scoop"):
 		instruction = "Please run `scoop update dbnet`"
 	case execFileName == "/dbnet/dbnet" && os.Getenv("HOME") == "/dbnet":
-		instruction = "Please run `docker pull dbnet/dbnet` and recreate your container"
+		instruction = "Please run `docker pull dbnetio/dbnet` and recreate your container"
 	}
 
 	const url = "https://api.github.com/repos/dbnet-io/dbnet/tags"
