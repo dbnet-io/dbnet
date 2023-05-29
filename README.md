@@ -26,7 +26,52 @@ dbNet is in active developement and will be open-sourced soon. Here are some of 
 * Firebolt (coming soon)
 * Databricks (coming soon)
 
+# Installation
 
+## Brew on Mac
+
+```shell
+brew install dbnet-io/dbnet/dbnet
+
+# You're good to go!
+dbnet -h
+```
+
+## Scoop on Windows
+
+```powershell
+scoop bucket add dbnet https://github.com/dbnet-io/scoop-dbnet.git
+scoop install dbnet
+
+# You're good to go!
+dbnet -h
+```
+
+## Docker
+
+```powershell
+docker pull dbnetio/dbnet
+
+# You're good to go!
+docker run --rm -it dbnetio/dbnet -h
+```
+
+## Build from source
+
+```powershell
+git clone https://github.com/dbnet-io/dbnet.git
+cd dbnet
+
+go mod tidy
+
+# Ensure you have npm & yarn installed with NodeJS 16+
+bash build.sh
+
+./dbnet -h
+```
+
+
+# Notes
 ## Electron
 - https://github.com/electron/electron-packager
 - https://www.electron.build/

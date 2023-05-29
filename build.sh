@@ -2,7 +2,7 @@ set -e
 
 # Build Frontend Bundle
 cd frontend
-yarn build
+yarn && yarn build
 cd -
 
 rm -rf server/app
