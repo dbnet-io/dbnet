@@ -20,10 +20,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ github.event.inputs.tag }}
 
-  build:
+  build-test:
 
     # runs-on: ubuntu-latest
-    runs-on: self-hosted
+    if: "! contains(github.event.head_commit.message, '[no test]')"
+    runs-on: [self-hosted, Linux]
     needs: [bump]
 
     steps:
@@ -69,22 +70,10 @@ jobs:
         go mod tidy
 
         go build -o dbnet
-
-  test:
-    if: "! contains(github.event.head_commit.message, '[no test]')"
     
-    needs: [build]
-
-    runs-on: self-hosted
-    
-    steps:
-        
-    - uses: actions/checkout@v2
-  
-    - name: Run Go Tests
+    - name: Test
       env:
         ENVKEY: ${{ secrets.ENVKEY }}
       run: |
         /__/bin/envkey-source -f --dot-env > .env
-        
-        docker run --rm --env-file .env -v /__/docker-data/devbox/root/go:/root/go -v /__:/__ -v /tmp:/tmp -v $PWD:/work --workdir /work flarco/devbox:base bash -c "bash scripts/prep.gomod.sh && bash scripts/test.sh"
+        bash scripts/test.sh

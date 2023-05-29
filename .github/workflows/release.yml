@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
     
 
+env:
+  GOPRIVATE: "github.com/dbnet-io/*,github.com/slingdata-io/*"
+  GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+
 jobs:
   build-frontend:
 
@@ -64,6 +68,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: webapp-dist
+          path: server/app
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
@@ -71,8 +76,6 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.mac.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
 
   release-linux:
     runs-on: ubuntu-20.04
@@ -94,12 +97,16 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: webapp-dist
+          path: server/app
 
       - name: Login docker
         env:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
           echo "$DOCKER_PASSWORD" | docker login -u dbnetio --password-stdin
+
+      - name: Configure git for private modules
+        run: git config --global url."https://flarco:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
 
       - name: Run GoReleaser
         # uses: flarco/goreleaser-action@master
@@ -108,13 +115,11 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.linux.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           
 
   release-windows:
     runs-on: windows-latest
-    # runs-on: [self-hosted, Linux]
+    # runs-on: [self-hosted, Windows]
     timeout-minutes: 20
     needs: [build-frontend]
 
@@ -132,6 +137,10 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: webapp-dist
+          path: server/app
+
+      - name: Configure git for private modules
+        run: git config --global url."https://flarco:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
 
       - name: Run GoReleaser
         # uses: flarco/goreleaser-action@master
@@ -140,6 +149,4 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           
