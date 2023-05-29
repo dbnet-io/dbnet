@@ -31,9 +31,9 @@ jobs:
     - name: Build frontend
       run: |
         npm install -g yarn
-        
+
         # Build dbnet-parser
-        cd ..
+        cd .. && rm -rf dbnet-parser
         git clone git@github.com:dbnet-io/dbnet-parser.git
         cd dbnet-parser && yarn && yarn build && cd -
         cd dbnet

@@ -21,7 +21,6 @@ jobs:
           custom_tag: ${{ github.event.inputs.tag }}
 
   build-frontend:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
 
     # runs-on: ubuntu-latest
     runs-on: self-hosted
@@ -49,7 +48,7 @@ jobs:
         npm install -g yarn
         
         # Build dbnet-parser
-        cd ..
+        cd .. && rm -rf dbnet-parser
         git clone git@github.com:dbnet-io/dbnet-parser.git
         cd dbnet-parser && yarn && yarn build && cd -
         cd dbnet
@@ -63,7 +62,6 @@ jobs:
   
 
   build-backend:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
     needs: [bump]
     runs-on: self-hosted
 
@@ -82,12 +80,12 @@ jobs:
         go mod edit -dropreplace='github.com/dbrest-io/dbrest' go.mod
         go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
         go mod tidy
-        
+
         go build -o dbnet
   
 
   test:
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    if: "! contains(github.event.head_commit.message, '[no test]')"
     
     needs: [build-backend]
 
