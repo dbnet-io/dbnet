@@ -76,7 +76,14 @@ jobs:
         go-version: 1.20
   
     - name: Build Backend
-      run: go build -o dbnet
+      run: |
+        go mod edit -dropreplace='github.com/flarco/g' go.mod
+        go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+        go mod edit -dropreplace='github.com/dbrest-io/dbrest' go.mod
+        go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
+        go mod tidy
+        
+        go build -o dbnet
   
 
   test:
