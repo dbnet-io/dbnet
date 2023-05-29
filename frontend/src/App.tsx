@@ -13,6 +13,7 @@ import { JSpreadsheet, ObjectAny } from './utilities/interfaces';
 import { DbNet } from './state/dbnet';
 import { HashRouter, Route } from 'react-router-dom';
 import { Default } from './Default';
+import { jsonClone } from './utilities/methods';
 
 // this is to extends the window global functions
 declare global {
@@ -61,6 +62,11 @@ function useWindowSize() {
   useLayoutEffect(() => {
     function updateSize() {
       setSize([window.innerWidth, window.innerHeight]);
+
+      // refresh ratio
+      let lr = window.dbnet.state.settingState.leftPaneRatio.get()
+      lr = [jsonClone(lr[0]), jsonClone(lr[1])] // weird
+      window.dbnet.state.settingState.leftPaneRatio.set(lr)
     }
     window.addEventListener('resize', updateSize);
     updateSize();
