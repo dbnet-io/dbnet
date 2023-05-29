@@ -214,7 +214,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       searchResults.set(results)
       tableKeys.current = {}
       for (let table of results) {
-        tableKeys.current[table.key()] = table
+        tableKeys.current[table.fullName()] = table
       }
     }
 
@@ -222,7 +222,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       id='omni-search'
       placeholder="Search..."
       value={omniSearch.get()}
-      suggestions={searchResults.get().map(t => t.key())}
+      suggestions={searchResults.get().map(t => t.fullName())}
       completeMethod={searchTable}
       field="name"
       onKeyUp={omniKeyPress}

@@ -72,13 +72,18 @@ export class Table {
     this.columns = data.columns || []
   }
 
-  fdqn = () => { 
-    let q = quote_char(this.dialect)
+  fdqn_arr = () => { 
     let arr = [this.database, this.schema, this.name]
-    return arr.map(v => q + v + q).join('.')
+    if([ConnType.DbSQLite].includes(this.dialect)) arr = [this.schema, this.name]
+    return arr
   }
 
-  fullName = () => `${this.database}.${this.schema}.${this.name}`
+  fdqn = () => { 
+    let q = quote_char(this.dialect)
+    return this.fdqn_arr().map(v => q + v + q).join('.')
+  }
+
+  fullName = () => this.fdqn_arr().join('.')
 
   key = () => `${this.connection}.${this.database}.${this.schema}.${this.name}`.toLowerCase()
 

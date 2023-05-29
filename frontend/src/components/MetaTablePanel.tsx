@@ -434,7 +434,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           <a // eslint-disable-line
             href={window.location.hash}
             title="Copy name to clipboard"
-            onClick={() => { copyToClipboard(table.get().fullName()) }}
+            onClick={() => { copyToClipboard(table.get().fdqn()) }}
           >
             <i className="pi pi-copy" style={{ 'fontSize': '0.9em', paddingLeft: '5px' }}></i>
           </a>
@@ -463,7 +463,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           {
             history.get()?.filter((h, i) => i < historyI.get() && i > historyI.get() - 5).reverse().map(h => {
               return <>
-                <span>{new Table(h).fullName().toUpperCase()}</span>
+                <span>{new Table(h).fullName()}</span>
                 <br />
               </>
             })
@@ -494,7 +494,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           {
             history.get().filter((h, i) => i > historyI.get()).slice(0, 5).map(h => {
               return <>
-                <span>{new Table(h).fullName().toUpperCase()}</span>
+                <span>{new Table(h).fullName()}</span>
                 <br />
               </>
             })
