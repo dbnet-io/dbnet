@@ -4,8 +4,9 @@ import { ObjectAny } from '../utilities/interfaces';
 const { Readable } = require("stream")
 const csv = require('csv-parser')
 
-// export const masterURL = window.location.origin
-export const masterURL = 'http://localhost:5987'
+const isDev = window.location.href.includes('://localhost:3000')
+
+export const masterURL = isDev ? 'http://localhost:5987' : window.location.origin
 
 export interface Header {
   name: string
