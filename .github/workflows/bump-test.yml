@@ -20,7 +20,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ github.event.inputs.tag }}
 
-  build-frontend:
+  build:
 
     # runs-on: ubuntu-latest
     runs-on: self-hosted
@@ -28,6 +28,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: "1.20"
 
     - name: Set up Node 16
       uses: actions/setup-node@v1
@@ -55,28 +60,6 @@ jobs:
 
         bash scripts/build.frontend.sh
     
-    - uses: actions/upload-artifact@v2
-      with:
-        name: webapp-dist
-        path: server/app
-  
-
-  build-backend:
-    needs: [bump]
-    runs-on: self-hosted
-
-    steps:
-    - uses: actions/checkout@v2
-      
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: "1.20"
-
-    - uses: actions/download-artifact@v2
-      with:
-        name: webapp-dist
-  
     - name: Build Backend
       run: |
         go mod edit -dropreplace='github.com/flarco/g' go.mod
@@ -86,12 +69,11 @@ jobs:
         go mod tidy
 
         go build -o dbnet
-  
 
   test:
     if: "! contains(github.event.head_commit.message, '[no test]')"
     
-    needs: [build-backend]
+    needs: [build]
 
     runs-on: self-hosted
     
