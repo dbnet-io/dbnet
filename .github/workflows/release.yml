@@ -59,7 +59,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: "1.20"
 
       - uses: actions/download-artifact@v2
         with:
@@ -72,7 +72,7 @@ jobs:
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.mac.yaml
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
 
   release-linux:
     runs-on: ubuntu-20.04
@@ -89,7 +89,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: "1.20"
 
       - uses: actions/download-artifact@v2
         with:
@@ -99,7 +99,7 @@ jobs:
         env:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: |
-          echo "$DOCKER_PASSWORD" | docker login -u dbnet --password-stdin
+          echo "$DOCKER_PASSWORD" | docker login -u dbnetio --password-stdin
 
       - name: Run GoReleaser
         # uses: flarco/goreleaser-action@master
@@ -109,7 +109,7 @@ jobs:
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.linux.yaml
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           
 
   release-windows:
@@ -127,7 +127,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20
+          go-version: "1.20"
 
       - uses: actions/download-artifact@v2
         with:
@@ -141,5 +141,5 @@ jobs:
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
         env:
-          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
           
