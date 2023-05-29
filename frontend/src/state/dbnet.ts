@@ -189,7 +189,6 @@ export class DbNet {
     
     let connections = _.sortBy(records, (c: any) => c.name).map(c => new Connection(c))
     this.workspace.connections = connections
-    this.state.workspace.connections.set(connections)
     
     // set current conn
     if(!this.selectedConnection) this.selectConnection(`${localStorage.getItem("_connection_name")}`)

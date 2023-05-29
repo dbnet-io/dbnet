@@ -132,7 +132,6 @@ class WorkspaceState {
   selectedConnectionName: string
   selectedConnection: Connection
   selectedConnectionTab: ObjectString
-  connections: Connection[]
   rootDir: string
 
   constructor(data: ObjectAny = {}) {
@@ -140,7 +139,6 @@ class WorkspaceState {
     this.rootDir = data.rootDir
     this.selectedConnectionName = data.selectedConnectionName || ''
     this.selectedConnection = data.selectedConnection || new Connection()
-    this.connections = data.connections || []
     this.selectedMetaTab = 'Schema' || data.selectedMetaTab
     this.selectedConnectionTab = data.selectedConnectionTab || {}
   }

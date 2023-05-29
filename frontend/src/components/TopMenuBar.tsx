@@ -21,7 +21,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   const onSelectConnection = useVariable(0)
   const jobPanel = window.dbnet.state.jobPanel
   // const metaPanel = window.dbnet.state.metaPanel
-  const connections = useHS(window.dbnet.state.workspace.connections)
+  const connections = useHS(window.dbnet.connections)
 
   ///////////////////////////  EFFECTS  ///////////////////////////
   React.useEffect(() => {
@@ -31,7 +31,9 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     }
   }, []) // eslint-disable-line
 
-  React.useEffect(() => { }, [onSelectConnection.get()]) // eslint-disable-line
+  React.useEffect(() => { 
+    connections.set(window.dbnet.connections)
+  }, [onSelectConnection.get()]) // eslint-disable-line
 
   ///////////////////////////  FUNCTIONS  ///////////////////////////
 
