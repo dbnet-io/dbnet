@@ -26,12 +26,21 @@ export const ConnectionChooser = (props: { show: State<boolean>, onSelect: (conn
           .then(
             () => {
               if(!isMounted.current) return
-              databases.set(jsonClone(window.dbnet.currentConnection.databases))
+              let names = Object.values(window.dbnet.currentConnection.databases).map(d => d.name)
+              if(names.length === 1) {
+                // select the only choice
+                props.onSelect(connSelected.get(), names[0])
+              } else {
+                databases.set(jsonClone(window.dbnet.currentConnection.databases))
+              }
             }
           ).finally(() => {
             if(isMounted.current) loading.set(false) 
           })
       }
+    } else if(window.dbnet.connections.length === 1) {
+      window.dbnet.selectConnection(window.dbnet.connections[0].name)
+      connSelected.set(window.dbnet.connections[0].name)
     }
   },[connSelected.get()]) // eslint-disable-line
 

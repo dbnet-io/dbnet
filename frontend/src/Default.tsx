@@ -10,7 +10,7 @@ import { TopMenuBar } from "./components/TopMenuBar";
 import { LeftPane } from "./panes/LeftPane";
 import { RightPane } from "./panes/RightPane";
 import { useHS } from "./store/state";
-import { jsonClone, toastError, toastInfo } from "./utilities/methods";
+import { jsonClone, toastError } from "./utilities/methods";
 
 interface Props {}
 
@@ -47,7 +47,7 @@ export const Default: React.FC<Props> = (props) => {
 
     if(dbnet.connections.length === 0) {
       // need to create connections
-      toastInfo('Did not find any connections.')
+      toastError('Did not find any connections', 'See https://docs.dbnet.io for help.')
       return
     }
 

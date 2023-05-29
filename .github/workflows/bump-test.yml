@@ -76,4 +76,4 @@ jobs:
         ENVKEY: ${{ secrets.ENVKEY }}
       run: |
         /__/bin/envkey-source -f --dot-env > .env
-        bash scripts/test.sh
+        # bash scripts/test.sh

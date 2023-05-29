@@ -21,7 +21,7 @@ dbNet is in active developement and will be open-sourced soon. Here are some of 
 * SQLite
 * SQL Server
 * Snowflake
-* DuckDB (coming soon)
+* DuckDB
 * ScyllaDB (coming soon)
 * Firebolt (coming soon)
 * Databricks (coming soon)
