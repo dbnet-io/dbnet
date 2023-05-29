@@ -2,13 +2,53 @@ name: Build & Release
 
 on:
   workflow_dispatch:
+    
 
 jobs:
+  build-frontend:
+
+    # runs-on: ubuntu-latest
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Node 16
+      uses: actions/setup-node@v1
+      with:
+        node-version: '16.x'
+
+    - name: Cache NPM
+      id: cache-npm
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+      
+    - name: Build frontend
+      run: |
+        npm install -g yarn
+
+        # Build dbnet-parser
+        cd .. && rm -rf dbnet-parser
+        git clone git@github.com:dbnet-io/dbnet-parser.git
+        cd dbnet-parser && yarn && yarn build && cd -
+        cd dbnet
+
+        bash scripts/build.frontend.sh
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: webapp-dist
+        path: server/app
 
   release-brew:
-    timeout-minutes: 15
+    timeout-minutes: 20
     runs-on: [self-hosted, macOS, ARM64]
     # runs-on: macos-latest
+    needs: [build-frontend]
 
     steps:
       - name: Checkout
@@ -19,8 +59,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: "1.19"
-          cache: true
+          go-version: 1.20
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
@@ -31,37 +74,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
 
-  release-scoop:
-    # runs-on: [self-hosted, Windows]
-    runs-on: windows-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: "1.19"
-          cache: true
-
-      - name: Run GoReleaser
-        # uses: flarco/goreleaser-action@master
-        uses: goreleaser/goreleaser-action@v3
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
-
   release-linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     # runs-on: [self-hosted, Linux]
-    timeout-minutes: 15
+    timeout-minutes: 20
+    needs: [build-frontend]
 
     steps:
       - name: Checkout
@@ -72,8 +89,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: "1.19"
-          cache: true
+          go-version: 1.20
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
 
       - name: Login docker
         env:
@@ -90,3 +110,36 @@ jobs:
           args: release --rm-dist --skip-validate -f .goreleaser.linux.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          
+
+  release-windows:
+    runs-on: windows-latest
+    # runs-on: [self-hosted, Linux]
+    timeout-minutes: 20
+    needs: [build-frontend]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: webapp-dist
+
+      - name: Run GoReleaser
+        # uses: flarco/goreleaser-action@master
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_GITHUB_TOKEN }}
+          
