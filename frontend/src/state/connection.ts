@@ -20,6 +20,7 @@ export enum ConnType {
   DbBigQuery = "bigquery",
   DbSnowflake = "snowflake",
   DbSQLite = "sqlite",
+  DbDuckDb = "duckdb",
   DbSQLServer = "sqlserver",
   DbAzure = "azuresql",
   DbAzureDWH = "azuredwh",
