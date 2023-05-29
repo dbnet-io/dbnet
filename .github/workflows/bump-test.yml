@@ -46,6 +46,7 @@ jobs:
       
     - name: Build frontend
       run: |
+        npm install -g yarn
         bash scripts/build.frontend.sh
     
     - uses: actions/upload-artifact@v2
