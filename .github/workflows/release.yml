@@ -7,6 +7,7 @@ on:
 env:
   GOPRIVATE: "github.com/dbnet-io/*,github.com/slingdata-io/*"
   GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+  SSH_SERVER_URL: ${{ secrets.SSH_SERVER_URL }}
 
 jobs:
   build-frontend:
@@ -79,7 +80,7 @@ jobs:
           args: release --rm-dist --skip-validate -f .goreleaser.mac.yaml
 
   release-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     # runs-on: [self-hosted, Linux]
     timeout-minutes: 20
     needs: [build-frontend]
@@ -151,3 +152,15 @@ jobs:
           version: latest
           args: release --rm-dist --skip-validate -f .goreleaser.windows.yaml
           
+  deploy-staging:
+    timeout-minutes: 5
+
+    runs-on: self-hosted
+
+    needs: [release-linux]
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Deploy to Staging
+      run: bash scripts/deploy.staging.sh
