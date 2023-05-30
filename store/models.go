@@ -11,17 +11,19 @@ import (
 
 // SchemaTable represent a schema table/view
 type SchemaTable struct {
-	Connection string    `json:"connection" gorm:"primaryKey"`
-	Database   string    `json:"database"  gorm:"primaryKey"`
-	SchemaName string    `json:"schema_name" gorm:"primaryKey"`
-	TableName  string    `json:"table_name" gorm:"primaryKey"`
-	IsView     bool      `json:"is_view"`
-	NumRows    int64     `json:"num_rows"`
-	UpdatedDt  time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+	WorkspaceID string    `json:"workspace_id" gorm:"primaryKey"`
+	Connection  string    `json:"connection" gorm:"primaryKey"`
+	Database    string    `json:"database"  gorm:"primaryKey"`
+	SchemaName  string    `json:"schema_name" gorm:"primaryKey"`
+	TableName   string    `json:"table_name" gorm:"primaryKey"`
+	IsView      bool      `json:"is_view"`
+	NumRows     int64     `json:"num_rows"`
+	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
 
 // TableColumn is a table/view column
 type TableColumn struct {
+	WorkspaceID string    `json:"workspace_id" gorm:"primaryKey"`
 	Connection  string    `json:"connection" gorm:"primaryKey"`
 	Database    string    `json:"database"  gorm:"primaryKey"`
 	SchemaName  string    `json:"schema_name" gorm:"primaryKey"`
@@ -39,6 +41,7 @@ type TableColumn struct {
 // is separate from TableColumn to keep analysis values
 // when hard refreshing
 type TableColumnStats struct {
+	WorkspaceID  string    `json:"workspace_id" gorm:"primaryKey"`
 	Connection   string    `json:"connection" gorm:"primaryKey"`
 	Database     string    `json:"database"  gorm:"primaryKey"`
 	SchemaName   string    `json:"schema_name" gorm:"primaryKey"`
@@ -100,15 +103,16 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Job represents a job
 type Job struct {
-	ID        string           `json:"id" gorm:"primaryKey"`
-	Type      string           `json:"type" gorm:"index:idx_job_type"`
-	Request   g.Map            `json:"request" gorm:"type:json default '{}'"`
-	Time      int64            `json:"time" gorm:"index:idx_job_time"`
-	Duration  float64          `json:"duration"`
-	Status    sling.ExecStatus `json:"status"`
-	Err       string           `json:"err"`
-	Result    g.Map            `json:"result" gorm:"type:json default '{}'"`
-	UpdatedDt time.Time        `json:"updated_dt" gorm:"autoUpdateTime"`
+	ID          string           `json:"id" gorm:"primaryKey"`
+	WorkspaceID string           `json:"workspace_id" gorm:"index"`
+	Type        string           `json:"type" gorm:"index:idx_job_type"`
+	Request     g.Map            `json:"request" gorm:"type:json default '{}'"`
+	Time        int64            `json:"time" gorm:"index:idx_job_time"`
+	Duration    float64          `json:"duration"`
+	Status      sling.ExecStatus `json:"status"`
+	Err         string           `json:"err"`
+	Result      g.Map            `json:"result" gorm:"type:json default '{}'"`
+	UpdatedDt   time.Time        `json:"updated_dt" gorm:"autoUpdateTime"`
 
 	Context g.Context            `json:"-" gorm:"-"`
 	Task    *sling.TaskExecution `json:"-" gorm:"-"`
@@ -118,8 +122,56 @@ type Job struct {
 
 // Session represents a connection session
 type Session struct {
-	Name      string    `json:"name" gorm:"primaryKey"`
-	Data      g.Map     `json:"data" gorm:"type:json not null default '{}'"`
+	WorkspaceID string    `json:"workspace_id" gorm:"primaryKey"`
+	UserID      string    `json:"user_id" gorm:"primaryKey"`
+	Name        string    `json:"name" gorm:"primaryKey"`
+	Data        g.Map     `json:"data" gorm:"type:json not null default '{}'"`
+	CreatedDt   time.Time `json:"created_dt" gorm:"autoCreateTime"`
+	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+type Workspace struct {
+	ID        string    `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"not null"`
 	CreatedDt time.Time `json:"created_dt" gorm:"autoCreateTime"`
 	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 }
+
+type User struct {
+	ID        string    `json:"id" gorm:"primaryKey"`
+	Name      string    `json:"name" gorm:"not null"`
+	Email     string    `json:"email" gorm:"index"`
+	Provider  string    `json:"provider" gorm:"index"`
+	CreatedDt time.Time `json:"created_dt" gorm:"autoCreateTime"`
+	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+type WorkspaceUser struct {
+	WorkspaceID string    `json:"workspace_id" gorm:"primaryKey"`
+	UserEmail   string    `json:"user_email" gorm:"primaryKey"`
+	UserRole    Role      `json:"user_role"`
+	State       g.Map     `json:"state" gorm:"type:json not null default '{}'"`
+	CreatedDt   time.Time `json:"created_dt" gorm:"autoCreateTime"`
+	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+type Worksheet struct {
+	ID          string    `json:"id" gorm:"primaryKey"`
+	WorkspaceID string    `json:"workspace_id" gorm:"index"`
+	OwnerID     string    `json:"owner_id" gorm:"index"`
+	Data        g.Map     `json:"data" gorm:"type:json not null default '{}'"`
+	CreatedDt   time.Time `json:"created_dt" gorm:"autoCreateTime"`
+	UpdatedDt   time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
+}
+
+// Role is the role of the user
+type Role string
+
+const (
+	// RoleAdmin = admin, full power, create/view/remove creds
+	RoleAdmin Role = "admin"
+	// RolePower = power, create jobs, run jobs, kill jobs. Cannot add/view/remove creds
+	RolePower Role = "power"
+	// RoleViewer = spectator, read only, view only executions, jobs
+	RoleViewer Role = "viewer"
+)
