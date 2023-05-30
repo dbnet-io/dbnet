@@ -22,17 +22,11 @@ export const ConnectionChooser = (props: { show: State<boolean>, onSelect: (conn
 
       if(Object.keys(conn.databases).length === 0) {
         loading.set(true)
-        window.dbnet.getDatabases(connSelected.get())
+        window.dbnet.getDatabases(conn.name)
           .then(
             () => {
               if(!isMounted.current) return
-              let names = Object.values(window.dbnet.currentConnection.databases).map(d => d.name)
-              if(names.length === 1) {
-                // select the only choice
-                props.onSelect(connSelected.get(), names[0])
-              } else {
-                databases.set(jsonClone(window.dbnet.currentConnection.databases))
-              }
+              databases.set(jsonClone(window.dbnet.currentConnection.databases))
             }
           ).finally(() => {
             if(isMounted.current) loading.set(false) 
