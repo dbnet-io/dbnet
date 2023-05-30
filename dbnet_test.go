@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +31,10 @@ var (
 )
 
 func TestAll(t *testing.T) {
+	if !strings.Contains(os.Getenv("DBNET_HOME_DIR"), ".test") {
+		g.LogFatal(g.Error("Invalid testing DBNET_HOME_DIR, must contain `.test`"))
+	}
+
 	srv.Port = "7890"
 	defer srv.Close()
 	go srv.Start()
