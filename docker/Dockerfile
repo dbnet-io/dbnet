@@ -1,4 +1,4 @@
-FROM ubuntu:focal
+FROM ubuntu:kinetic
 ENV HOME /dbnet
 RUN mkdir /dbnet
 WORKDIR /dbnet
