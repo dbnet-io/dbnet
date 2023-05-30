@@ -80,7 +80,7 @@ jobs:
           args: release --rm-dist --skip-validate -f .goreleaser.mac.yaml
 
   release-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     # runs-on: [self-hosted, Linux]
     timeout-minutes: 20
     needs: [build-frontend]

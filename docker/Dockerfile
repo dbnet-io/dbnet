@@ -1,4 +1,10 @@
-FROM ubuntu:kinetic
+FROM ubuntu:focal
+
+# Need this to avoid tls: failed to verify certificate: x509: certificate signed by unknown authority
+RUN apt update && apt install -y software-properties-common && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists /var/cache/apt
+
 ENV HOME /dbnet
 RUN mkdir /dbnet
 WORKDIR /dbnet
