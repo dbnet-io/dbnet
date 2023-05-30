@@ -63,6 +63,7 @@ export class DbNet {
     await this.loadConnections() // get all connections or create TODO:
     await this.loadHistoryQueries()
     await this.loadHistoryJobs()
+    cleanupDexieDb()  // cleanup
 
     this.state.transient.showLoadSpinner.set(false)
   }
@@ -401,9 +402,6 @@ export class DbNet {
         return r
       }
     )
-
-    // cleanup
-    cleanupDexieDb()
     
     try {
       let done = false
@@ -469,8 +467,6 @@ export class DbNet {
       query.err = `${error}`
     }
 
-    window.dbnet.state.save()
-
     // to refresh
     const queryPanel = window.dbnet.state.queryPanel.get()
     if (queryPanel.currTab().id === tab?.id.get()) {
@@ -484,6 +480,8 @@ export class DbNet {
     if (!document.hasFocus()) {
       showNotification(`Query "${tab?.connection.get()}" ${result?.query.err.get() ? 'errored' : 'completed'}!`)
     }
+
+    window.dbnet.state.save()
     
     return query
   }
