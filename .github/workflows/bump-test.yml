@@ -3,6 +3,8 @@ name: Bump
 on: 
   workflow_dispatch:
   push:
+    branches:
+      - master
 
 jobs:
   bump:
