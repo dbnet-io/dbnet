@@ -300,8 +300,14 @@ const TabTableComponent: React.FC<Props> = (props) => {
         onCellClicked={afterCellSelection}
         onCellActivated={afterCellSelection}
         theme={{
-          editorFontSize: '11.5px',
+          editorFontSize: '10px monospace',
           baseFontStyle: 'font-size: 11.5px; font-family: monospace',
+          // baseFontStyle: '10px courier',
+          // headerFontStyle: 'bold 11px verdana',
+          // headerFontStyle: 'bold 11px helvetica',
+          // headerFontStyle: 'bold 11px georgia',
+          // headerFontStyle: 'bold 11px courier',
+          headerFontStyle: 'bold 11px',
         }}
       />
     </>
