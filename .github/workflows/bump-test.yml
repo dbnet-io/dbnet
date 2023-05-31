@@ -97,6 +97,8 @@ jobs:
     - uses: actions/checkout@v2
       
     - name: Deploy to Testing
+      env:
+        SSH_SERVER_URL: ${{ secrets.SSH_SERVER_URL }}
       run: bash scripts/deploy.testing.sh
 
   test-frontend:
