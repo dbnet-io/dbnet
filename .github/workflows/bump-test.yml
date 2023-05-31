@@ -22,10 +22,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ github.event.inputs.tag }}
 
-  build-test:
+  build-test-push:
 
     # runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[no test]')"
+    if: "! contains(github.event.head_commit.message, '[no build]')"
     runs-on: [self-hosted, Linux]
     needs: [bump]
 
@@ -51,7 +51,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-
       
-    - name: Build frontend
+    - name: Pull & build dbnet-parser
       run: |
         npm install -g yarn
         
@@ -60,10 +60,8 @@ jobs:
         git clone git@github.com:dbnet-io/dbnet-parser.git
         cd dbnet-parser && yarn && yarn build && cd -
         cd dbnet
-
-        bash scripts/build.frontend.sh
     
-    - name: Build Backend
+    - name: Build CLI App
       run: |
         go mod edit -dropreplace='github.com/flarco/g' go.mod
         go mod edit -dropreplace='github.com/flarco/dbio' go.mod
@@ -71,11 +69,48 @@ jobs:
         go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
         go mod tidy
 
-        go build -o dbnet
-    
-    - name: Test
+        bash build.sh
+
+    - name: Test CLI
       env:
         ENVKEY: ${{ secrets.ENVKEY }}
       run: |
         /__/bin/envkey-source -f --dot-env > .env
         # bash scripts/test.sh
+    
+    - name: Push Docker Test Image
+      env:
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        echo "$DOCKER_PASSWORD" | docker login -u dbnetio --password-stdin
+        docker build -f docker/Dockerfile -t dbnetio/dbnet:test .
+        docker push dbnetio/dbnet:test
+  
+  deploy-testing:
+    timeout-minutes: 5
+
+    runs-on: self-hosted
+
+    needs: [build-test-push]
+
+    steps:
+    - uses: actions/checkout@v2
+      
+    - name: Deploy to Testing
+      run: bash scripts/deploy.testing.sh
+
+  test-frontend:
+
+    # runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[no test]')"
+    runs-on: [self-hosted, Linux]
+    needs: [deploy-testing]
+
+    steps:
+        
+    - name: Test Frontend
+      uses: omairvaiyani/ghact-uilicious@v1
+      with:
+        access-key: ${{ secrets.UILICIOUS_ACCESS_KEY }}
+        project: dbNet
+        tests: "dbnet_test"

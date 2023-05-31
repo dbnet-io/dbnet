@@ -72,6 +72,7 @@ export function TabEditor(props: { tab: State<Tab> }) {
   return (
     <div
       id={`editor-wrapper-${tab.id.get()}`}
+      aria-label="Editor"
       onClick={(e) => {
         saveEditorSelection(tab)
 
