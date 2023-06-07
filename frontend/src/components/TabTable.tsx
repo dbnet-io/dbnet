@@ -2,7 +2,7 @@ import * as React from "react";
 import './TabTable.css'
 import { useVariable } from "../store/state";
 import { State } from "@hookstate/core";
-import { get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
+import { copyToClipboard, get_duration, jsonClone, LogError, toastError, toastInfo } from "../utilities/methods";
 
 import { InputTextarea } from 'primereact/inputtextarea';
 import { ProgressSpinner } from 'primereact/progressspinner';
@@ -288,6 +288,9 @@ const TabTableComponent: React.FC<Props> = (props) => {
         scaleToRem={true}
         showSearch={showSearch}
         onHeaderClicked={(colIndex: number, event: HeaderClickedEventArgs) => {
+          let header = props.result.query.headers?.get()[colIndex]
+          let text = header.name.toLocaleLowerCase()
+          copyToClipboard(text, `'${text}' copied to clipboard`)
         }}
         // onColumnResize={onColumnResize}
         // showMinimap={true}
