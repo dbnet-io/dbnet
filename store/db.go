@@ -37,7 +37,6 @@ func InitDB() {
 		&SchemaTable{},
 		&TableColumn{},
 		&TableColumnStats{},
-		&Job{},
 		&dbRestState.Query{},
 		&Session{},
 	}

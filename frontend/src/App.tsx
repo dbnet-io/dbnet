@@ -69,7 +69,6 @@ function useWindowSize() {
       window.dbnet.state.settingState.leftPaneRatio.set(lr)
     }
     window.addEventListener('resize', updateSize);
-    updateSize();
     return () => window.removeEventListener('resize', updateSize);
   }, []);
   return size;

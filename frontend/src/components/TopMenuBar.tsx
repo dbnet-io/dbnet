@@ -269,13 +269,13 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
 
-    <Button
+    {/* <Button
       icon="pi pi-info"
       tooltip="Test"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
       onClick={(e) => {  }}
-    />
+    /> */}
 
     <Button
       icon="pi pi-desktop"

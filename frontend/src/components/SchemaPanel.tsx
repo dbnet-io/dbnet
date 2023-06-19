@@ -168,7 +168,7 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
     } else if (node.data.type === 'schema') {
       label = <b><i className="pi pi-folder" style={{fontSize: '12px', paddingRight: '9px'}}/>{node.label}</b>
       let schema = node.data.data
-      database_name = `${schema.database}`.toUpperCase()
+      database_name = schema.database
       schema_name = schema.name
     } else {
       label = <b><i className="pi pi-database" style={{fontSize: '12px', paddingRight: '5px'}}/> {node.label}</b>

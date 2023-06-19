@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 
 	"github.com/flarco/g"
-	"github.com/slingdata-io/sling-cli/core/sling"
 )
 
 // SchemaTable represent a schema table/view
@@ -100,20 +99,20 @@ func (r Rows) Value() (driver.Value, error) {
 
 // Job represents a job
 type Job struct {
-	ID        string           `json:"id" gorm:"primaryKey"`
-	Type      string           `json:"type" gorm:"index:idx_job_type"`
-	Request   g.Map            `json:"request" gorm:"type:json default '{}'"`
-	Time      int64            `json:"time" gorm:"index:idx_job_time"`
-	Duration  float64          `json:"duration"`
-	Status    sling.ExecStatus `json:"status"`
-	Err       string           `json:"err"`
-	Result    g.Map            `json:"result" gorm:"type:json default '{}'"`
-	UpdatedDt time.Time        `json:"updated_dt" gorm:"autoUpdateTime"`
+	ID       string  `json:"id" gorm:"primaryKey"`
+	Type     string  `json:"type" gorm:"index:idx_job_type"`
+	Request  g.Map   `json:"request" gorm:"type:json default '{}'"`
+	Time     int64   `json:"time" gorm:"index:idx_job_time"`
+	Duration float64 `json:"duration"`
+	// Status    sling.ExecStatus `json:"status"`
+	Err       string    `json:"err"`
+	Result    g.Map     `json:"result" gorm:"type:json default '{}'"`
+	UpdatedDt time.Time `json:"updated_dt" gorm:"autoUpdateTime"`
 
-	Context g.Context            `json:"-" gorm:"-"`
-	Task    *sling.TaskExecution `json:"-" gorm:"-"`
-	Wait    bool                 `json:"wait" gorm:"-"`
-	Done    chan struct{}        `json:"-" gorm:"-"`
+	Context g.Context `json:"-" gorm:"-"`
+	// Task    *sling.TaskExecution `json:"-" gorm:"-"`
+	Wait bool          `json:"wait" gorm:"-"`
+	Done chan struct{} `json:"-" gorm:"-"`
 }
 
 // Session represents a connection session
