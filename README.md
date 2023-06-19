@@ -85,12 +85,12 @@ $ dbnet conns list
 +--------------------------+-----------------+-------------------+
 | CONN NAME                | CONN TYPE       | SOURCE            |
 +--------------------------+-----------------+-------------------+
-| FINANCE_BQ               | DB - BigQuery   | dbnet env yaml    |
+| FINANCE_BQ               | DB - BigQuery   | env variable      |
 | LOCALHOST_DEV            | DB - PostgreSQL | dbt profiles yaml |
-| MSSQL                    | DB - SQLServer  | dbnet env yaml    |
-| MYSQL                    | DB - MySQL      | dbnet env yaml    |
+| MSSQL                    | DB - SQLServer  | env variable      |
+| MYSQL                    | DB - MySQL      | env variable      |
 | ORACLE_DB                | DB - Oracle     | env variable      |
-| MY_PG                    | DB - PostgreSQL | dbnet env yaml    |
+| MY_PG                    | DB - PostgreSQL | env variable      |
 +--------------------------+-----------------+-------------------+
 ```
 
