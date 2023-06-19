@@ -70,9 +70,33 @@ bash build.sh
 ./dbnet -h
 ```
 
-# Running
+# Getting Started
 
-See docs at https://flarco.gitbook.io/dbnet.io/getting-started.
+See docs at https://flarco.gitbook.io/dbnet.io/getting-started for more details.
+
+## Connections
+
+See details at https://flarco.gitbook.io/dbnet.io/connections/connections.
+
+You should be able to see connections with `dbnet conns list`:
+
+```bash
+$ dbnet conns list
++--------------------------+-----------------+-------------------+
+| CONN NAME                | CONN TYPE       | SOURCE            |
++--------------------------+-----------------+-------------------+
+| FINANCE_BQ               | DB - BigQuery   | dbnet env yaml    |
+| LOCALHOST_DEV            | DB - PostgreSQL | dbt profiles yaml |
+| MSSQL                    | DB - SQLServer  | dbnet env yaml    |
+| MYSQL                    | DB - MySQL      | dbnet env yaml    |
+| ORACLE_DB                | DB - Oracle     | env variable      |
+| MY_PG                    | DB - PostgreSQL | dbnet env yaml    |
++--------------------------+-----------------+-------------------+
+```
+
+## Serve
+
+Run the application with `dbnet serve`.
 
 # Notes
 ## Electron
