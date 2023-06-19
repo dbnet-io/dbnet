@@ -70,6 +70,9 @@ bash build.sh
 ./dbnet -h
 ```
 
+# Running
+
+See docs at https://flarco.gitbook.io/dbnet.io/getting-started.
 
 # Notes
 ## Electron
