@@ -190,5 +190,3 @@ replace github.com/flarco/g => ../g
 replace github.com/flarco/dbio => ../dbio
 
 replace github.com/dbrest-io/dbrest => ../dbrest
-
-replace github.com/slingdata-io/sling-cli => ../sling-cli
