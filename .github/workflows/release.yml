@@ -8,6 +8,7 @@ env:
   GOPRIVATE: "github.com/dbnet-io/*,github.com/slingdata-io/*"
   GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
   SSH_SERVER_URL: ${{ secrets.SSH_SERVER_URL }}
+  RUDDERSTACK_URL: ${{ secrets.RUDDERSTACK_URL }}
 
 jobs:
   build-frontend:

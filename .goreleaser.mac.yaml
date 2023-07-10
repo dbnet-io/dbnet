@@ -22,7 +22,7 @@ builds:
     goos:
       - darwin
     ldflags:
-      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}'"
+      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}' -X 'github.com/dbnet-io/dbnet/env.RudderstackURL={{ .Env.RUDDERSTACK_URL }}'"
 
 universal_binaries:
   - id: dbnet

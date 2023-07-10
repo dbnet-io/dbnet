@@ -22,7 +22,7 @@ builds:
     goos:
       - windows
     ldflags:
-      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}'"
+      - "-X 'github.com/dbnet-io/dbnet/env.Version={{ .Version }}' -X 'github.com/dbnet-io/dbnet/env.RudderstackURL={{ .Env.RUDDERSTACK_URL }}'"
 
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
