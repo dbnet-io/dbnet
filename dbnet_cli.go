@@ -178,7 +178,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 	if asCSV || asJSON {
 		ds, err = conn.StreamRows(sql)
 	} else {
-		_, err = conn.Exec(sql)
+		_, err = conn.ExecMulti(sql)
 	}
 	end := time.Now()
 
