@@ -1,0 +1,42 @@
+{
+  "name": "dbnet-parser",
+  "version": "0.0.0",
+  "description": "SQL parser for dbnet",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "GENERATE_SOURCEMAP=false tsc",
+    "format": "prettier --write \"src/**/*.(js|ts)\"",
+    "lint": "eslint src --ext .js,.ts",
+    "lint:fix": "eslint src --fix --ext .js,.ts",
+    "test": "jest --config jest.config.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
+  },
+  "keywords": [
+    "sql",
+    "parser",
+    "typescript"
+  ],
+  "author": "Fritz Larco",
+  "devDependencies": {
+    "@types/jest": "29.2.4",
+    "@typescript-eslint/eslint-plugin": "5.46.0",
+    "@typescript-eslint/parser": "5.46.0",
+    "eslint": "8.29.0",
+    "eslint-plugin-jest": "27.1.6",
+    "jest": "29.3.1",
+    "prettier": "2.8.1",
+    "ts-jest": "29.0.3",
+    "typescript": "4.9.4"
+  },
+  "files": [
+    "lib/**/*"
+  ],
+  "dependencies": {
+    "yaml": "^2.1.3"
+  }
+}

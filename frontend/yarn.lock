@@ -4911,7 +4911,7 @@ date-fns@^2.16.1:
   resolved "https://registry.npmjs.org/date-fns/-/date-fns-2.23.0.tgz"
   integrity sha512-5ycpauovVyAk0kXNZz6ZoB9AYMZB4DObse7P3BPWmyEjXNORTI8EJ6X0uaSAq4sCHzM1uajzrkr6HnsLQpxGXA==
 
-"dbnet-parser@file:../../dbnet-parser":
+"dbnet-parser@file:./dbnet-parser":
   version "0.0.0"
   dependencies:
     yaml "^2.1.3"

@@ -29,7 +29,7 @@
     "classnames": "^2.2.6",
     "csv-parse": "^4.15.4",
     "csv-parser": "^3.0.0",
-    "dbnet-parser": "file:../../dbnet-parser/",
+    "dbnet-parser": "file:./dbnet-parser/",
     "dexie": "^3.0.3",
     "http-proxy-middleware": "^1.0.6",
     "jmespath": "^0.15.0",

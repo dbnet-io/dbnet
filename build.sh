@@ -1,6 +1,10 @@
 set -e
 
 # Build Frontend Bundle
+cd frontend/dbnet-parser
+yarn && yarn build
+cd -
+
 cd frontend
 yarn && yarn build
 cd -

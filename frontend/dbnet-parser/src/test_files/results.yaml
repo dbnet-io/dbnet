@@ -1,0 +1,78 @@
+summary:
+  00:
+    tokens: 279
+    columns: 9
+    tables: 4
+    joins: 4
+    children: 5
+    lineage: { parent: 3, children: 4 }
+
+  01:
+    tokens: 222
+    columns: 4
+    tables: 2
+    joins: 1
+    children: 4
+    lineage: { parent: 9, children: 11 }
+
+  02:
+    tokens: 249
+    columns: 5
+    tables: 3
+    joins: 0
+    children: 2
+    lineage: { parent: 5, children: 3 }
+
+  03:
+    tokens: 553
+    columns: 10
+    tables: 5
+    joins: 2
+    children: 1
+    lineage: { parent: 2, children: 4 }
+
+  04:
+    tokens: 1007
+    columns: 10
+    tables: 6
+    joins: 0
+    children: 4
+    lineage: { parent: 12, children: 25 }
+
+  05:
+    tokens: 8362
+    columns: 160
+    tables: 3
+    joins: 0
+    children: 3
+    lineage: { parent: 322, children: 195 }
+
+  06:
+    tokens: 4083
+    columns: 22
+    tables: 13
+    joins: 1
+    children: 29
+    lineage: { parent: 145, children: 188 }
+
+  07:
+    tokens: 453
+    columns: 5
+    tables: 1
+    joins: 0
+    children: 7
+    lineage: { parent: 22, children: 26 }
+
+  08:
+    tokens: 495
+    columns: 4
+    tables: 1
+    joins: 0
+    children: 9
+    lineage: { parent: 20, children: 29 }
+
+  09:
+    tokens: 536
+
+  10:
+    tokens: 456

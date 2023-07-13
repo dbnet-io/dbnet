@@ -65,6 +65,11 @@ backend/a_main-packr.go
 .DS_Store
 test.db
 server/app/*
-dbnet-*
 server/app/index.html
 dbnet
+
+dbnet-arm*
+dbnet-amd*
+dbnet-dar*
+dbnet-lin*
+dbnet-win*
