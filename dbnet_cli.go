@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"os"
 	"runtime"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/dbrest-io/dbrest/state"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/flarco/dbio/connection"
+	"github.com/flarco/dbio/filesys"
+	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
 	"github.com/integrii/flaggy"
@@ -88,6 +91,16 @@ var cliExec = &g.CliSC{
 			Type:        "string",
 			Description: "The SQL file to execute",
 		},
+		{
+			Name:        "csv",
+			Type:        "bool",
+			Description: "Output the results as CSV",
+		},
+		{
+			Name:        "json",
+			Type:        "bool",
+			Description: "Output the results as JSON Lines",
+		},
 	},
 }
 
@@ -158,7 +171,15 @@ func exec(c *g.CliSC) (ok bool, err error) {
 
 	g.Info("Executing...")
 
-	_, err = conn.Exec(sql)
+	asCSV := cast.ToBool(c.Vals["csv"])
+	asJSON := cast.ToBool(c.Vals["json"])
+
+	var ds *iop.Datastream
+	if asCSV || asJSON {
+		ds, err = conn.StreamRows(sql)
+	} else {
+		_, err = conn.Exec(sql)
+	}
 	end := time.Now()
 
 	telemetryMap["conn_type"] = conn.GetType().String()
@@ -167,6 +188,42 @@ func exec(c *g.CliSC) (ok bool, err error) {
 	telemetry("exec")
 
 	g.LogFatal(err, "could not execute query")
+
+	if asCSV {
+		ds.SetConfig(map[string]string{"delimiter": ","})
+		for batchR := range ds.NewCsvReaderChnl(0, 0) {
+			if len(batchR.Columns) != len(ds.Columns) {
+				err = g.Error(err, "number columns have changed, not compatible with stdout.")
+				return
+			}
+			bufStdout := bufio.NewWriter(os.Stdout)
+			_, err = filesys.Write(batchR.Reader, bufStdout)
+			bufStdout.Flush()
+			if err != nil {
+				err = g.Error(err, "Could not write to Stdout")
+				return
+			} else if err = ds.Context.Err(); err != nil {
+				err = g.Error(err, "encountered stream error")
+				return
+			}
+		}
+	}
+
+	if asJSON {
+		for reader := range ds.NewJsonLinesReaderChnl(0, 0) {
+			bufStdout := bufio.NewWriter(os.Stdout)
+			_, err = filesys.Write(reader, bufStdout)
+			bufStdout.Flush()
+			if err != nil {
+				err = g.Error(err, "Could not write to Stdout")
+				return
+			} else if err = ds.Context.Err(); err != nil {
+				err = g.Error(err, "encountered stream error")
+				return
+			}
+		}
+
+	}
 
 	g.Info("Successful! Duration: %d seconds", end.Unix()-start.Unix())
 
