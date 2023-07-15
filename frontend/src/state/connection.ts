@@ -15,6 +15,7 @@ export enum ConnType {
 
   DbPostgres = "postgres",
   DbRedshift = "redshift",
+  DbClickhouse = "clickhouse",
   DbMySQL = "mysql",
   DbOracle = "oracle",
   DbBigQuery = "bigquery",

@@ -183,10 +183,21 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
         <Tooltip target={`#${id}`} style={{ fontSize: '11px', minWidth: width, fontFamily: 'monospace' }}>
           <span><strong>Database:</strong> {database_name}</span>
           {
+            node.data.type === 'database' ?
+              <>
+                <br />
+                <span><strong>Schemas:</strong> {node.data.data.schemas.length}</span>
+              </>
+              :
+              null
+          }
+          {
             node.data.type === 'schema' ?
               <>
                 <br />
                 <span>Schema: {schema_name}</span>
+                <br />
+                <span><strong>Tables:</strong> {node.data.data.tables.length}</span>
               </>
               :
               null
@@ -395,6 +406,40 @@ const SchemaTree = (props: {connection: State<Connection>, loading: State<boolea
       },
       {
         separator: true
+      },
+      {
+        label: 'Get Tables',
+        icon: 'pi-table',
+        command: () => {
+          let keys = Object.keys(selectedKeys.get())
+          let schemas: Schema[] = []
+          let tables: Table[] = []
+          for (let key of keys) {
+            console.log(key)
+            if (key.split('.').length === 1) { schemas = schemas.concat(nodeKeyToDatabase(key).schemas) }
+            if (key.split('.').length === 2) { schemas.push(nodeKeyToSchema(key)) }
+            if (key.split('.').length === 3) { tables.push(nodeKeyToTable(key)) }
+          }
+
+          for (let schema of schemas) {
+            tables = tables.concat(schema.tables)
+          }
+
+          let headers : Header[] = ['database_name', 'schema_name', 'table_name', 'table_type', 'columns'].map(v => { return {name: v, type: '', dbType: ''} })
+          let rows: any[] = []
+          for (let table of tables) {
+              rows.push([table.database, table.schema, table.name, table.isView ? 'view' : 'table', table.columns.length])
+          }
+          rows = _.sortBy(rows, (r) => { return [r[0], r[1], r[2]] })
+          
+          let resultTab = createTabResult(getCurrentParentTabState().get())
+          let query = new Query({
+            connection: resultTab.connection,
+            database: resultTab.database,
+            headers, rows, pulled: true
+          })
+          getResultState(resultTab.id).query.set(query)
+        }
       },
       {
         label: 'Get Columns',

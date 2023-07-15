@@ -44,7 +44,7 @@ release:
 
 brews:
   - name: dbnet
-    tap:
+    repository:
       owner: dbnet-io
       name: homebrew-dbnet
       branch: main

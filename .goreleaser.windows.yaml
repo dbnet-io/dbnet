@@ -38,12 +38,12 @@ release:
   header: |
     ## dbNet {{ .Tag }} ({{ .Date }})
 
-scoop:
-  name: dbnet
-  bucket:
-    owner: dbnet-io
-    name: scoop-dbnet
-    branch: main
+  scoops:
+    - name: dbnet
+      repository:
+        owner: dbnet-io
+        name: scoop-dbnet
+        branch: main
 
   homepage: https:/github.com/dbnet-io/dbnet
 

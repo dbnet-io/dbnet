@@ -3,9 +3,9 @@ module github.com/dbnet-io/dbnet
 go 1.19
 
 require (
-	github.com/dbrest-io/dbrest v0.0.41
+	github.com/dbrest-io/dbrest v0.0.45
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/flarco/dbio v0.3.244
+	github.com/flarco/dbio v0.3.245
 	github.com/flarco/g v0.1.60
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/integrii/flaggy v1.5.2
