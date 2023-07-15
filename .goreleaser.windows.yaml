@@ -38,13 +38,13 @@ release:
   header: |
     ## dbNet {{ .Tag }} ({{ .Date }})
 
-  scoops:
-    - name: dbnet
-      repository:
-        owner: dbnet-io
-        name: scoop-dbnet
-        branch: main
+scoops:
+  - name: dbnet
+    repository:
+      owner: dbnet-io
+      name: scoop-dbnet
+      branch: main
 
-  homepage: https:/github.com/dbnet-io/dbnet
+    homepage: https:/github.com/dbnet-io/dbnet
 
-  description: "A database client that lets your SQL superpowers shine."
+    description: "A database client that lets your SQL superpowers shine."
