@@ -28,10 +28,12 @@ export const createTab = (name: string = '', sql = '', connName: string, dbName:
   if (index > -1) {
     // tab already exists, append sql to bottom, or focus on existing
     let tab = queryPanel().tabs[index]
-    tab.hidden.set(false) // if was hidden
-    appendSqlToTab(tab.id.get(), sql)
-    selectTab(tab.id.get());
-    return tab
+    if (tab.connection.get() === connName) {
+      tab.hidden.set(false) // if was hidden
+      appendSqlToTab(tab.id.get(), sql)
+      selectTab(tab.id.get());
+      return tab
+    }
   }
   let newTab = new Tab({
     name,
