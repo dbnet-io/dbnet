@@ -128,7 +128,7 @@ export const apiPost = async (route: string, payload: ObjectAny | string | undef
   let url = `${masterURL}${route}`
   let headers : ObjectAny  = Object.assign({ 
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'X-Request-ID, X-Request-Columns, X-Request-Continue',
+    'Access-Control-Allow-Headers': 'X-Request-ID, X-Request-Columns, X-Request-Continue, X-Project-ID',
   }, extraHeaders)
 
   let body = JSON.stringify(payload)
@@ -163,7 +163,7 @@ export const apiGet = async (route: string, payload={}, extraHeaders={}) => {
   url = url.includes('?') ? `${url}&${suffix}` : `${url}?${suffix}`
   let headers : ObjectAny  = Object.assign({ 
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'X-Request-ID, X-Request-Columns, X-Request-Continue',
+    'Access-Control-Allow-Headers': 'X-Request-ID, X-Request-Columns, X-Request-Continue, X-Project-ID',
     'Content-Type': 'application/json',
   }, extraHeaders)
   let response = await fetch(url, { headers })
