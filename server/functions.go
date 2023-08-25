@@ -1,15 +1,12 @@
 package server
 
 import (
-	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/dbnet-io/dbnet/store"
 	dbRestServer "github.com/dbrest-io/dbrest/server"
 	dbRestState "github.com/dbrest-io/dbrest/state"
-	"github.com/flarco/dbio/env"
 	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/labstack/echo/v5"
@@ -22,23 +19,6 @@ var (
 	HomeDir        = ""
 	HomeDirEnvFile = ""
 )
-
-func init() {
-	HomeDir = env.SetHomeDir("dbnet")
-	HomeDirEnvFile = env.GetEnvFilePath(HomeDir)
-
-	// create env file if not exists
-	os.MkdirAll(HomeDir, 0755)
-	if HomeDir != "" && !g.PathExists(HomeDirEnvFile) {
-		defaultEnvBytes, _ := env.EnvFolder.ReadFile("default.env.yaml")
-		defaultEnvBytes = append([]byte("# See https://docs.dbnet.io/\n"), defaultEnvBytes...)
-		ioutil.WriteFile(HomeDirEnvFile, defaultEnvBytes, 0644)
-	}
-
-	// other sources of creds
-	env.SetHomeDir("sling")  // https://github.com/slingdata-io/sling
-	env.SetHomeDir("dbrest") // https://github.com/dbrest-io/dbrest
-}
 
 func queryMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {

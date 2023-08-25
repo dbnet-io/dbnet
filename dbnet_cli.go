@@ -164,7 +164,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 
 	connName := cast.ToString(c.Vals["conn"])
 	start := time.Now()
-	conn, err := state.GetConnInstance(connName, "")
+	conn, err := state.DefaultProject().GetConnInstance(connName, "")
 	if err != nil {
 		g.LogFatal(err, "could not get database connection")
 	}

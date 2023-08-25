@@ -25,7 +25,7 @@ func main() {
 			return
 		}
 
-		conn, err := state.GetConnInstance(connName, "")
+		conn, err := state.DefaultProject().GetConnInstance(connName, "")
 		if err != nil {
 			g.LogFatal(err, "could not get database connection")
 		}

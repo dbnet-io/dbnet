@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	state.NoRestriction = true // allow all on dbREST
+	state.DefaultProject().NoRestriction = true // allow all on dbREST
 	exitCode := 11
 	done := make(chan struct{})
 	interrupt := make(chan os.Signal, 1)
