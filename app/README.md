@@ -71,6 +71,9 @@ If you are developing a production application, we recommend updating the config
 - SQL Parser
 - dbt Project parser
 - Deploy on Github Actions, Gitlab CI
+- When doing quick statistics, need to put SQL in worksheet
+- When creating new sheet, prompt for nate (default with date)
+  - Have button keep using other sheet?
 
 # Flow
 
@@ -80,3 +83,8 @@ If you are developing a production application, we recommend updating the config
   - wails -> funcs -> api (dbRest) -> funcs -> db
 - Browser Remove Querying
   - javascript -> api (dbRest) -> funcs -> db
+
+# Design
+
+- 600 px line width
+- 1.5 line spacing
