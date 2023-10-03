@@ -74,3 +74,4 @@ dbnet-dar*
 dbnet-lin*
 dbnet-win*
 app/
+.env.sh

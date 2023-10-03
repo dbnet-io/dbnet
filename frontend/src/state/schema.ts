@@ -89,7 +89,7 @@ export class Table {
 
   selectAll = () => `select * from ${this.fdqn()}`
   countRows = (columns: Column[] = []) => { 
-    let colsCnt = (columns.map(v => v.name) || []).map(c => `count(${c}) cnt_${c}`)
+    let colsCnt = (columns.map(v => v.name) || []).map(c => `count(${c}) cnt_${c}, min(${c}) min_${c}, max(${c}) max_${c}`)
     let colsCntStr = colsCnt.length > 0 ? `, ${colsCnt.join(',  ')}` : ''
     let sql = `select count(*) cnt${colsCntStr} from ${this.fdqn()};`
     sql = colsCnt.length > 2 ? formatSql(sql) : sql

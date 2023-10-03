@@ -149,9 +149,8 @@ const TabTableComponent: React.FC<Props> = (props) => {
 
 
     var span = document.createElement('span')
-    span.innerText = header.dbType.toUpperCase()
-    span.innerText = header.name.toUpperCase()
-    span.innerText = `${header.name.toUpperCase()} (${header.dbType.toUpperCase()})`
+    // eslint-disable-next-line
+    span.innerText = header.name.toUpperCase() + '\n' + `(${header.dbType.toUpperCase()})`
     let width = span.innerText.length * 8
 
     span.className = 'header-tooltip-cell'
@@ -161,11 +160,11 @@ const TabTableComponent: React.FC<Props> = (props) => {
     span.style.justifyContent = 'center';
     span.style.backgroundColor = '#d3d3d3';
     span.style.borderRadius = '5px';
-    span.style.height = 15 + 'px';
+    span.style.height = 32 + 'px';
     span.style.width = (width < e.bounds.width ? e.bounds.width : width) + 'px';
     span.style.position = "absolute";
     span.style.left = x + 'px';
-    span.style.top = y - 19 + 'px';
+    span.style.top = y - 35 + 'px';
     span.setAttribute('data-pr-tooltip', header.name)
     span.setAttribute('data-pr-position', 'top')
     document.getElementById('result-panel')?.appendChild(span)

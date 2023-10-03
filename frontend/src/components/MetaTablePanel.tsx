@@ -570,6 +570,7 @@ export const MetaTablePanel: React.FC<Props> = (props) => {
           className="p-button-sm p-button-secondary"
           onClick={(e) => {
             let sql = table.get().countRows(selectedColumns.get())
+            sql = formatSql(sql)
             appendAndSubmit(table.get().connection, table.get().database, sql)
           }}
         />

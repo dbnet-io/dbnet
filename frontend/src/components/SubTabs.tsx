@@ -4,10 +4,11 @@ import { useHS } from "../store/state";
 import { TabView,TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
 import { createTabResult, getResultState, getTabState } from "./TabNames";
 import { ContextMenu } from "primereact/contextmenu";
-import { jsonClone } from "../utilities/methods";
+import { jsonClone, toastError } from "../utilities/methods";
 import { Tab } from "../state/tab";
 import { MenuItem } from "primereact/menuitem";
 import { Tooltip } from "primereact/tooltip";
+import { InputText } from "primereact/inputtext";
 
 const queryPanel = () => window.dbnet.state.queryPanel
 
@@ -24,6 +25,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
   const activeIndex = useHS(getResultTabs(props.tab?.get()).map(r => r.id).indexOf(resultTab.id?.get()))
   const cm = React.useRef<ContextMenu>(null);
   const contextResultId = useHS('')
+  const nameEdit = useHS({ id: '', name: '' })
 
   ///////////////////////////  EFFECTS  ///////////////////////////
 
@@ -48,6 +50,30 @@ export function SubTabs(props: { tab: State<Tab>; }) {
 
     // we want the double click to pin / unpin
     let id = `result-tab-${resultTabId.replaceAll('.', '-')}`
+
+    if (nameEdit.id.get() === resultTabId) { // for editing the tab
+      let editTab = resultTab
+      const onKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+          let newName = jsonClone(nameEdit.name.get()) as string
+          if (resultOptions().filter(t => t.id !== resultTabId).map(t => t.name).includes(newName)) {
+            return toastError(`Result Tab exists with name: ${newName}`)
+          }
+          editTab.name.set(jsonClone(nameEdit.name.get()))
+          nameEdit.set({ id: '', name: '' })
+        }
+      }
+      return <>
+        <InputText
+          style={{ fontSize: '11px' }}
+          value={nameEdit.name.get()}
+          onChange={(e) => nameEdit.name.set(e.target.value)}
+          onKeyUp={onKeyPress}
+          autoFocus
+        />
+      </>
+    }
+
     return <>
         <Tooltip
           target={`#${id}`}
@@ -80,6 +106,14 @@ export function SubTabs(props: { tab: State<Tab>; }) {
     let resultTab = getResultState(jsonClone(contextResultId.get()))
 
     let items : MenuItem[] = [
+      {
+        label: 'Rename',
+        icon: 'pi pi-pause',
+        command: () => {
+          let resultTab = getResultState(contextResultId.get())
+          nameEdit.set(jsonClone({ id: contextResultId.get(), name: resultTab.name.get() }))
+        }
+      },
       {
         label: resultTab.get()?.pinned ? 'Unpin' : 'Pin',
         icon: 'pi pi-chevron-circle-down',
@@ -142,7 +176,7 @@ export function SubTabs(props: { tab: State<Tab>; }) {
             t => {
               return <TabPanel 
                 key={t.id}
-                header={t.id.slice(-7)}
+                header={t.name}
                 leftIcon={t.loading? "pi pi-spin pi-spinner" : t.pinned ? "pi pi-chevron-circle-down" : ''}
                 headerTemplate={headerTemplate}
               />

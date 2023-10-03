@@ -12839,10 +12839,10 @@ sprintf-js@~1.0.2:
   resolved "https://registry.npmjs.org/sprintf-js/-/sprintf-js-1.0.3.tgz"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
 
-sql-formatter@^4.0.2:
-  version "4.0.2"
-  resolved "https://registry.npmjs.org/sql-formatter/-/sql-formatter-4.0.2.tgz"
-  integrity sha512-R6u9GJRiXZLr/lDo8p56L+OyyN2QFJPCDnsyEOsbdIpsnDKL8gubYFo7lNR7Zx7hfdWT80SfkoVS0CMaF/DE2w==
+sql-formatter@6.1.5:
+  version "6.1.5"
+  resolved "https://registry.yarnpkg.com/sql-formatter/-/sql-formatter-6.1.5.tgz#b93ee61d8fed665fe8974db15a89fecaeedd878c"
+  integrity sha512-aqhxDRIhllzCuwzDX18Y7TmcvD3Epb2qvkUDSoyX1+oDyMaWk7xja6mnuAZ4kaw2f0mVjzSZCJfCALtKx0WdoA==
   dependencies:
     argparse "^2.0.1"
 
@@ -13719,9 +13719,9 @@ typedarray@^0.0.6:
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
 typescript@^4.1.3:
-  version "4.3.2"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-4.3.2.tgz"
-  integrity sha512-zZ4hShnmnoVnAHpVHWpTcxdv7dWP60S2FsydQLV8V5PbS3FifjWFFRiHSWpDJahly88PRyV5teTSLoq4eG7mKw==
+  version "4.9.5"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
+  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
 
 unbox-primitive@^1.0.1:
   version "1.0.1"

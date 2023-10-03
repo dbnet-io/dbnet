@@ -11,10 +11,13 @@ import { loadMetaTable } from "./MetaTablePanel";
 import { Table } from "../state/schema";
 import _ from "lodash";
 
-export const formatSql = (sql: string) => {
+export const formatSql = (sql: string, dialect?: 'sql' | 'bigquery') => {
+  // dialect = dialect ? dialect : 'sql'
+  if(dialect === undefined) dialect = 'sql'
   return format(sql, {
-    language: 'sql', // see https://www.npmjs.com/package/sql-formatter for list of supported dialects
-    indent: '  ', // Defaults to two spaces
+    // see https://www.npmjs.com/package/sql-formatter for list of supported dialects
+    language: dialect, 
+    tabWidth: 2, // Defaults to two spaces
     linesBetweenQueries: 2, // Defaults to 1
   })
 }
