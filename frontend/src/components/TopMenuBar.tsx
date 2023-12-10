@@ -114,11 +114,11 @@ export const TopMenuBar: React.FC<Props> = (props) => {
       //   icon: 'pi pi-fw pi-microsoft',
       //   command: () => { metaPanel.show.set(true) },
       // },
-      {
-        label: 'Extract / Load',
-        icon: 'pi pi-fw pi-cloud-upload',
-        command: () => { jobPanel.show.set(true) },
-      },
+      // {
+      //   label: 'Extract / Load',
+      //   icon: 'pi pi-fw pi-cloud-upload',
+      //   command: () => { jobPanel.show.set(true) },
+      // },
     ]
     return items
   }
