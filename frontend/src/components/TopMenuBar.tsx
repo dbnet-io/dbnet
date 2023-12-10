@@ -19,7 +19,7 @@ export const TopMenuBar: React.FC<Props> = (props) => {
   ///////////////////////////  HOOKS  ///////////////////////////
   const tableKeys = React.useRef<Record<string, Table>>({})
   const onSelectConnection = useVariable(0)
-  const jobPanel = window.dbnet.state.jobPanel
+  // const jobPanel = window.dbnet.state.jobPanel
   // const metaPanel = window.dbnet.state.metaPanel
   const connections = useHS(window.dbnet.connections)
 
