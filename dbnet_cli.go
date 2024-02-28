@@ -12,14 +12,14 @@ import (
 	"github.com/dbnet-io/dbnet/store"
 	"github.com/dbrest-io/dbrest/state"
 	"github.com/denisbrodbeck/machineid"
-	"github.com/flarco/dbio/connection"
-	"github.com/flarco/dbio/filesys"
-	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/flarco/g/net"
 	"github.com/integrii/flaggy"
 	"github.com/kardianos/osext"
 	"github.com/skratchdot/open-golang/open"
+	"github.com/slingdata-io/sling-cli/core/dbio/connection"
+	"github.com/slingdata-io/sling-cli/core/dbio/filesys"
+	"github.com/slingdata-io/sling-cli/core/dbio/iop"
 	"github.com/spf13/cast"
 )
 

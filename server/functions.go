@@ -7,9 +7,9 @@ import (
 	"github.com/dbnet-io/dbnet/store"
 	dbRestServer "github.com/dbrest-io/dbrest/server"
 	dbRestState "github.com/dbrest-io/dbrest/state"
-	"github.com/flarco/dbio/iop"
 	"github.com/flarco/g"
 	"github.com/labstack/echo/v5"
+	"github.com/slingdata-io/sling-cli/core/dbio/iop"
 )
 
 var (

@@ -54,7 +54,7 @@ jobs:
     - name: Build CLI App
       run: |
         go mod edit -dropreplace='github.com/flarco/g' go.mod
-        go mod edit -dropreplace='github.com/flarco/dbio' go.mod
+        go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
         go mod edit -dropreplace='github.com/dbrest-io/dbrest' go.mod
         go mod edit -dropreplace='github.com/slingdata-io/sling-cli' go.mod
         go mod tidy

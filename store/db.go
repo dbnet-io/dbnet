@@ -5,9 +5,9 @@ import (
 
 	"github.com/dbnet-io/dbnet/env"
 	dbRestState "github.com/dbrest-io/dbrest/state"
-	"github.com/flarco/dbio/database"
 	"github.com/flarco/g"
 	"github.com/jmoiron/sqlx"
+	"github.com/slingdata-io/sling-cli/core/dbio/database"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

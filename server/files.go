@@ -2,7 +2,6 @@ package server
 
 import (
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -44,7 +43,7 @@ func (f *FileRequest) Read() (file FileItem, err error) {
 	path := f.File.Path
 	if g.PathExists(path) {
 		var bytes []byte
-		bytes, err = ioutil.ReadFile(path)
+		bytes, err = os.ReadFile(path)
 		if err != nil {
 			err = g.Error(err, "unable to read file: %s", path)
 			return
@@ -92,7 +91,7 @@ func (f *FileRequest) Write() (err error) {
 		}
 	}
 
-	err = ioutil.WriteFile(f.File.Path, []byte(f.File.Body), 0755)
+	err = os.WriteFile(f.File.Path, []byte(f.File.Body), 0755)
 	if err != nil {
 		err = g.Error(err, "unable to save file %s", f.File.Path)
 	}
