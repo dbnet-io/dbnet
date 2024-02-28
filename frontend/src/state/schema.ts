@@ -48,6 +48,7 @@ const quote_char = (dialect = '') => {
   let q = '"'
   if(dialect === 'bigquery') q = '`'
   if(dialect === 'mysql') q = '`'
+  if(dialect === 'starrocks') q = '`'
   if(dialect === 'bigtable') q = ''
   return q
 }
@@ -74,7 +75,7 @@ export class Table {
 
   fdqn_arr = () => { 
     let arr = [this.database, this.schema, this.name]
-    if([ConnType.DbSQLite, ConnType.DbClickhouse, ConnType.DbDuckDb, ConnType.DbMySQL].includes(this.dialect)) arr = [this.schema, this.name]
+    if([ConnType.DbSQLite, ConnType.DbClickhouse, ConnType.DbDuckDb, ConnType.DbMySQL, ConnType.DbStarRocks].includes(this.dialect)) arr = [this.schema, this.name]
     return arr
   }
 

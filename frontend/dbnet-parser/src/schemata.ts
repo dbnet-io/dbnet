@@ -13,6 +13,7 @@ const quote_char = (dialect = '') => {
   let q = '"'
   if(dialect === 'bigquery') q = '`'
   if(dialect === 'mysql') q = '`'
+  if(dialect === 'starrocks') q = '`'
   if(dialect === 'bigtable') q = ''
   return q
 }

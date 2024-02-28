@@ -23,6 +23,7 @@ export enum ConnType {
   DbSQLite = "sqlite",
   DbDuckDb = "duckdb",
   DbSQLServer = "sqlserver",
+  DbStarRocks = "starrocks",
   DbAzure = "azuresql",
   DbAzureDWH = "azuredwh",
   DbBigTable = "bigtable",
@@ -259,6 +260,7 @@ export class Connection {
     let q = '"'
     if(this.type === ConnType.DbBigQuery) q = '`'
     if(this.type === ConnType.DbMySQL) q = '`'
+    if(this.type === ConnType.DbStarRocks) q = '`'
     if(this.type === ConnType.DbBigTable) q = ''
     return q
   }
