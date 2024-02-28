@@ -3,7 +3,7 @@ module github.com/dbnet-io/dbnet
 go 1.19
 
 require (
-	github.com/dbrest-io/dbrest v0.0.67
+	github.com/dbrest-io/dbrest v0.0.70
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/flarco/g v0.1.75
 	github.com/getsentry/sentry-go v0.27.0
