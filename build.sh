@@ -14,4 +14,5 @@ cp -r frontend/build server/app
 
 # Build Backend Binary
 rm -f dbnet
-go build -o dbnet
+go mod tidy
+go build --tags fts5 -o dbnet

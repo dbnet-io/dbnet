@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -233,17 +234,17 @@ func exec(c *g.CliSC) (ok bool, err error) {
 func conns(c *g.CliSC) (ok bool, err error) {
 	ok = true
 
-	ef := env.LoadDbNetEnvFile()
-	ec := connection.EnvConns{EnvFile: &ef}
+	entries := connection.GetLocalConns()
 
 	switch c.UsedSC() {
 
 	case "list":
-		println(ec.List())
+		fields, rows := entries.List()
+		fmt.Println(g.PrettyTable(fields, rows))
 
 	case "test":
 		name := cast.ToString(c.Vals["name"])
-		ok, err = ec.Test(name)
+		ok, err = entries.Test(name)
 		if err != nil {
 			return ok, g.Error(err, "could not test %s", name)
 		} else if ok {
