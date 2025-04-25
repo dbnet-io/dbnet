@@ -269,13 +269,13 @@ export const TopMenuBar: React.FC<Props> = (props) => {
     {/* <OmniBox /> */}
     <Tooltip target="#ws-status" position="left" />
 
-    {/* <Button
-      icon="pi pi-info"
-      tooltip="Test"
+    <Button
+      icon="pi pi-times"
+      tooltip="Close Connection"
       tooltipOptions={{ position: 'bottom' }}
       className="p-button-sm p-button-outlined p-button-secondary"
-      onClick={(e) => {  }}
-    /> */}
+      onClick={(e) => { window.dbnet.closeConn(window.dbnet.currentConnection.name) }}
+    />
 
     <Button
       icon="pi pi-desktop"

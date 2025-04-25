@@ -1,6 +1,7 @@
 export enum Routes {
   getStatus = "/.status",
   getConnections = "/.connections",
+  postConnectionClose = "/:connection/.close",
   getConnectionDatabases = "/:connection/.databases",
   getConnectionSchemas = "/:connection/.schemas",
   getConnectionTables = "/:connection/.tables",

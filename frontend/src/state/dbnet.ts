@@ -257,6 +257,21 @@ export class DbNet {
     }
   }
 
+  async closeConn(connName: string) {
+
+    let data = {
+      connection: connName,
+    }
+    try {
+      let resp = await apiPost(makeRoute(Routes.postConnectionClose, data), { })
+      if (resp.error) return resp.error as string
+      
+    } catch (error) {
+      return error as string
+    }
+    return
+  }
+
   async getSchemata(connName: string, database: string, refresh = false) {
 
     let data = {

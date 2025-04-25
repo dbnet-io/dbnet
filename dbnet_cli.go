@@ -192,7 +192,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 
 	if asCSV {
 		ds.SetConfig(map[string]string{"delimiter": ","})
-		for batchR := range ds.NewCsvReaderChnl(0, 0) {
+		for batchR := range ds.NewCsvReaderChnl(iop.DefaultStreamConfig()) {
 			if len(batchR.Columns) != len(ds.Columns) {
 				err = g.Error(err, "number columns have changed, not compatible with stdout.")
 				return
@@ -211,7 +211,7 @@ func exec(c *g.CliSC) (ok bool, err error) {
 	}
 
 	if asJSON {
-		for reader := range ds.NewJsonLinesReaderChnl(0, 0) {
+		for reader := range ds.NewJsonLinesReaderChnl(iop.DefaultStreamConfig()) {
 			bufStdout := bufio.NewWriter(os.Stdout)
 			_, err = filesys.Write(reader, bufStdout)
 			bufStdout.Flush()
