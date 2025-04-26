@@ -75,7 +75,7 @@ export class Table {
 
   fdqn_arr = () => { 
     let arr = [this.database, this.schema, this.name]
-    if([ConnType.DbSQLite, ConnType.DbClickhouse, ConnType.DbDuckDb, ConnType.DbMySQL, ConnType.DbStarRocks].includes(this.dialect)) arr = [this.schema, this.name]
+    if([ConnType.DbSQLite, ConnType.DbD1, ConnType.DbClickhouse, ConnType.DbDuckDb, ConnType.DbMySQL, ConnType.DbStarRocks].includes(this.dialect)) arr = [this.schema, this.name]
     return arr
   }
 
