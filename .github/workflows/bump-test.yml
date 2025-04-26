@@ -26,7 +26,7 @@ jobs:
 
     # runs-on: ubuntu-latest
     if: "! contains(github.event.head_commit.message, '[no build]')"
-    runs-on: [self-hosted, Linux]
+    runs-on: ubuntu-latest
     needs: [bump]
 
     steps:
@@ -35,7 +35,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: "1.20"
+        go-version: "1.23"
 
     - name: Set up Node 16
       uses: actions/setup-node@v1
