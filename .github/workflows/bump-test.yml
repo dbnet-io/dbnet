@@ -61,13 +61,6 @@ jobs:
 
         bash build.sh
 
-    - name: Test CLI
-      env:
-        ENVKEY: ${{ secrets.ENVKEY }}
-      run: |
-        /__/bin/envkey-source -f --dot-env > .env
-        # bash scripts/test.sh
-    
     - name: Push Docker Test Image
       env:
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
