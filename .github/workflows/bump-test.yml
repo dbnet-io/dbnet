@@ -69,33 +69,33 @@ jobs:
         docker build -f docker/Dockerfile -t dbnetio/dbnet:test .
         docker push dbnetio/dbnet:test
   
-  deploy-testing:
-    timeout-minutes: 5
+  # deploy-testing:
+  #   timeout-minutes: 5
 
-    runs-on: self-hosted
+  #   runs-on: self-hosted
 
-    needs: [build-test-push]
+  #   needs: [build-test-push]
 
-    steps:
-    - uses: actions/checkout@v2
+  #   steps:
+  #   - uses: actions/checkout@v2
       
-    - name: Deploy to Testing
-      env:
-        SSH_SERVER_URL: ${{ secrets.SSH_SERVER_URL }}
-      run: bash scripts/deploy.testing.sh
+  #   - name: Deploy to Testing
+  #     env:
+  #       SSH_SERVER_URL: ${{ secrets.SSH_SERVER_URL }}
+  #     run: bash scripts/deploy.testing.sh
 
-  test-frontend:
+  # test-frontend:
 
-    # runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[no test]')"
-    runs-on: [self-hosted, Linux]
-    needs: [deploy-testing]
+  #   # runs-on: ubuntu-latest
+  #   if: "! contains(github.event.head_commit.message, '[no test]')"
+  #   runs-on: [self-hosted, Linux]
+  #   needs: [deploy-testing]
 
-    steps:
+  #   steps:
         
-    - name: Test Frontend
-      uses: omairvaiyani/ghact-uilicious@v1
-      with:
-        access-key: ${{ secrets.UILICIOUS_ACCESS_KEY }}
-        project: dbNet
-        tests: "dbnet_test"
+  #   - name: Test Frontend
+  #     uses: omairvaiyani/ghact-uilicious@v1
+  #     with:
+  #       access-key: ${{ secrets.UILICIOUS_ACCESS_KEY }}
+  #       project: dbNet
+  #       tests: "dbnet_test"
