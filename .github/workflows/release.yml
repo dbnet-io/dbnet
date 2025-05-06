@@ -47,8 +47,8 @@ jobs:
 
   release-brew:
     timeout-minutes: 20
-    runs-on: [self-hosted, macOS, ARM64]
-    # runs-on: macos-latest
+    # runs-on: [self-hosted, macOS, ARM64]
+    runs-on: macos-latest
     needs: [build-frontend]
 
     steps:
