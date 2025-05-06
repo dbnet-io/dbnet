@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.23.4
 
 require (
-	github.com/dbrest-io/dbrest v0.0.71
+	github.com/dbrest-io/dbrest v0.0.80
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/flarco/g v0.1.140
 	github.com/getsentry/sentry-go v0.27.0
@@ -16,7 +16,7 @@ require (
 	github.com/labstack/echo/v5 v5.0.0-20230722203903-ec5b858dab61
 	github.com/samber/lo v1.39.0
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/slingdata-io/sling-cli v1.4.5
+	github.com/slingdata-io/sling-cli v1.4.6
 	github.com/spf13/cast v1.6.0
 	github.com/stretchr/testify v1.10.0
 	gorm.io/gorm v1.25.11
