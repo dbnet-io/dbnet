@@ -48,8 +48,9 @@ The refactoring will focus on:
 *   **Clear Interfaces**: Defining explicit props and callback interfaces for each component.
 *   **Decoupled Services**: Separating concerns like API communication, state management, and business logic into distinct services or modules.
 *   **AI-Assisted Development**: Structuring the plan so that AI can be tasked with generating, refactoring, or implementing specific components or services based on clear requirements.
+* When needed, research the internet, particularly when using a open source library that you need to learn details for.
 * General AI Role and Guidelines:
-  You are an expert in TypeScript, Node.js, React, Shadcn UI, Radix UI and Tailwind.
+  You are an expert in TypeScript, Node.js, React, Shadcn UI and Tailwind.
   
   Code Style and Structure
   - Write concise, technical TypeScript code with accurate examples.
@@ -72,7 +73,8 @@ The refactoring will focus on:
   - Use declarative JSX.
   
   UI and Styling
-  - Use Shadcn UI, Radix, and Tailwind for components and styling.
+  - Use Shadcn UI and Tailwind for components and styling.
+  - Leverage the Shadcn CLI (https://ui.shadcn.com/docs/cli) quickly add component when needed
   - Implement responsive design with Tailwind CSS; use a mobile-first approach.
   
   Performance Optimization
@@ -99,9 +101,9 @@ We will break the application into the following key modules/areas. For each, we
     *   Define a clean, modern main application layout using functional React components and TypeScript.
     *   Establish a root component structure adhering to the file structure guidelines (exported component, subcomponents, etc.).
     *   Implement responsive design for different screen sizes using Tailwind CSS, following a mobile-first approach.
-    *   Potentially replace PrimeReact Splitter with a modern, flexible alternative, possibly leveraging Radix UI utilities or a suitable Shadcn UI component, styled with Tailwind CSS.
+    *   Potentially replace PrimeReact Splitter with a modern, flexible alternative, possibly leveraging ShadCn UI utilities or a suitable Shadcn UI component, styled with Tailwind CSS.
 *   **AI Tasks**:
-    *   **Task 1.1**: Generate a basic React/TypeScript application shell (`MainLayout.tsx`) with a two-pane layout (left for navigation/schema, right for content tabs) using Tailwind CSS for styling and layout. Specify proportions and resizability. Potentially incorporate structural components from Shadcn UI/Radix UI. Ensure client components are wrapped in Suspense with a fallback.
+    *   **Task 1.1**: Generate a basic React/TypeScript application shell (`MainLayout.tsx`) with a two-pane layout (left for navigation/schema, right for content tabs) using Tailwind CSS for styling and layout. Specify proportions and resizability. Potentially incorporate structural components from Shadcn UI. Ensure client components are wrapped in Suspense with a fallback.
     *   **Task 1.2**: Create basic placeholder functional components (using TypeScript interfaces for props) for `TopMenuBar`, `LeftPaneContainer`, and `RightPaneContainer`.
     *   **Task 1.3**: Implement routing (e.g., using `react-router-dom v6+`) if complex deep linking or view navigation is required. Consider using 'nuqs' for managing URL search parameter state for simpler routing needs.
 
@@ -144,25 +146,25 @@ We will break the application into the following key modules/areas. For each, we
     *   A clear, user-friendly way to manage and select connections, using functional React components.
     *   Improved error handling and feedback during connection attempts.
     *   Decouple UI from direct state manipulation, using hooks to interact with the state layer.
-    *   Components styled with Tailwind CSS, utilizing Shadcn UI/Radix UI components for UI elements.
+    *   Components styled with Tailwind CSS, utilizing Shadcn UI components for UI elements.
 *   **AI Tasks**:
     *   **Task 4.1**: Generate a React functional component `ConnectionManager` (in `features/connection/ConnectionManager.tsx`) using TypeScript interfaces for props. It should:
         *   Display a list of available connections (fetched via the `ApiClient` and managed by `connectionSlice`).
         *   Allow selecting a connection.
-        *   Show a modal (using Shadcn UI/Radix UI Modal component) or form for adding/editing connection configurations.
+        *   Show a modal (using Shadcn UI Modal component) or form for adding/editing connection configurations.
         *   Use the `ApiClient` to fetch connection lists and the `connectionSlice` to update application state.
-    *   **Task 4.2**: Style the `ConnectionManager` component and its subcomponents using Tailwind CSS, incorporating Shadcn UI/Radix UI components (e.g., for modals, lists, buttons, input fields). Ensure the design is responsive and follows a mobile-first approach.
+    *   **Task 4.2**: Style the `ConnectionManager` component and its subcomponents using Tailwind CSS, incorporating Shadcn UI components (e.g., for modals, lists, buttons, input fields). Ensure the design is responsive and follows a mobile-first approach.
 
 ### Module 5: Schema Explorer Panel
 
 *   **Current**: `SchemaPanel.tsx` uses PrimeReact `Tree` and `ContextMenu`.
 *   **Refactoring Goals**:
-    *   Replicate the existing hierarchical tree view (Databases -> Schemas -> Tables/Views) using a performant tree component, potentially from Shadcn UI/Radix UI if available and suitable, or a well-regarded library like `react-arborist` or `rc-tree`, wrapped in `components/navigation/tree-view.tsx`. All components should be functional with TypeScript interfaces.
+    *   Replicate the existing hierarchical tree view (Databases -> Schemas -> Tables/Views) using a performant tree component, potentially from Shadcn UI if available and suitable, or a well-regarded library like `react-arborist`, wrapped in `components/navigation/tree-view.tsx`. All components should be functional with TypeScript interfaces.
     *   Maintain the top bar with connection name and a refresh button, styled with Tailwind CSS.
-    *   Implement custom node rendering to include icons (consider SVG icons), distinguish views, and show informative tooltips (using Shadcn UI/Radix UI Tooltip) on hover.
+    *   Implement custom node rendering to include icons (consider SVG icons), distinguish views, and show informative tooltips (using Shadcn UI Tooltip) on hover.
     *   Provide a text-based filter for the tree (e.g. using a Shadcn UI Input).
     *   Replicate single-click and double-click behaviors on table/view nodes.
-    *   Implement a context menu using Shadcn UI/Radix UI ContextMenu, with actions comparable to the existing one.
+    *   Implement a context menu using Shadcn UI ContextMenu, with actions comparable to the existing one.
     *   Ensure tree expansion state is preserved (e.g., in `schemaSlice` or `uiSlice`).
     *   Lazy loading of schema parts should be a primary consideration for performance; wrap client components in Suspense with fallback where appropriate.
 *   **AI Tasks**:
@@ -173,7 +175,7 @@ We will break the application into the following key modules/areas. For each, we
         *   The `TreeView` component for rendering the schema.
     *   **Task 5.3**: Develop the `TreeView` component (or adapt a library) with custom node rendering (declarative JSX) for icons, labels, and tooltips, and to differentiate views.
     *   **Task 5.4**: Implement the logic for single-click (triggering meta detail view) and double-click (dispatching an action to open a new query tab).
-    *   **Task 5.5**: Design and implement the context menu for schema nodes using Shadcn UI/Radix UI ContextMenu components. AI can help structure the menu items and map them to actions (e.g., calling functions in `useSchema` hook or dispatching to state stores).
+    *   **Task 5.5**: Design and implement the context menu for schema nodes using Shadcn UI ContextMenu components. AI can help structure the menu items and map them to actions (e.g., calling functions in `useSchema` hook or dispatching to state stores).
     *   **Task 5.6**: Implement API calls via `ApiClient` to fetch schema information, updating `schemaSlice`. This should support lazy-loading children on node expansion.
     *   **Task 5.7**: Manage tree expansion and selection state within `schemaSlice` or `uiSlice`, with persistence via `persistenceService`. Consider if 'nuqs' can be used for simple selection state in the URL.
 
@@ -181,16 +183,16 @@ We will break the application into the following key modules/areas. For each, we
 
 *   **Current**: `components/TabNames.tsx` uses PrimeReact `TabMenu`. `state/tab.ts` handles tab state.
 *   **Refactoring Goals**:
-    *   Implement a robust and intuitive tab management system using functional components from `features/tab-management/`, styled with Tailwind CSS and utilizing Shadcn UI/Radix UI tab components.
+    *   Implement a robust and intuitive tab management system using functional components from `features/tab-management/`, styled with Tailwind CSS and utilizing Shadcn UI tab components.
     *   Replicate tab bar appearance: display tab names, loading indicators (spinners from Shadcn UI or custom).
-    *   Implement tooltips (Shadcn UI/Radix UI Tooltip) on tab hover.
+    *   Implement tooltips (Shadcn UI Tooltip) on tab hover.
     *   Provide "Add Tab" (+) functionality.
     *   Allow closing tabs (e.g., with an 'x' icon on each tab or via context menu).
-    *   Implement a right-click context menu (Shadcn UI/Radix UI ContextMenu) for tabs.
+    *   Implement a right-click context menu (Shadcn UI ContextMenu) for tabs.
     *   Ensure tab state is managed cleanly in `tabSlice` and persisted. The active tab ID could be managed by 'nuqs'.
     *   Support reordering of tabs via drag-and-drop.
 *   **AI Tasks**:
-    *   **Task 6.1**: Generate a `TabBar` React functional component (in `features/tab-management/TabBar.tsx`) using Shadcn UI/Radix UI tab components as a base, styled with Tailwind CSS. It should:
+    *   **Task 6.1**: Generate a `TabBar` React functional component (in `features/tab-management/TabBar.tsx`) using Shadcn UI tab components as a base, styled with Tailwind CSS. It should:
         *   Render tab headers based on data from `tabSlice`.
         *   Display loading indicators.
         *   Show tooltips.
@@ -198,7 +200,7 @@ We will break the application into the following key modules/areas. For each, we
         *   Handle tab selection and active state.
         *   Support drag-and-drop for reordering.
     *   **Task 6.2**: Implement the `TabContentHost` functional component (in `features/tab-management/TabContentHost.tsx`) that dynamically renders content for the active tab, wrapping client components in Suspense with fallback.
-    *   **Task 6.3**: Develop the tab context menu using Shadcn UI/Radix UI ContextMenu components. Actions: Rename, Close, Close Others, etc. For query tabs, add Change Connection & Database.
+    *   **Task 6.3**: Develop the tab context menu using Shadcn UI ContextMenu components. Actions: Rename, Close, Close Others, etc. For query tabs, add Change Connection & Database.
     *   **Task 6.4**: Implement the logic in `tabSlice` (or a `useTabs` hook) for tab operations using TypeScript interfaces for actions and state.
     *   **Task 6.5**: Ensure tab state (including active tab via 'nuqs' if applicable) is persisted and restored using `persistenceService`.
 
@@ -211,13 +213,13 @@ We will break the application into the following key modules/areas. For each, we
     *   Allow running entire query or selected blocks.
     *   Clearly highlight/decorate the executed SQL block.
     *   Implement Monaco's Vim mode toggle.
-    *   Replicate essential context menu items using Shadcn UI/Radix UI ContextMenu.
+    *   Replicate essential context menu items using Shadcn UI ContextMenu.
     *   Design the editor component to accommodate a future AI assistance overlay, providing necessary hooks (cursor position, selected text).
     *   Manage editor content/settings per tab, persisted via `settingsSlice` or `tabSlice`.
 *   **AI Tasks**:
     *   **Task 7.1**: Create a `QueryEditor` React functional component (e.g., in `components/specific/MonacoEditor.tsx` or directly within `features/query-editor/`) that wraps Monaco. Define props using TypeScript interfaces: `initialContent: string`, `language: string`, `onChange: (value: string) => void`, `onExecuteQuery: (query: string, selection?: Range) => void`, `options?: monaco.editor.IStandaloneEditorConstructionOptions`.
     *   **Task 7.2**: Implement Monaco editor setup: SQL language configuration, syntax highlighting, Vim mode toggle (`monaco-vim`), text selection, and decoration mechanism.
-    *   **Task 7.3**: Develop a basic context menu for the editor using Shadcn UI/Radix UI ContextMenu components. Suggest initial actions (Format, Copy, Paste).
+    *   **Task 7.3**: Develop a basic context menu for the editor using Shadcn UI ContextMenu components. Suggest initial actions (Format, Copy, Paste).
     *   **Task 7.4**: Define a TypeScript interface or mechanism within `QueryEditor` for an external "AI Assistant" component to interact with (get cursor/selection, insert/replace text).
     *   **Task 7.5**: Integrate this `QueryEditor` into the `QueryEditorTab` component. Query content and settings should be managed via `tabSlice` and/or `settingsSlice`.
     *   **Task 7.6**: (Advanced) Explore Monaco's `registerCompletionItemProvider` for dynamic autocompletion based on `schemaSlice`.
@@ -227,19 +229,19 @@ We will break the application into the following key modules/areas. For each, we
 *   **Current**: `TabTable.tsx` (likely uses `@glideapps/glide-data-grid`) and `TabToolbar.tsx`.
 *   **Refactoring Goals**:
     *   Utilize `@glideapps/glide-data-grid` within a React functional component framework.
-    *   Implement a modernized `ResultsToolbar` component (in `features/results-viewer/ResultsToolbar.tsx`) using Shadcn UI/Radix UI components for controls, styled with Tailwind CSS.
-    *   Display column name and data type on hover over column headers (using Shadcn UI/Radix UI Tooltip).
-    *   Introduce tabbed results (using Shadcn UI/Radix UI Tabs) within each main query results view: each execution generates a new result sub-tab.
+    *   Implement a modernized `ResultsToolbar` component (in `features/results-viewer/ResultsToolbar.tsx`) using Shadcn UI components for controls, styled with Tailwind CSS.
+    *   Display column name and data type on hover over column headers (using Shadcn UI Tooltip).
+    *   Introduce tabbed results (using Shadcn UI Tabs) within each main query results view: each execution generates a new result sub-tab.
     *   Allow users to pin specific result sub-tabs.
     *   Implement smart naming for result sub-tabs (extracted from SQL).
     *   Cache results in frontend with Dexie, ensuring data is efficiently managed and cleaned up.
     *   Optimize for Web Vitals (LCP, CLS, FID) when displaying large datasets.
 *   **AI Tasks**:
     *   **Task 8.1**: Define props (using TypeScript interfaces) for a `ResultsViewerContainer` functional component (in `features/results-viewer/ResultsViewerContainer.tsx`). This component will manage its own set of result sub-tabs.
-    *   **Task 8.2**: Generate the `ResultsGrid` functional component (in `features/results-viewer/ResultsGrid.tsx`) using `@glideapps/glide-data-grid`. Props: `columns: ColumnDefInterface[]`, `data: RowInterface[]`, `isLoading: boolean`, `error?: string`. Implement column header tooltips (Shadcn UI/Radix UI Tooltip).
-    *   **Task 8.3**: Generate a `ResultsToolbar` React functional component. Style with Tailwind CSS and use Shadcn UI/Radix UI components for buttons, inputs, dropdowns.
+    *   **Task 8.2**: Generate the `ResultsGrid` functional component (in `features/results-viewer/ResultsGrid.tsx`) using `@glideapps/glide-data-grid`. Props: `columns: ColumnDefInterface[]`, `data: RowInterface[]`, `isLoading: boolean`, `error?: string`. Implement column header tooltips (Shadcn UI Tooltip).
+    *   **Task 8.3**: Generate a `ResultsToolbar` React functional component. Style with Tailwind CSS and use Shadcn UI components for buttons, inputs, dropdowns.
         *   Actions: Execute/Kill, Refresh, Show SQL, Limit Dropdown, Row Viewer Toggle, etc.
-    *   **Task 8.4**: Implement result sub-tabbing (using Shadcn UI/Radix UI Tabs) and pinning logic within `ResultsViewerContainer`. Manage `ResultStateInterface` objects.
+    *   **Task 8.4**: Implement result sub-tabbing (using Shadcn UI Tabs) and pinning logic within `ResultsViewerContainer`. Manage `ResultStateInterface` objects.
     *   **Task 8.5**: Develop a utility `function inferResultTabName(sql: string): string` (in `features/results-viewer/results-utils.ts` or `utils/helpers.ts`). AI can assist with regex or lightweight parsing logic.
     *   **Task 8.6**: Integrate `ResultsGrid`, `ResultsToolbar`, sub-tabbing, and smart naming into `ResultsViewerContainer`. This component will be used by `TabContentHost`. Manage `resultsHistory`, pruning, and interactions with the selected result sub-tab. Ensure dynamic loading for non-critical parts if applicable.
 
@@ -247,10 +249,10 @@ We will break the application into the following key modules/areas. For each, we
 
 *   **Current**: `TopMenuBar.tsx`, `TabToolbar.tsx`.
 *   **Refactoring Goals**:
-    *   A clean and intuitive menu bar using Shadcn UI/Radix UI menu components, styled with Tailwind CSS, for global and context-specific actions.
+    *   A clean and intuitive menu bar using Shadcn UI menu components, styled with Tailwind CSS, for global and context-specific actions.
     *   Components should be functional with TypeScript interfaces.
 *   **AI Tasks**:
-    *   **Task 9.1**: Generate a `TopMenuBar` functional component (e.g., in `components/layout/TopMenuBar.tsx`) using Shadcn UI/Radix UI dropdown menu or menubar components, with placeholders for common actions.
+    *   **Task 9.1**: Generate a `TopMenuBar` functional component (e.g., in `components/layout/TopMenuBar.tsx`) using Shadcn UI dropdown menu or menubar components, with placeholders for common actions.
     *   **Task 9.2**: Connect these actions to relevant state management functions (e.g., opening new query tab, showing connection manager).
     *   **Task 9.3**: Design and implement `TabToolbar` (if distinct from Module 8's `ResultsToolbar` or if a more generic tab-specific toolbar is needed) as a functional component, dynamically populated with actions relevant to the active tab.
 
@@ -268,7 +270,7 @@ We will break the application into the following key modules/areas. For each, we
 
 ### General AI-Assisted Tasks Across Modules:
 
-*   **Component Styling**: Once basic functional components are generated, AI can be tasked with applying styles using Tailwind CSS, and integrating Shadcn UI/Radix UI components where appropriate (e.g., "Style this Button component using Tailwind CSS and base it on Shadcn UI's Button component").
+*   **Component Styling**: Once basic functional components are generated, AI can be tasked with applying styles using Tailwind CSS, and integrating Shadcn UI components where appropriate (e.g., "Style this Button component using Tailwind CSS and base it on Shadcn UI's Button component").
 *   **Unit Test Generation**: For well-defined functional components and pure functions, AI can help generate initial unit tests (e.g., using Jest and React Testing Library).
 *   **TypeScript Type Refinement**: AI can assist in refining TypeScript interfaces as the application evolves, ensuring strong typing.
 *   **Code Refactoring**: For specific functions or small components, AI can be asked to refactor for clarity, performance, or to adhere to new patterns, always producing concise, technical TypeScript.
@@ -281,7 +283,7 @@ This phased approach breaks down the refactoring process into manageable stages.
 
 1.  **Phase 1: Project Setup & Core Services Foundation**
     *   **Activities**: 
-        *   Initialize the new frontend project in the `ui/` directory (e.g., using Vite with React and TypeScript).
+        *   Initialize the new frontend project in the `ui/` directory if needed (e.g., using Vite with React and TypeScript).
         *   Implement Module 1 (Core Application Shell & Layout): Basic structure (`MainLayout.tsx`), top menu bar placeholder, left/right pane placeholders.
         *   Implement Module 2 (API Client Service): Foundational `apiClient.ts` (e.g., with Axios) for basic GET/POST, and `apiEndpoints.ts`.
         *   Implement Module 3 (State Management Service): Initial setup (e.g., Zustand stores) for `connectionSlice`, `uiSlice`, and `settingsSlice`.
