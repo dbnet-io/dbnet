@@ -198,6 +198,9 @@ We will break the application into the following key modules/areas. For each, we
         *   Show tooltips.
         *   Include an "Add Tab" button.
         *   Handle tab selection and active state.
+        *   Additional state for tab: database, schema, role and warehouse. Those be able to be changed via context menu (right-click).
+        *   Context menu items: Rename, Close, Database, Schema, Role (only for snowflake), Warehouse (only for snowflake). Should be easily extensible for future specific databases.
+        *  Have ability to change the default database and schema (role and warehouse), via overlay. Overlay can be trigger via right-click context menu item, to list the available options.
         *   Support drag-and-drop for reordering.
     *   **Task 6.2**: Implement the `TabContentHost` functional component (in `features/tab-management/TabContentHost.tsx`) that dynamically renders content for the active tab, wrapping client components in Suspense with fallback.
     *   **Task 6.3**: Develop the tab context menu using Shadcn UI ContextMenu components. Actions: Rename, Close, Close Others, etc. For query tabs, add Change Connection & Database.
