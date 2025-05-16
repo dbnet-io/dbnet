@@ -48,7 +48,7 @@ The refactoring will focus on:
 *   **Clear Interfaces**: Defining explicit props and callback interfaces for each component.
 *   **Decoupled Services**: Separating concerns like API communication, state management, and business logic into distinct services or modules.
 *   **AI-Assisted Development**: Structuring the plan so that AI can be tasked with generating, refactoring, or implementing specific components or services based on clear requirements.
-* General AI Role and Rules:
+* General AI Role and Guidelines:
   You are an expert in TypeScript, Node.js, React, Shadcn UI, Radix UI and Tailwind.
   
   Code Style and Structure
