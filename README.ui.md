@@ -96,240 +96,184 @@ We will break the application into the following key modules/areas. For each, we
 
 *   **Current**: `App.tsx`, `Default.tsx`, `panes/LeftPane.tsx`, `panes/RightPane.tsx`. Uses PrimeReact Splitter.
 *   **Refactoring Goals**:
-    *   Define a clean, modern main application layout.
-    *   Establish a root component structure.
-    *   Implement responsive design for different screen sizes.
-    *   Potentially replace PrimeReact Splitter with a more flexible or modern alternative if desired.
+    *   Define a clean, modern main application layout using functional React components and TypeScript.
+    *   Establish a root component structure adhering to the file structure guidelines (exported component, subcomponents, etc.).
+    *   Implement responsive design for different screen sizes using Tailwind CSS, following a mobile-first approach.
+    *   Potentially replace PrimeReact Splitter with a modern, flexible alternative, possibly leveraging Radix UI utilities or a suitable Shadcn UI component, styled with Tailwind CSS.
 *   **AI Tasks**:
-    *   **Task 1.1**: Generate a basic React/TypeScript application shell with a two-pane layout (left for navigation/schema, right for content tabs) using a modern CSS framework (e.g., Tailwind CSS or styled-components). Specify proportions and resizability.
-    *   **Task 1.2**: Create basic placeholder components for `TopMenuBar`, `LeftPaneContainer`, and `RightPaneContainer`.
-    *   **Task 1.3**: Implement routing (e.g., using `react-router-dom v6+`) if complex deep linking or view navigation is required beyond simple connection-based routing.
+    *   **Task 1.1**: Generate a basic React/TypeScript application shell (`MainLayout.tsx`) with a two-pane layout (left for navigation/schema, right for content tabs) using Tailwind CSS for styling and layout. Specify proportions and resizability. Potentially incorporate structural components from Shadcn UI/Radix UI. Ensure client components are wrapped in Suspense with a fallback.
+    *   **Task 1.2**: Create basic placeholder functional components (using TypeScript interfaces for props) for `TopMenuBar`, `LeftPaneContainer`, and `RightPaneContainer`.
+    *   **Task 1.3**: Implement routing (e.g., using `react-router-dom v6+`) if complex deep linking or view navigation is required. Consider using 'nuqs' for managing URL search parameter state for simpler routing needs.
 
 ### Module 2: API Client Service
 
 *   **Current**: `store/api.tsx`. Uses global `fetch` with custom response parsing.
 *   **Refactoring Goals**:
-    *   Create a dedicated, injectable API client service.
-    *   Use a modern data fetching library (e.g., `axios`, `RTK Query`, `TanStack Query/React Query`) for better caching, request lifecycle management, and error handling.
-    *   Define clear TypeScript types for API requests and responses.
-    *   Centralize API endpoint definitions.
+    *   Create a dedicated, injectable API client service module (`services/api-client.ts`).
+    *   Use a modern data fetching library like `TanStack Query/React Query` for better caching, request lifecycle management, and error handling. This choice helps in limiting direct 'use client' for data fetching logic, aligning with best practices.
+    *   Define clear TypeScript interfaces for API requests and responses (in `types/api.ts`).
+    *   Centralize API endpoint definitions (e.g., in `services/api-endpoints.ts`).
 *   **AI Tasks**:
-    *   **Task 2.1**: Define TypeScript interfaces for common API request payloads and response structures (e.g., `ConnectionInfo`, `DatabaseSchema`, `TableDetails`, `QueryResult`, `QueryError`).
-    *   **Task 2.2**: Implement an `ApiClient` class or set of functions using `axios` (or another chosen library). It should include methods for GET and POST, header management, and standardized error handling.
-    *   **Task 2.3**: Refactor existing API call logic from `store/api.tsx` and `state/dbnet.ts` to use the new `ApiClient`. AI can help map old `fetch` calls to the new methods.
+    *   **Task 2.1**: Define TypeScript interfaces for common API request payloads and response structures (e.g., `ConnectionInfo`, `DatabaseSchema`, `TableDetails`, `QueryResult`, `QueryError`), preferring interfaces over types.
+    *   **Task 2.2**: Implement an `ApiClient` class or set of functions (using the `function` keyword for pure helper functions) within `services/api-client.ts`. This should use `TanStack Query/React Query` (which typically wraps `fetch` or `axios`), include methods for GET and POST, header management, and standardized error handling.
+    *   **Task 2.3**: Refactor existing API call logic from `store/api.tsx` and `state/dbnet.ts` to use the new `ApiClient`. AI can help map old `fetch` calls to the new methods, ensuring concise and technical TypeScript code.
 
 ### Module 3: State Management Service
 
 *   **Current**: Hookstate with a central `DbNet` class (`state/dbnet.ts`) and various state modules (`state/*.ts`). Global window objects are also used (`window.dbnet`).
 *   **Refactoring Goals**:
-    *   Adopt a more standard React state management pattern (e.g., Zustand, Redux Toolkit, or continue with Hookstate but with clearer module boundaries and no global window objects for state).
-    *   Ensure state is serializable and easily debuggable.
-    *   Define clear state slices or stores for different parts of the application (e.g., `connections`, `schema`, `tabs`, `queryResults`, `uiState`).
+    *   Adopt a modern React state management solution like Zustand or Redux Toolkit, structured within the `store/` directory.
+    *   Ensure state is serializable and easily debuggable. State management logic should minimize the need for 'use client' directives in components.
+    *   Define clear state slices or stores (e.g., `connectionSlice.ts`, `schemaSlice.ts`) for different parts of the application.
     *   Eliminate reliance on `window.dbnet` and other global state variables.
+    *   Consider 'nuqs' for URL search parameter state management where appropriate (e.g., active connection ID, selected tab).
 *   **AI Tasks**:
-    *   **Task 3.1**: Design the structure for the new state management solution (e.g., define Zustand stores or Redux slices) for:
+    *   **Task 3.1**: Design the structure for the new state management solution (e.g., define Zustand stores or Redux slices using TypeScript interfaces for state shapes) for:
         *   `connectionState`: List of available connections, selected connection, connection status.
         *   `schemaState`: Cached schema information per connection/database.
         *   `tabState`: List of open tabs, active tab, content per tab (query, results, type).
         *   `editorState`: Content and settings for query editors.
         *   `settingsState`: User preferences.
-    *   **Task 3.2**: Generate the boilerplate for these state modules, including initial state, actions/reducers/mutators, and selectors.
-    *   **Task 3.3**: Assist in migrating logic from the existing `DbNet` class and individual state files into the new state management structure.
+    *   **Task 3.2**: Generate the boilerplate for these state modules, including initial state, actions/reducers/mutators (as functions), and selectors, all typed with TypeScript interfaces.
+    *   **Task 3.3**: Assist in migrating logic from the existing `DbNet` class and individual state files into the new state management structure, ensuring code is concise and modular.
 
 ### Module 4: Connection Management UI & Logic
 
 *   **Current**: `ConnectionChooser.tsx`, parts of `Default.tsx`, `state/connection.ts`, `state/dbnet.ts`.
 *   **Refactoring Goals**:
-    *   A clear, user-friendly way to manage and select connections.
+    *   A clear, user-friendly way to manage and select connections, using functional React components.
     *   Improved error handling and feedback during connection attempts.
-    *   Decouple UI from direct state manipulation.
+    *   Decouple UI from direct state manipulation, using hooks to interact with the state layer.
+    *   Components styled with Tailwind CSS, utilizing Shadcn UI/Radix UI components for UI elements.
 *   **AI Tasks**:
-    *   **Task 4.1**: Generate a React component `ConnectionManager` that:
-        *   Displays a list of available connections (fetched via the `ApiClient` and managed by `connectionState`).
-        *   Allows selecting a connection.
-        *   Shows a modal or form for adding/editing connection configurations (initially, this can be a placeholder, focusing on display and selection).
-        *   Uses the new `ApiClient` to fetch connection lists and the `connectionState` to update the application state.
-    *   **Task 4.2**: Style the `ConnectionManager` component using the chosen modern CSS framework.
+    *   **Task 4.1**: Generate a React functional component `ConnectionManager` (in `features/connection/ConnectionManager.tsx`) using TypeScript interfaces for props. It should:
+        *   Display a list of available connections (fetched via the `ApiClient` and managed by `connectionSlice`).
+        *   Allow selecting a connection.
+        *   Show a modal (using Shadcn UI/Radix UI Modal component) or form for adding/editing connection configurations.
+        *   Use the `ApiClient` to fetch connection lists and the `connectionSlice` to update application state.
+    *   **Task 4.2**: Style the `ConnectionManager` component and its subcomponents using Tailwind CSS, incorporating Shadcn UI/Radix UI components (e.g., for modals, lists, buttons, input fields). Ensure the design is responsive and follows a mobile-first approach.
 
 ### Module 5: Schema Explorer Panel
 
-*   **Current**: `SchemaPanel.tsx` uses PrimeReact `Tree` and `ContextMenu`. It displays a filterable tree of Databases -> Schemas -> Tables/Views. Features include:
-    *   A top bar with current connection name and a global refresh button.
-    *   Custom node templates with icons and tooltips (showing item type, name, and counts like number of schemas/tables/columns).
-    *   Views are visually distinguished (e.g., by color).
-    *   Single-click on a table/view (after a delay) loads its metadata into a separate panel.
-    *   Double-click on a table/view also executes a `SELECT * LIMIT 500` query for it.
-    *   A rich context menu with actions like: Copy Name, Refresh (database), SELECT \*, Get COUNT(\*), View DDL, Analyze Table, Copy DROP Command, Get Tables (list), Get Columns (list).
-    *   Tree expansion and selection state are managed and likely persisted.
+*   **Current**: `SchemaPanel.tsx` uses PrimeReact `Tree` and `ContextMenu`.
 *   **Refactoring Goals**:
-    *   Replicate the existing hierarchical tree view (Databases -> Schemas -> Tables/Views) using a performant tree component (e.g., from a library like `react-arborist`, `rc-tree`, or a custom one if simple enough, wrapped in `components/navigation/TreeView.tsx`).
-    *   Maintain the top bar with connection name and a refresh button.
-    *   Implement custom node rendering to include icons, distinguish views, and show informative tooltips on hover (similar to existing: item type, name, relevant counts).
-    *   Provide a text-based filter for the tree.
-    *   Replicate the single-click and double-click behaviors on table/view nodes (opening meta details and executing a select query, respectively).
-    *   Implement a context menu with actions comparable to the existing one, adapting them to the new action/state management system. Consider grouping or refining context menu items for better UX.
-    *   Ensure tree expansion state is preserved (e.g., in `schemaState` or `uiSlice` and potentially persisted via `persistenceService`).
-    *   Lazy loading of schema parts (e.g., loading tables/views only when a schema is expanded) should be a primary consideration for performance.
+    *   Replicate the existing hierarchical tree view (Databases -> Schemas -> Tables/Views) using a performant tree component, potentially from Shadcn UI/Radix UI if available and suitable, or a well-regarded library like `react-arborist` or `rc-tree`, wrapped in `components/navigation/tree-view.tsx`. All components should be functional with TypeScript interfaces.
+    *   Maintain the top bar with connection name and a refresh button, styled with Tailwind CSS.
+    *   Implement custom node rendering to include icons (consider SVG icons), distinguish views, and show informative tooltips (using Shadcn UI/Radix UI Tooltip) on hover.
+    *   Provide a text-based filter for the tree (e.g. using a Shadcn UI Input).
+    *   Replicate single-click and double-click behaviors on table/view nodes.
+    *   Implement a context menu using Shadcn UI/Radix UI ContextMenu, with actions comparable to the existing one.
+    *   Ensure tree expansion state is preserved (e.g., in `schemaSlice` or `uiSlice`).
+    *   Lazy loading of schema parts should be a primary consideration for performance; wrap client components in Suspense with fallback where appropriate.
 *   **AI Tasks**:
-    *   **Task 5.1**: Design the data structure for the schema tree (e.g., `TreeNode` interface with properties like `id`, `name`, `type: 'database' | 'schema' | 'table' | 'view'`, `children`, `tooltipData: { count?: number, typeSpecificInfo?: string }`).
-    *   **Task 5.2**: Generate a React component `SchemaExplorerPanel` that includes:
-        *   The top bar (connection name, refresh button).
-        *   A filter input field.
+    *   **Task 5.1**: Design the data structure for the schema tree (e.g., `TreeNodeInterface` with properties like `id`, `name`, `type: 'database' | 'schema' | 'table' | 'view'`, `children`, `tooltipData: { count?: number, typeSpecificInfo?: string }`). Use maps instead of enums for `type`.
+    *   **Task 5.2**: Generate a React functional component `SchemaExplorerPanel` (in `features/schema-explorer/SchemaExplorerPanel.tsx`) that includes:
+        *   The top bar (connection name, refresh button, styled with Tailwind CSS).
+        *   A filter input field (Shadcn UI Input).
         *   The `TreeView` component for rendering the schema.
-    *   **Task 5.3**: Develop the `TreeView` component (or adapt a library) with custom node rendering for icons, labels, and tooltips, and to differentiate views.
-        *   AI can help generate the JSX for node templates based on `TreeNode` data.
-    *   **Task 5.4**: Implement the logic for single-click (triggering meta detail view - this might involve a new `metaDetailState` or publishing an event) and double-click (dispatching an action to open a new query tab with `SELECT * ... LIMIT 500`).
-    *   **Task 5.5**: Design and implement the context menu for schema nodes. AI can help structure the menu items and map them to actions (e.g., calling functions in `useSchema` hook or dispatching to state stores).
-        *   Example actions to replicate: Copy Name, Refresh (for database/schema), SELECT \*, Get COUNT(\*), View DDL, Analyze Table, Get Tables List, Get Columns List.
-    *   **Task 5.6**: Implement API calls via `ApiClient` to fetch schema information (databases, schemas, tables, columns), and update `schemaState`. This should support lazy-loading children on node expansion.
-    *   **Task 5.7**: Manage tree expansion and selection state within `schemaState` or `uiSlice`, with persistence via `persistenceService`.
+    *   **Task 5.3**: Develop the `TreeView` component (or adapt a library) with custom node rendering (declarative JSX) for icons, labels, and tooltips, and to differentiate views.
+    *   **Task 5.4**: Implement the logic for single-click (triggering meta detail view) and double-click (dispatching an action to open a new query tab).
+    *   **Task 5.5**: Design and implement the context menu for schema nodes using Shadcn UI/Radix UI ContextMenu components. AI can help structure the menu items and map them to actions (e.g., calling functions in `useSchema` hook or dispatching to state stores).
+    *   **Task 5.6**: Implement API calls via `ApiClient` to fetch schema information, updating `schemaSlice`. This should support lazy-loading children on node expansion.
+    *   **Task 5.7**: Manage tree expansion and selection state within `schemaSlice` or `uiSlice`, with persistence via `persistenceService`. Consider if 'nuqs' can be used for simple selection state in the URL.
 
 ### Module 6: Tab Management System
 
-*   **Current**: `components/TabNames.tsx` uses PrimeReact `TabMenu` for main query tabs. `state/tab.ts` handles tab state. Key UX features include:
-    *   Displaying tab names with a loading spinner icon when busy.
-    *   Tooltips on tab hover showing connection and database details.
-    *   An "Add Tab" (+) button that prompts for connection/database and auto-generates a unique tab name (e.g., `database_name` or `YYYY-MM-DD_N`).
-    *   A "Close Tab" (x) button for the active tab.
-    *   Right-click context menu on a tab with options: Rename (inline editing), Close, and a list of databases for the current connection to switch the tab's database context.
-    *   Logic for creating/finding tabs and appending SQL to existing tabs if a similar one exists (`createTab`, `appendSqlToTab`).
-    *   Implicit handling of result associations which will be expanded in Module 8.
+*   **Current**: `components/TabNames.tsx` uses PrimeReact `TabMenu`. `state/tab.ts` handles tab state.
 *   **Refactoring Goals**:
-    *   Implement a robust and intuitive tab management system (e.g., using components from `features/tab_management/`) for primary content types (Query Editor, Results Viewer, Settings).
-    *   Replicate the tab bar appearance: display tab names, show loading indicators (spinners) on tabs when their content is loading or executing.
-    *   Implement tooltips on tab hover to show essential context (e.g., connection, database associated with a query tab).
-    *   Provide an "Add Tab" (+) functionality: this should likely present a way to choose the tab type (e.g., New Query, or open specific views like Settings). For new query tabs, it should prompt for connection/database selection and auto-generate a unique, editable name.
+    *   Implement a robust and intuitive tab management system using functional components from `features/tab-management/`, styled with Tailwind CSS and utilizing Shadcn UI/Radix UI tab components.
+    *   Replicate tab bar appearance: display tab names, loading indicators (spinners from Shadcn UI or custom).
+    *   Implement tooltips (Shadcn UI/Radix UI Tooltip) on tab hover.
+    *   Provide "Add Tab" (+) functionality.
     *   Allow closing tabs (e.g., with an 'x' icon on each tab or via context menu).
-    *   Implement a right-click context menu for tabs with actions like: Rename Tab (inline edit), Close Tab, Close Others, Close to Right, Duplicate.
-    *   For query tabs, the context menu should also allow changing the associated Connection and Database (similar to the current database list in the context menu).
-    *   Ensure tab state (open tabs, active tab, their type, and associated context like connection/database for query tabs) is managed cleanly in `tabSlice` and persisted via `persistenceService`.
+    *   Implement a right-click context menu (Shadcn UI/Radix UI ContextMenu) for tabs.
+    *   Ensure tab state is managed cleanly in `tabSlice` and persisted. The active tab ID could be managed by 'nuqs'.
     *   Support reordering of tabs via drag-and-drop.
 *   **AI Tasks**:
-    *   **Task 6.1**: Generate a `TabBar` component that:
-        *   Renders tab headers based on data from `tabSlice`.
-        *   Displays an icon/spinner for loading states.
-        *   Shows tooltips with context information.
-        *   Includes an "Add Tab" button.
-        *   Allows selecting tabs and provides a visual indication of the active tab.
-        *   Handles drag-and-drop for tab reordering.
-    *   **Task 6.2**: Implement the `TabContentHost` component that dynamically renders the content for the active tab based on its type (e.g., `QueryEditorTab` from Module 7, `ResultsViewerContainer` from Module 8, or a `SettingsView`).
-    *   **Task 6.3**: Develop the tab context menu with actions: Rename (inline edit), Close, Close Others, Close to Right, Duplicate. For query tabs, add Change Connection & Change Database options.
-        *   AI can generate the menu structure and boilerplate for action handlers.
-    *   **Task 6.4**: Implement the logic in `tabSlice` (or `useTabs` hook) for:
-        *   Adding new tabs (handling type, connection/database selection for query tabs, auto-naming).
-        *   Closing tabs (single, others, to the right).
-        *   Selecting tabs.
-        *   Renaming tabs.
-        *   Duplicating tabs.
-        *   Reordering tabs.
-        *   Updating connection/database context for a query tab.
-    *   **Task 6.5**: Ensure tab state is persisted and restored using `persistenceService`.
+    *   **Task 6.1**: Generate a `TabBar` React functional component (in `features/tab-management/TabBar.tsx`) using Shadcn UI/Radix UI tab components as a base, styled with Tailwind CSS. It should:
+        *   Render tab headers based on data from `tabSlice`.
+        *   Display loading indicators.
+        *   Show tooltips.
+        *   Include an "Add Tab" button.
+        *   Handle tab selection and active state.
+        *   Support drag-and-drop for reordering.
+    *   **Task 6.2**: Implement the `TabContentHost` functional component (in `features/tab-management/TabContentHost.tsx`) that dynamically renders content for the active tab, wrapping client components in Suspense with fallback.
+    *   **Task 6.3**: Develop the tab context menu using Shadcn UI/Radix UI ContextMenu components. Actions: Rename, Close, Close Others, etc. For query tabs, add Change Connection & Database.
+    *   **Task 6.4**: Implement the logic in `tabSlice` (or a `useTabs` hook) for tab operations using TypeScript interfaces for actions and state.
+    *   **Task 6.5**: Ensure tab state (including active tab via 'nuqs' if applicable) is persisted and restored using `persistenceService`.
 
 ### Module 7: Query Editor Component
 
-*   **Current**: `TabEditor.tsx`, `state/editor.ts`, `state/monaco/`. Uses Monaco editor. Existing features include SQL formatting, saving editor selection, and some form of decorations (`setDecoration`). Ctrl/Meta-click on an identifier can load a meta table.
+*   **Current**: `TabEditor.tsx`, `state/editor.ts`, `state/monaco/`. Uses Monaco editor.
 *   **Refactoring Goals**:
-    *   Integrate Monaco editor smoothly within the new component structure.
-    *   Provide robust SQL syntax highlighting and explore schema-aware autocompletion (linking to `schemaState`).
-    *   Allow running the entire query or selected query blocks (e.g., via Ctrl+Enter / Cmd+Enter).
-    *   Clearly highlight/decorate the exact block of SQL that was executed.
-    *   Implement an option to switch to **Monaco's Vim mode** for users familiar with Vim keybindings.
-    *   Replicate essential items from the **existing context menu** relevant to query editing (e.g., format query, copy, paste, potentially new AI actions).
-    *   Design the editor component to **accommodate a future AI assistance overlay**. This overlay (e.g., triggered by Ctrl+K) would appear near the cursor, allowing users to submit AI commands and receive inline suggestions or code modifications. The editor component should provide necessary hooks or references (like cursor position, selected text) for the overlay to function.
-    *   Manage editor content and settings (like Vim mode preference) per tab, possibly persisted via `settingsState` or `tabState`.
+    *   Integrate Monaco editor within a React functional component (`features/query-editor/QueryEditorTab.tsx`).
+    *   Provide robust SQL syntax highlighting and explore schema-aware autocompletion (linking to `schemaSlice`).
+    *   Allow running entire query or selected blocks.
+    *   Clearly highlight/decorate the executed SQL block.
+    *   Implement Monaco's Vim mode toggle.
+    *   Replicate essential context menu items using Shadcn UI/Radix UI ContextMenu.
+    *   Design the editor component to accommodate a future AI assistance overlay, providing necessary hooks (cursor position, selected text).
+    *   Manage editor content/settings per tab, persisted via `settingsSlice` or `tabSlice`.
 *   **AI Tasks**:
-    *   **Task 7.1**: Create a `QueryEditor` React component that wraps the Monaco editor.
-        *   Props: `initialContent: string`, `language: string` (e.g., "sql"), `onChange: (value: string) => void`, `onExecuteQuery: (query: string, selection?: Range) => void`, `options?: monaco.editor.IStandaloneEditorConstructionOptions`.
-        *   Internal state/hooks for managing the editor instance, Vim mode status, decorations, and cursor position.
-    *   **Task 7.2**: Implement Monaco editor setup:
-        *   SQL language configuration, syntax highlighting.
-        *   **Add a toggle/setting to enable/disable Vim mode** (`monaco-vim`).
-        *   Functionality to get selected text or the entire content for query execution.
-        *   Mechanism to apply **decorations to highlight specific ranges** (e.g., the last executed query block).
-    *   **Task 7.3**: Develop a basic **context menu** for the editor. AI can help generate the structure and suggest initial common actions (Format, Copy, Paste). Later, actions like "Explain this query (AI)" or "Optimize this query (AI)" can be added.
-    *   **Task 7.4**: Define an interface or mechanism within the `QueryEditor` component that would allow an external "AI Assistant" component to:
-        *   Get the current cursor position and selected text.
-        *   Insert or replace text at the cursor or in a selected range.
-        *   (Future) Receive context from the editor (e.g., surrounding code) for more informed AI suggestions.
-        *   This task focuses on the *structural hooks* in `QueryEditor`, not the AI overlay itself.
-    *   **Task 7.5**: Integrate this `QueryEditor` component into the `TabContainer` when a tab's type is 'queryEditor'. Query content and editor-specific settings (like Vim mode) should be loaded from/saved to `tabState` and/or `settingsState`.
-    *   **Task 7.6**: (Advanced) Explore dynamic autocompletion lists based on `schemaState`. AI can research Monaco's API for `registerCompletionItemProvider` and suggest how to map schema information (tables, columns from the active connection) to completion items.
+    *   **Task 7.1**: Create a `QueryEditor` React functional component (e.g., in `components/specific/MonacoEditor.tsx` or directly within `features/query-editor/`) that wraps Monaco. Define props using TypeScript interfaces: `initialContent: string`, `language: string`, `onChange: (value: string) => void`, `onExecuteQuery: (query: string, selection?: Range) => void`, `options?: monaco.editor.IStandaloneEditorConstructionOptions`.
+    *   **Task 7.2**: Implement Monaco editor setup: SQL language configuration, syntax highlighting, Vim mode toggle (`monaco-vim`), text selection, and decoration mechanism.
+    *   **Task 7.3**: Develop a basic context menu for the editor using Shadcn UI/Radix UI ContextMenu components. Suggest initial actions (Format, Copy, Paste).
+    *   **Task 7.4**: Define a TypeScript interface or mechanism within `QueryEditor` for an external "AI Assistant" component to interact with (get cursor/selection, insert/replace text).
+    *   **Task 7.5**: Integrate this `QueryEditor` into the `QueryEditorTab` component. Query content and settings should be managed via `tabSlice` and/or `settingsSlice`.
+    *   **Task 7.6**: (Advanced) Explore Monaco's `registerCompletionItemProvider` for dynamic autocompletion based on `schemaSlice`.
 
 ### Module 8: Results Display Component
 
-*   **Current**: `TabTable.tsx` (likely uses `@glideapps/glide-data-grid`) and `TabToolbar.tsx` (provides actions like refresh, filtering, copy, export, limit adjustment, SQL view, row count, duration, directly interacting with the result state).
+*   **Current**: `TabTable.tsx` (likely uses `@glideapps/glide-data-grid`) and `TabToolbar.tsx`.
 *   **Refactoring Goals**:
-    *   Utilize **`@glideapps/glide-data-grid`** for its performance and capabilities.
-    *   Implement a **modernized `ResultsToolbar`** component placed directly above the data grid, mirroring the functionality of the existing `TabToolbar.tsx`. This toolbar will interact with the currently active result set.
-    *   Display **column name and data type on hover** over column headers in the grid.
-    *   Introduce **tabbed results within each main query results view**: each execution of a query in a primary query tab will generate a new result sub-tab. A history of the most recent (e.g., 5) results should be maintained. Older results are pruned unless pinned.
-    *   Allow users to **pin specific result sub-tabs** (e.g., by double-clicking the result sub-tab title) to prevent them from being automatically pruned from the history.
-    *   Implement **smart naming for result sub-tabs**: the name should be inferred from the SQL query. If a single table is queried, use that table name (without schema). If multiple tables are joined, use the first/primary table name. This will require basic SQL parsing.
-    *   Ensure a clean, performant data flow between the grid, toolbar, and the state management solution.
-    *   Cache results in frontend wit Dexie for persistence across tab switches and sessions. Once tab or result is closed, delete from Dexie as well.
+    *   Utilize `@glideapps/glide-data-grid` within a React functional component framework.
+    *   Implement a modernized `ResultsToolbar` component (in `features/results-viewer/ResultsToolbar.tsx`) using Shadcn UI/Radix UI components for controls, styled with Tailwind CSS.
+    *   Display column name and data type on hover over column headers (using Shadcn UI/Radix UI Tooltip).
+    *   Introduce tabbed results (using Shadcn UI/Radix UI Tabs) within each main query results view: each execution generates a new result sub-tab.
+    *   Allow users to pin specific result sub-tabs.
+    *   Implement smart naming for result sub-tabs (extracted from SQL).
+    *   Cache results in frontend with Dexie, ensuring data is efficiently managed and cleaned up.
+    *   Optimize for Web Vitals (LCP, CLS, FID) when displaying large datasets.
 *   **AI Tasks**:
-    *   **Task 8.1**: Define props for a `ResultsViewerTab` component. This component will encapsulate the results area for a single main query tab and will manage its own set of result sub-tabs.
-        *   Props: `queryId: string` (to associate with the parent query), `resultsHistory: ResultState[]` (array of the last N results), `activeResultIndex: number`, `onExecuteQueryAgain: (query: string) => void`, etc.
-    *   **Task 8.2**: Generate the `ResultsGrid` component using `@glideapps/glide-data-grid`.
-        *   Props: `columns: ColumnDef[]`, `data: Row[]`, `isLoading: boolean`, `error?: string`.
-        *   Implement **column header hover functionality** to display a tooltip with column name and data type.
-    *   **Task 8.3**: Generate a `ResultsToolbar` React component.
-        *   This component will receive the currently active `ResultState` as a prop and provide UI elements (buttons, inputs) for actions similar to the existing `TabToolbar.tsx`:
-            *   Execute/Kill Query (interacting with the parent query tab's execution logic)
-            *   Refresh Results (re-execute the query that produced the current result)
-            *   Show SQL (toggle a modal/overlay showing the SQL for the current result)
-            *   Results Limit Dropdown (e.g., 100, 500, 1000 rows)
-            *   Row Viewer Toggle
-            *   Show as Text Toggle
-            *   Filter Rows Input
-            *   Copy Headers Button
-            *   Copy Data Button
-            *   Export Data Button (with options for format and row limit)
-            *   Load More Rows Button (if applicable)
-            *   Display for row count and query duration.
-        *   AI can help design the layout and styling of this toolbar using the chosen modern CSS framework.
-    *   **Task 8.4**: Implement the **result sub-tabbing and pinning logic** within the `ResultsViewerTab` component.
-        *   Manage a list (e.g., up to 5) of `ResultState` objects.
-        *   Provide UI (e.g., simple sub-tab headers) to switch between these historical results.
-        *   Implement a mechanism to "pin" a result sub-tab (e.g., double-click on its title), which prevents it from being pruned when new results arrive.
-        *   Pinned status should be part of the `ResultState`.
-    *   **Task 8.5**: Develop a utility function `inferResultTabName(sql: string): string`.
-        *   This function will perform basic SQL parsing (e.g., using regex or a lightweight parser) to extract the primary table name for naming result sub-tabs.
-        *   AI can assist in generating parsing logic for common SQL SELECT patterns.
-        *   This utility could reside in `features/results_viewer/utils.ts` or a global `utils/` directory.
-    *   **Task 8.6**: Integrate the `ResultsGrid`, `ResultsToolbar`, result sub-tabbing, and smart naming logic into the `ResultsViewerTab` component. This component will then be used by the main `TabContainer` when a tab is designated to show query results.
-        *   Ensure new results from query executions are added to the `resultsHistory`, pruning old unpinned results if the limit is exceeded.
-        *   The `ResultsToolbar` should always operate on the currently selected result sub-tab.
+    *   **Task 8.1**: Define props (using TypeScript interfaces) for a `ResultsViewerContainer` functional component (in `features/results-viewer/ResultsViewerContainer.tsx`). This component will manage its own set of result sub-tabs.
+    *   **Task 8.2**: Generate the `ResultsGrid` functional component (in `features/results-viewer/ResultsGrid.tsx`) using `@glideapps/glide-data-grid`. Props: `columns: ColumnDefInterface[]`, `data: RowInterface[]`, `isLoading: boolean`, `error?: string`. Implement column header tooltips (Shadcn UI/Radix UI Tooltip).
+    *   **Task 8.3**: Generate a `ResultsToolbar` React functional component. Style with Tailwind CSS and use Shadcn UI/Radix UI components for buttons, inputs, dropdowns.
+        *   Actions: Execute/Kill, Refresh, Show SQL, Limit Dropdown, Row Viewer Toggle, etc.
+    *   **Task 8.4**: Implement result sub-tabbing (using Shadcn UI/Radix UI Tabs) and pinning logic within `ResultsViewerContainer`. Manage `ResultStateInterface` objects.
+    *   **Task 8.5**: Develop a utility `function inferResultTabName(sql: string): string` (in `features/results-viewer/results-utils.ts` or `utils/helpers.ts`). AI can assist with regex or lightweight parsing logic.
+    *   **Task 8.6**: Integrate `ResultsGrid`, `ResultsToolbar`, sub-tabbing, and smart naming into `ResultsViewerContainer`. This component will be used by `TabContentHost`. Manage `resultsHistory`, pruning, and interactions with the selected result sub-tab. Ensure dynamic loading for non-critical parts if applicable.
 
 ### Module 9: Top Menu Bar & Actions
 
 *   **Current**: `TopMenuBar.tsx`, `TabToolbar.tsx`.
 *   **Refactoring Goals**:
-    *   A clean and intuitive menu bar for global actions (e.g., New Query, Manage Connections, Settings) and context-specific actions (e.g., Run Query, Save Query - if applicable to the active tab).
+    *   A clean and intuitive menu bar using Shadcn UI/Radix UI menu components, styled with Tailwind CSS, for global and context-specific actions.
+    *   Components should be functional with TypeScript interfaces.
 *   **AI Tasks**:
-    *   **Task 9.1**: Generate a `TopMenuBar` component with placeholder buttons/dropdowns for common actions.
-    *   **Task 9.2**: Connect these actions to the relevant state management functions (e.g., opening a new query tab, showing the connection manager).
-    *   **Task 9.3**: Design and implement a `TabToolbar` component that can be dynamically populated with actions relevant to the active tab's content (e.g., "Run Query" button for an editor tab).
+    *   **Task 9.1**: Generate a `TopMenuBar` functional component (e.g., in `components/layout/TopMenuBar.tsx`) using Shadcn UI/Radix UI dropdown menu or menubar components, with placeholders for common actions.
+    *   **Task 9.2**: Connect these actions to relevant state management functions (e.g., opening new query tab, showing connection manager).
+    *   **Task 9.3**: Design and implement `TabToolbar` (if distinct from Module 8's `ResultsToolbar` or if a more generic tab-specific toolbar is needed) as a functional component, dynamically populated with actions relevant to the active tab.
 
 ### Module 10: Local Persistence (Settings, Workspace)
 
 *   **Current**: Uses Dexie.js for `workspace` and `historyQueries`, `historyJobs`. `localStorage` for `_connection_name`, `_workspace_name`.
 *   **Refactoring Goals**:
-    *   Centralize local persistence logic.
-    *   Clearly define what needs to be persisted (e.g., user settings, open tabs, last connection, query history).
-    *   Continue using Dexie.js or switch to another robust client-side storage solution if needed.
+    *   Centralize local persistence logic in `services/persistenceService.ts`.
+    *   Clearly define what needs to be persisted (user settings, open tabs, query history) using TypeScript interfaces.
+    *   Continue using Dexie.js or switch if a more suitable modern alternative is identified.
 *   **AI Tasks**:
-    *   **Task 10.1**: Define a `PersistenceService` module that abstracts away the details of Dexie.js (or chosen storage).
-    *   **Task 10.2**: Implement methods in this service to `saveWorkspaceSettings(settings: WorkspaceSettings)`, `loadWorkspaceSettings(): WorkspaceSettings`, `saveQueryToHistory(query: Query)`, `loadQueryHistory(): Query[]`.
-    *   **Task 10.3**: Integrate calls to this service at appropriate points (e.g., on app load, on settings change, after query execution).
+    *   **Task 10.1**: Define a `PersistenceService` module that abstracts Dexie.js. Use TypeScript interfaces for data structures.
+    *   **Task 10.2**: Implement methods in this service: `saveWorkspaceSettings(settings: WorkspaceSettingsInterface)`, `loadWorkspaceSettings(): Promise<WorkspaceSettingsInterface | null>`, `saveQueryToHistory(query: QueryHistoryItemInterface)`, `loadQueryHistory(): Promise<QueryHistoryItemInterface[]>`. Use `async/await` and clear TypeScript types.
+    *   **Task 10.3**: Integrate calls to this service at appropriate points (e.g., on app load, on settings change, after query execution), ensuring data consistency.
 
 ### General AI-Assisted Tasks Across Modules:
 
-*   **Component Styling**: Once basic components are generated, AI can be tasked with applying styles using the chosen framework (e.g., "Style this button component using Tailwind CSS to look like X").
-*   **Unit Test Generation**: For well-defined components and functions, AI can help generate initial unit tests (e.g., using Jest and React Testing Library).
-*   **TypeScript Type Refinement**: AI can assist in refining TypeScript types and interfaces as the application evolves.
-*   **Code Refactoring**: For specific functions or small components, AI can be asked to refactor for clarity, performance, or to adhere to new patterns.
-*   **Documentation**: AI can help generate JSDoc comments or markdown documentation for components and services.
+*   **Component Styling**: Once basic functional components are generated, AI can be tasked with applying styles using Tailwind CSS, and integrating Shadcn UI/Radix UI components where appropriate (e.g., "Style this Button component using Tailwind CSS and base it on Shadcn UI's Button component").
+*   **Unit Test Generation**: For well-defined functional components and pure functions, AI can help generate initial unit tests (e.g., using Jest and React Testing Library).
+*   **TypeScript Type Refinement**: AI can assist in refining TypeScript interfaces as the application evolves, ensuring strong typing.
+*   **Code Refactoring**: For specific functions or small components, AI can be asked to refactor for clarity, performance, or to adhere to new patterns, always producing concise, technical TypeScript.
+*   **Documentation**: AI can help generate JSDoc comments for functions and components, and markdown documentation.
+*   **Image Optimization**: For any image assets, ensure they are in WebP format, include size data, and implement lazy loading where applicable.
 
 ## 4. Phased Approach
 
@@ -461,20 +405,20 @@ ui/
 │   │   │   ├── ConnectionSelector.tsx # Dropdown/UI to pick current connection
 │   │   │   ├── NewConnectionModal.tsx
 │   │   │   └── useConnections.ts # Hook for connection logic & state interaction
-│   │   ├── schema_explorer/
-│   │   │   ├── SchemaExplorerPanel.tsx # The complete schema panel UI
+│   │   ├── schema-explorer/    # The complete schema panel UI
+│   │   │   ├── SchemaExplorerPanel.tsx
 │   │   │   └── useSchema.ts      # Hook for schema fetching & state interaction
-│   │   ├── query_editor/
+│   │   ├── query-editor/
 │   │   │   ├── QueryEditorTab.tsx # Component representing a query editor tab
 │   │   │   └── useQueryEditor.ts # Hook for editor content, execution logic
-│   │   ├── results_viewer/       # Manages display of multiple query results, sub-tabs, and toolbar
+│   │   ├── results-viewer/     # Manages display of multiple query results, sub-tabs, and toolbar
 │   │   │   ├── ResultsViewerContainer.tsx # Main container for a query's results area (hosting sub-tabs)
 │   │   │   ├── ResultsSubTab.tsx   # Represents a single result set in a sub-tab
 │   │   │   ├── ResultsGrid.tsx     # The @glideapps/glide-data-grid component wrapper
 │   │   │   ├── ResultsToolbar.tsx  # Toolbar for actions on the active result
 │   │   │   ├── useResultsManager.ts # Hook for managing results history, sub-tabs, pinning, and Dexie caching
-│   │   │   └── resultsUtils.ts     # Utilities like inferResultTabName
-│   │   ├── tab_management/
+│   │   │   └── results-utils.ts    # Utilities like inferResultTabName
+│   │   ├── tab-management/
 │   │   │   ├── TabBar.tsx
 │   │   │   ├── TabContentHost.tsx # Renders the content of the active tab (QueryEditorTab, ResultsViewerContainer, etc.)
 │   │   │   └── useTabs.ts        # Hook for tab state and logic
@@ -486,17 +430,17 @@ ui/
 │   │       └── useSettings.ts
 │   │
 │   ├── services/               # Application-wide services (API, persistence, etc.)
-│   │   ├── apiClient.ts          # Centralized API client (e.g., using axios)
-│   │   ├── apiEndpoints.ts       # Definitions of API routes & constants
-│   │   ├── persistenceService.ts # For local storage (e.g., Dexie.js wrapper for settings, workspace, and query results caching)
-│   │   └── notificationService.ts # For toasts and global notifications
+│   │   ├── api-client.ts       # Centralized API client (e.g., using axios)
+│   │   ├── api-endpoints.ts    # Definitions of API routes & constants
+│   │   ├── persistence-service.ts # For local storage (e.g., Dexie.js wrapper for settings, workspace, and query results caching)
+│   │   └── notification-service.ts # For toasts and global notifications
 │   │
 │   ├── store/                  # Global state management (e.g., Zustand, Redux Toolkit)
 │   │   ├── index.ts              # Root store setup, exports all slices/stores
 │   │   ├── connectionSlice.ts    # State for connections
 │   │   ├── schemaSlice.ts        # State for database schemas
 │   │   ├── tabSlice.ts           # State for open tabs and their content (including references to cached result IDs)
-│   │   ├── resultsSlice.ts       # Potentially a slice to manage metadata about active/cached results if not fully handled by features/results_viewer
+│   │   ├── resultsSlice.ts       # Potentially a slice to manage metadata about active/cached results if not fully handled by features/results-viewer
 │   │   ├── editorSlice.ts        # State specifically for editor instances if complex
 │   │   ├── uiSlice.ts            # General UI state (modals, global loading indicators)
 │   │   └── settingsSlice.ts      # User preferences
